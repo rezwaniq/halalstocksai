@@ -318,6 +318,7 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
 
   const handleSearch = async (query: string) => {
     setSearch(query);
+    setTicker(''); // Clear old ticker when user types new search
     if (query.length < 2) {
       setSearchResults([]);
       setShowDropdown(false);
@@ -347,7 +348,8 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const tickerToUse = ticker.trim() || search.trim().toUpperCase();
+    // Use search field value as priority (most recent user input)
+    const tickerToUse = search.trim().toUpperCase() || ticker.trim().toUpperCase();
 
     if (!tickerToUse) {
       setError('Please enter a ticker symbol');
