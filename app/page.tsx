@@ -144,13 +144,13 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-8 py-4 flex justify-between items-center">
             <div className="flex items-center gap-2">
               <Image src="/logo.png" alt="HalalStocks AI Logo" width={56} height={56} priority className="rounded-full object-cover" />
-              <span className="font-bold text-4xl bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent" style={{ fontFamily: 'var(--font-rajdhani)' }}>
+              <span className="font-bold text-4xl bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent" style={{ fontFamily: 'var(--font-rajdhani)' }}>
                 HalalStocks AI
               </span>
             </div>
             <button
               onClick={() => setShowAnalyzer(true)}
-              className="px-6 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 rounded font-medium transition shadow-lg shadow-emerald-500/50 hover:shadow-emerald-500/80"
+              className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded font-medium transition shadow-lg shadow-blue-600/30 hover:shadow-blue-600/50"
             >
               Launch App
             </button>
@@ -161,9 +161,9 @@ export default function Home() {
         <StockTicker />
 
         {/* Hero */}
-        <section className="max-w-6xl mx-auto px-8 py-32 text-center">
+        <section className="max-w-6xl mx-auto px-8 py-14 text-center">
           <div className="mb-8">
-            <h1 className="text-5xl font-black mb-6 bg-gradient-to-r from-emerald-600 via-gray-900 to-cyan-600 bg-clip-text text-transparent leading-tight" style={{ fontFamily: 'var(--font-rajdhani)', letterSpacing: '0.05em' }}>
+            <h1 className="text-5xl font-black mb-6 bg-gradient-to-r from-blue-700 via-gray-900 to-blue-500 bg-clip-text text-transparent leading-tight" style={{ fontFamily: 'var(--font-rajdhani)', letterSpacing: '0.05em' }}>
               ISLAMIC FINANCE<br />INTELLIGENCE
             </h1>
             <p className="text-xl text-gray-600 mb-4">
@@ -176,7 +176,7 @@ export default function Home() {
 
           <button
             onClick={() => setShowAnalyzer(true)}
-            className="group relative px-10 py-4 font-bold text-lg text-black bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-lg hover:from-emerald-500 hover:to-emerald-600 transition shadow-2xl shadow-emerald-500/50 hover:shadow-emerald-500/80 hover:scale-105"
+            className="group relative px-10 py-4 font-bold text-lg text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg hover:from-blue-700 hover:to-blue-800 transition shadow-2xl shadow-blue-600/30 hover:shadow-blue-600/50 hover:scale-105"
           >
             <span className="relative flex items-center justify-center gap-2">
               Start Analyzing
@@ -186,7 +186,7 @@ export default function Home() {
         </section>
 
         {/* Stats Bar */}
-        <section className="max-w-6xl mx-auto px-8 py-12 grid grid-cols-2 md:grid-cols-4 gap-6 mb-24">
+        <section className="max-w-6xl mx-auto px-8 py-8 grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
           {[
             { label: '3 AAOIFI Ratios', value: 'Debt • Cash • Impure' },
             { label: '100% Real Data', value: 'Live APIs' },
@@ -194,15 +194,15 @@ export default function Home() {
             { label: '∞ Stocks', value: 'Global Coverage' },
           ].map((stat, idx) => (
             <div key={idx} className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition">
-              <p className="text-emerald-700 font-bold text-sm mb-1">{stat.label}</p>
+              <p className="text-blue-700 font-bold text-sm mb-1">{stat.label}</p>
               <p className="text-gray-500 text-xs">{stat.value}</p>
             </div>
           ))}
         </section>
 
         {/* How It Works */}
-        <section className="max-w-6xl mx-auto px-8 py-24 border-t border-gray-200">
-          <h2 className="text-4xl font-bold text-center mb-16 bg-gradient-to-r from-emerald-700 to-cyan-700 bg-clip-text text-transparent" style={{ fontFamily: 'var(--font-rajdhani)' }}>
+        <section className="max-w-6xl mx-auto px-8 py-10 border-t border-gray-200">
+          <h2 className="text-4xl font-bold text-center mb-16 bg-gradient-to-r from-blue-800 to-blue-600 bg-clip-text text-transparent" style={{ fontFamily: 'var(--font-rajdhani)' }}>
             HOW IT WORKS
           </h2>
           <div className="grid md:grid-cols-4 gap-6">
@@ -217,8 +217,8 @@ export default function Home() {
                 <div key={idx} className="relative group">
                   <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-lg blur opacity-0 group-hover:opacity-20 transition"></div>
                   <div className="relative border border-gray-200 rounded-lg p-6 bg-white shadow-sm hover:shadow-md transition">
-                    <div className="text-4xl font-bold text-emerald-700 mb-2" style={{ fontFamily: 'var(--font-space-mono)' }}>{step.num}</div>
-                    <div className="text-2xl mb-3"><Icon size={28} className="text-cyan-700" strokeWidth={1.5} /></div>
+                    <div className="text-4xl font-bold text-blue-700 mb-2" style={{ fontFamily: 'var(--font-space-mono)' }}>{step.num}</div>
+                    <div className="text-2xl mb-3"><Icon size={28} className="text-blue-600" strokeWidth={1.5} /></div>
                     <h3 className="font-bold text-gray-900 mb-1" style={{ fontFamily: 'var(--font-rajdhani)' }}>{step.title}</h3>
                     <p className="text-sm text-gray-600">{step.desc}</p>
                   </div>
@@ -229,8 +229,8 @@ export default function Home() {
         </section>
 
         {/* Features Grid */}
-        <section className="max-w-6xl mx-auto px-8 py-24 border-t border-gray-200">
-          <h2 className="text-4xl font-bold text-center mb-16 bg-gradient-to-r from-emerald-700 to-cyan-700 bg-clip-text text-transparent" style={{ fontFamily: 'var(--font-rajdhani)' }}>
+        <section className="max-w-6xl mx-auto px-8 py-10 border-t border-gray-200">
+          <h2 className="text-4xl font-bold text-center mb-16 bg-gradient-to-r from-blue-800 to-blue-600 bg-clip-text text-transparent" style={{ fontFamily: 'var(--font-rajdhani)' }}>
             POWERFUL FEATURES
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -248,7 +248,7 @@ export default function Home() {
               return (
                 <div key={idx} className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition">
                   <div className="flex justify-between items-start mb-2">
-                    <Icon size={24} className="text-cyan-700" strokeWidth={1.5} />
+                    <Icon size={24} className="text-blue-600" strokeWidth={1.5} />
                     <span className={`text-xs font-bold px-2 py-1 rounded ${
                       feature.status === '✓'
                         ? 'bg-green-100 text-green-700'
@@ -265,14 +265,14 @@ export default function Home() {
         </section>
 
         {/* CTA */}
-        <section className="max-w-4xl mx-auto px-8 py-24 text-center border-t border-gray-200">
+        <section className="max-w-4xl mx-auto px-8 py-10 text-center border-t border-gray-200">
           <h2 className="text-4xl font-bold mb-6 text-gray-900" style={{ fontFamily: 'var(--font-rajdhani)' }}>READY TO START?</h2>
           <p className="text-gray-600 mb-10 text-lg">
             Join thousands screening stocks with confidence
           </p>
           <button
             onClick={() => setShowAnalyzer(true)}
-            className="group relative px-10 py-4 font-bold text-lg text-black bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-lg hover:from-emerald-500 hover:to-emerald-600 transition shadow-2xl shadow-emerald-500/50 hover:shadow-emerald-500/80 hover:scale-105"
+            className="group relative px-10 py-4 font-bold text-lg text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg hover:from-blue-700 hover:to-blue-800 transition shadow-2xl shadow-blue-600/30 hover:shadow-blue-600/50 hover:scale-105"
           >
             <span className="relative flex items-center justify-center gap-2">
               Launch Analyzer

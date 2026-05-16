@@ -58,7 +58,7 @@ export default function StockTicker() {
   const tickerItems = [...displayStocks, ...displayStocks];
 
   return (
-    <div className="bg-white border-y border-gray-200 shadow-sm overflow-hidden">
+    <div className="bg-[#1E2D3D] border-y-2 border-blue-900 overflow-hidden">
       <style>{`
         @keyframes scroll-left {
           0% {
@@ -78,30 +78,30 @@ export default function StockTicker() {
         }
       `}</style>
 
-      <div className="overflow-hidden py-4">
+      <div className="overflow-hidden py-3">
         <div className="ticker-scroll">
           {tickerItems.map((stock, idx) => (
-            <div
-              key={idx}
-              className="flex items-center gap-3 px-6 whitespace-nowrap flex-shrink-0"
-            >
+            <div key={idx} className="flex items-center gap-4 px-6 whitespace-nowrap flex-shrink-0">
+              {idx > 0 && (
+                <span className="text-blue-400 text-xs">●</span>
+              )}
               <span
-                className="font-bold text-sm"
+                className="font-bold text-sm text-white tracking-wide"
                 style={{ fontFamily: 'var(--font-space-mono)' }}
               >
                 {stock.symbol}
               </span>
-              <span className="text-cyan-700 font-semibold text-sm">
+              <span className="text-blue-300 font-semibold text-sm" style={{ fontFamily: 'var(--font-space-mono)' }}>
                 ${typeof stock.price === 'string' ? stock.price : stock.price.toFixed(2)}
               </span>
               <span
                 className={`text-xs font-bold ${
                   parseFloat(stock.change) >= 0
-                    ? 'text-green-700'
-                    : 'text-red-700'
+                    ? 'text-green-400'
+                    : 'text-red-400'
                 }`}
               >
-                {parseFloat(stock.change) >= 0 ? '+' : ''}{stock.change}%
+                {parseFloat(stock.change) >= 0 ? '▲' : '▼'}{stock.change}%
               </span>
             </div>
           ))}
