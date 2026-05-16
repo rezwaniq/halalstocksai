@@ -105,10 +105,13 @@ export default function PurificationCalculator({
       <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-6">
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-bold text-amber-400">📈 Capital Gains — Scholar's Recommendation</h3>
+            <h3 className="text-lg font-bold text-amber-400">📈 Capital Gains Purification</h3>
+            <span className="text-xs font-bold px-2 py-1 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
+              Not Required by AAOIFI
+            </span>
           </div>
           <p className="text-sm text-gray-300">
-            Not required by AAOIFI but recommended by some scholars as additional precaution
+            Recommended by some scholars as additional precaution
           </p>
         </div>
 
