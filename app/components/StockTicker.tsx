@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 
 interface Stock {
   symbol: string;
-  price: string;
+  price: string | number;
   change: string;
 }
 
