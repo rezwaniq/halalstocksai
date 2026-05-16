@@ -5,6 +5,8 @@ import {
   Search, BarChart3, Zap, Sparkles, Brain, Database, Flag,
   Lightbulb, Wallet, CheckCircle2, Download, Headphones, X, TrendingUp, Check
 } from 'lucide-react';
+import Logo from './components/Logo';
+import StockTicker from './components/StockTicker';
 
 interface AnalysisResult {
   ticker: string;
@@ -121,10 +123,6 @@ export default function Home() {
           />
         </svg>
 
-        {/* Floating Orbs */}
-        <div className="absolute top-20 right-20 w-72 h-72 bg-emerald-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
-        <div className="absolute bottom-40 left-20 w-96 h-96 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse" style={{ animationDelay: '2s' }}></div>
-        <div className="absolute top-1/2 left-1/3 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10" style={{ animation: 'float 12s ease-in-out infinite' }}></div>
 
         <style>{`
           @keyframes float {
@@ -143,11 +141,9 @@ export default function Home() {
         {/* Navigation */}
         <nav className="sticky top-0 z-50 bg-black/40 backdrop-blur-md border-b border-emerald-500/20">
           <div className="max-w-7xl mx-auto px-8 py-4 flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded flex items-center justify-center">
-                <CheckCircle2 size={20} className="text-white" />
-              </div>
-              <span className="font-bold text-xl bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent" style={{ fontFamily: 'var(--font-rajdhani)' }}>
+            <div className="flex items-center gap-2">
+              <Logo size={56} />
+              <span className="font-bold text-4xl bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent" style={{ fontFamily: 'var(--font-rajdhani)' }}>
                 HalalStocks AI
               </span>
             </div>
@@ -160,10 +156,13 @@ export default function Home() {
           </div>
         </nav>
 
+        {/* Stock Ticker - Top */}
+        <StockTicker />
+
         {/* Hero */}
         <section className="max-w-6xl mx-auto px-8 py-32 text-center">
           <div className="mb-8">
-            <h1 className="text-7xl font-black mb-6 bg-gradient-to-r from-emerald-300 via-white to-cyan-300 bg-clip-text text-transparent leading-tight" style={{ fontFamily: 'var(--font-rajdhani)', letterSpacing: '0.05em' }}>
+            <h1 className="text-5xl font-black mb-6 bg-gradient-to-r from-emerald-300 via-white to-cyan-300 bg-clip-text text-transparent leading-tight" style={{ fontFamily: 'var(--font-rajdhani)', letterSpacing: '0.05em' }}>
               ISLAMIC FINANCE<br />INTELLIGENCE
             </h1>
             <p className="text-xl text-gray-400 mb-4">
@@ -392,7 +391,7 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
 
         <div className="bg-black/50 backdrop-blur border border-emerald-500/30 rounded-lg p-6 mb-8">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
+            <div className="relative">
               <label className="block text-sm text-gray-400 mb-2">Company Name or Ticker</label>
               <input
                 type="text"
@@ -404,13 +403,13 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
               />
 
               {showDropdown && searchResults.length > 0 && (
-                <div className="absolute z-10 w-full mt-2 bg-gray-900 border border-emerald-500/30 rounded-lg shadow-2xl max-w-2xl">
+                <div className="absolute z-50 w-full mt-1 bg-gray-900 border border-emerald-500/30 rounded-lg shadow-2xl max-h-96 overflow-y-auto">
                   {searchResults.map((result) => (
                     <button
                       key={result.symbol}
                       type="button"
                       onClick={() => selectCompany(result.symbol)}
-                      className="w-full text-left px-4 py-3 hover:bg-emerald-500/10 text-gray-100 border-b border-gray-700 last:border-0"
+                      className="w-full text-left px-4 py-3 hover:bg-emerald-500/10 text-gray-100 border-b border-gray-700 last:border-0 transition"
                     >
                       <div className="font-semibold">{result.name}</div>
                       <div className="text-sm text-gray-400">{result.symbol} • {result.exchange}</div>

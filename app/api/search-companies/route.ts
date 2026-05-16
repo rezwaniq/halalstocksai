@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 
-const ALPHA_VANTAGE_API_KEY = process.env.ALPHA_VANTAGE_API_KEY;
+const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY;
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,28 +15,26 @@ export async function POST(request: NextRequest) {
     }
 
     const response = await axios.get(
-      'https://www.alphavantage.co/query',
+      'https://finnhub.io/api/v1/search',
       {
         params: {
-          function: 'SYMBOL_SEARCH',
-          keywords: query.trim(),
-          apikey: ALPHA_VANTAGE_API_KEY,
+          q: query.trim(),
+          token: FINNHUB_API_KEY,
         },
       }
     );
 
-    const results = (response.data.bestMatches || [])
+    const results = (response.data.result || [])
       .filter((item: any) => {
-        // Filter to main market listings (avoid duplicates and OTC)
-        const mainExchanges = ['NASDAQ', 'NYSE', 'AMEX'];
-        return mainExchanges.some(ex => item['4. region']?.includes(ex));
+        // Filter to common stocks
+        return item.type === 'Common Stock';
       })
       .slice(0, 10) // Limit to 10 results
       .map((item: any) => ({
-        symbol: item['1. symbol'],
-        name: item['2. name'],
-        currency: item['8. currency'],
-        exchange: item['4. region'],
+        symbol: item.symbol,
+        name: item.description,
+        currency: 'USD',
+        exchange: item.displaySymbol,
       }));
 
     return NextResponse.json(
@@ -45,6 +43,9 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error('Search error:', error);
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+    }
     return NextResponse.json(
       { results: [] },
       { status: 200 }
