@@ -142,7 +142,7 @@ export default function Home() {
         <nav className="sticky top-0 z-50 bg-black/40 backdrop-blur-md border-b border-emerald-500/20">
           <div className="max-w-7xl mx-auto px-8 py-4 flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <Image src="/logo.png" alt="HalalStocks AI Logo" width={56} height={56} priority />
+              <Image src="/logo.png" alt="HalalStocks AI Logo" width={56} height={56} priority className="rounded-full object-cover" />
               <span className="font-bold text-4xl bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent" style={{ fontFamily: 'var(--font-rajdhani)' }}>
                 HalalStocks AI
               </span>
