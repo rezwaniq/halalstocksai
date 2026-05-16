@@ -32,30 +32,13 @@ export default function PurificationCalculator({
     }).format(amount);
   };
 
-  // NON-COMPLIANT: Hide purification, show warning
+  // NON-COMPLIANT: Hide purification calculator completely
   if (verdict === 'non-compliant') {
     return (
-      <div className="space-y-6">
-        <div className="rounded-xl border-2 border-red-500/50 bg-red-500/10 p-8 text-center">
-          <div className="text-5xl mb-4">⛔</div>
-          <h2 className="text-2xl font-bold text-red-400 mb-3">
-            Not Permissible for Islamic Investment
-          </h2>
-          <p className="text-white text-lg">
-            This stock does not meet Islamic finance standards under AAOIFI Standard No. 21.
-          </p>
-          <p className="text-gray-300 mt-4">
-            Do not invest in this security. Consider Shariah-compliant alternatives instead.
-          </p>
-        </div>
-
-        {/* Disclaimer */}
-        <div className="text-center text-xs text-gray-400 border-t border-gray-700 pt-6">
-          <p>
-            Purification calculations are based on AAOIFI Standard No. 21. Consult your local
-            scholar for guidance specific to your situation.
-          </p>
-        </div>
+      <div className="text-center p-6">
+        <p className="text-lg text-white font-semibold">
+          This stock is not permissible for Islamic investment. Do not invest.
+        </p>
       </div>
     );
   }
@@ -122,13 +105,10 @@ export default function PurificationCalculator({
       <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-6">
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-bold text-amber-400">📈 Capital Gains Purification</h3>
-            <span className="text-xs font-bold px-2 py-1 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
-              Scholar's Recommendation
-            </span>
+            <h3 className="text-lg font-bold text-amber-400">📈 Capital Gains — Scholar's Recommendation</h3>
           </div>
           <p className="text-sm text-gray-300">
-            Some scholars recommend purifying capital gains as additional precaution (not required by AAOIFI)
+            Not required by AAOIFI but recommended by some scholars as additional precaution
           </p>
         </div>
 
