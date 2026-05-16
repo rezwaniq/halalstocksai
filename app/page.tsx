@@ -467,39 +467,53 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
   };
 
   const renderAnalysisWithSections = (text: string) => {
-    const sections = [];
-    const lines = text.split('\n');
-    let currentSection = null;
-    let currentContent: string[] = [];
+    // Extract summary (first sentence)
+    const summaryMatch = text.match(/^[^.!?]+[.!?]/);
+    const summary = summaryMatch ? summaryMatch[0].trim() : 'Analysis in progress...';
 
-    lines.forEach((line) => {
-      if (line.includes('compliance') && line.length < 80) {
-        if (currentContent.length > 0) {
-          sections.push({ heading: currentSection, content: currentContent.join('\n') });
-          currentContent = [];
-        }
-        currentSection = line.trim();
-      } else if (line.trim()) {
-        currentContent.push(line);
-      }
-    });
+    // Extract overall assessment (last sentence mentioning unsuitable/suitable)
+    const assessmentMatch = text.match(/[^.]*(?:unsuitable|suitable|HALAL|Non-compliant)[^.]*\./i);
+    const assessment = assessmentMatch ? assessmentMatch[0].trim() : 'See analysis details below.';
 
-    if (currentContent.length > 0) {
-      sections.push({ heading: currentSection, content: currentContent.join('\n') });
-    }
+    // Extract finances section (contains debt, ratio, interest, market cap, threshold)
+    const financesMatch = text.match(/(?:[^.]*(?:debt|ratio|interest|market cap|threshold|exceeds|below)[^.]*\.)+/gi);
+    const finances = financesMatch
+      ? financesMatch.join(' ').trim()
+      : 'Financial metrics analyzed based on AAOIFI standards.';
+
+    // Extract portfolio section (contains sector, industry, business, operations, services)
+    const portfolioMatch = text.match(/(?:[^.]*(?:operates|sector|industry|business|services|products)[^.]*\.)+/gi);
+    const portfolio = portfolioMatch
+      ? portfolioMatch.join(' ').trim()
+      : 'Business activities evaluated against Islamic principles.';
 
     return (
-      <div className="space-y-4">
-        {sections.map((section, idx) => (
-          <div key={idx}>
-            {section.heading && (
-              <h4 className="text-sm font-semibold text-cyan-400 mb-2">{section.heading}</h4>
-            )}
-            <div className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
-              {section.content}
-            </div>
-          </div>
-        ))}
+      <div className="space-y-5">
+        {/* Summary */}
+        <div>
+          <h4 className="text-sm font-semibold text-emerald-400 mb-2">Summary</h4>
+          <p className="text-gray-300 text-sm leading-relaxed">{summary}</p>
+        </div>
+
+        {/* Finances */}
+        <div>
+          <h4 className="text-sm font-semibold text-cyan-400 mb-2">Finances</h4>
+          <p className="text-gray-300 text-sm leading-relaxed">{finances}</p>
+        </div>
+
+        {/* Portfolio */}
+        <div>
+          <h4 className="text-sm font-semibold text-blue-400 mb-2">Portfolio</h4>
+          <p className="text-gray-300 text-sm leading-relaxed">{portfolio}</p>
+        </div>
+
+        {/* Overall Assessment */}
+        <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-3">
+          <h4 className="text-sm font-semibold text-emerald-400 mb-2">Overall Assessment (AAOIFI Standards)</h4>
+          <p className="text-gray-300 text-sm leading-relaxed">
+            {assessment} Based on AAOIFI (Accounting and Auditing Organization for Islamic Financial Institutions) standards, this assessment concludes the company's Shariah compliance status.
+          </p>
+        </div>
       </div>
     );
   };
