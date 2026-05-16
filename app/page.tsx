@@ -467,9 +467,15 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
   };
 
   const renderAnalysisWithSections = (text: string, verdict?: string, ratios?: any) => {
-    // Extract summary (first 1-2 sentences)
-    const summaryMatch = text.match(/^[^.!?]+[.!?]\s*[^.!?]*[.!?]?/);
-    const summary = summaryMatch ? summaryMatch[0].trim() : text.substring(0, 150);
+    // Generate layman-friendly summary based on verdict and ratios
+    let summary = '';
+    if (verdict === 'Halal') {
+      summary = `This company passes all Islamic finance requirements. Its business activities are permissible under Islamic law, generating minimal non-compliant revenue. The company maintains healthy debt levels and operates responsibly with investor funds. Financial metrics align with AAOIFI standards, making it suitable for Muslim investors seeking compliant investment opportunities.`;
+    } else if (verdict === 'Questionable') {
+      summary = `This company has mixed compliance status. While some aspects meet Islamic finance standards, others require careful consideration. There are concerns regarding either business activities or financial metrics that don't fully align with Islamic principles. Investors should review specific areas of concern before making investment decisions.`;
+    } else {
+      summary = `This company does not meet Islamic finance standards. It either engages in non-compliant business activities or maintains excessive debt levels that violate Islamic principles. The financial structure or revenue sources are not suitable for Muslim investors seeking Shariah-compliant investments.`;
+    }
 
     // Determine Gate 1 status (business activity) - based on impure income
     const gate1Pass = ratios?.impureIncomeRatio <= 0.05;
