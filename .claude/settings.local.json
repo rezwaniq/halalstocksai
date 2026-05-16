@@ -10,7 +10,9 @@
       "PowerShell(taskkill *)",
       "Bash(curl -s 'https://www.alphavantage.co/query?function=OVERVIEW&symbol=TSLA&apikey=XM82P274RYWXHEX1')",
       "Bash(curl -s 'https://finnhub.io/api/v1/stock/profile2?symbol=TSLA&token=d83vh0pr01qkm5c9msagd83vh0pr01qkm5c9msb0')",
-      "Bash(git checkout *)"
+      "Bash(git checkout *)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'Improve UI spacing, add color-coded analysis, and mock test companies *)"
     ]
   }
 }

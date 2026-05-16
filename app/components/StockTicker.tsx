@@ -58,7 +58,7 @@ export default function StockTicker() {
   const tickerItems = [...displayStocks, ...displayStocks];
 
   return (
-    <div className="bg-black/30 border-y border-emerald-500/20 overflow-hidden">
+    <div className="bg-white border-y border-gray-200 shadow-sm overflow-hidden">
       <style>{`
         @keyframes scroll-left {
           0% {
@@ -91,14 +91,14 @@ export default function StockTicker() {
               >
                 {stock.symbol}
               </span>
-              <span className="text-cyan-400 font-semibold text-sm">
+              <span className="text-cyan-700 font-semibold text-sm">
                 ${typeof stock.price === 'string' ? stock.price : stock.price.toFixed(2)}
               </span>
               <span
                 className={`text-xs font-bold ${
                   parseFloat(stock.change) >= 0
-                    ? 'text-emerald-400'
-                    : 'text-red-400'
+                    ? 'text-green-700'
+                    : 'text-red-700'
                 }`}
               >
                 {parseFloat(stock.change) >= 0 ? '+' : ''}{stock.change}%
