@@ -45,12 +45,12 @@ export default function Logo({ size = 200 }: { size?: number }) {
       {/* Outer decorative ring - rotating */}
       <g className="logo-ring" opacity="0.6">
         <circle cx="100" cy="100" r="92" fill="none" stroke="url(#grad1)" strokeWidth="1.2" />
-        <circle cx="100" cy="100" r="88" fill="none" stroke="url(#grad2)" strokeWidth="0.6" dasharray="2,3" opacity="0.5" />
+        <circle cx="100" cy="100" r="88" fill="none" stroke="url(#grad2)" strokeWidth="0.6" strokeDasharray="2,3" opacity="0.5" />
       </g>
 
       {/* Secondary ring */}
       <circle cx="100" cy="100" r="80" fill="none" stroke="url(#grad1)" strokeWidth="0.8" opacity="0.4" />
-      <circle cx="100" cy="100" r="74" fill="none" stroke="url(#grad2)" strokeWidth="0.6" opacity="0.3" dasharray="3,4" />
+      <circle cx="100" cy="100" r="74" fill="none" stroke="url(#grad2)" strokeWidth="0.6" opacity="0.3" strokeDasharray="3,4" />
 
       {/* Islamic geometric pattern - center hexagon */}
       <g filter="url(#innerGlow)" opacity="0.5">
