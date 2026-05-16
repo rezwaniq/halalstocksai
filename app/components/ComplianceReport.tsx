@@ -1,6 +1,7 @@
 'use client';
 
 import { ReactNode } from 'react';
+import PurificationCalculator from './PurificationCalculator';
 
 interface ComplianceData {
   ticker: string;
@@ -396,42 +397,16 @@ export default function ComplianceReport({ data }: ComplianceReportProps) {
         </div>
       </Card>
 
-      {/* Purification */}
-      <Card className="overflow-hidden border-2 border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20">
-        <div className="border-b border-amber-300 dark:border-amber-700 px-8 py-6 bg-amber-100 dark:bg-amber-900/30">
-          <SectionHeader title="🧼 Purification Requirement" />
+      {/* Purification Calculator */}
+      <Card className="overflow-hidden border-2">
+        <div className="border-b border-slate-200 dark:border-slate-700 px-8 py-6 bg-slate-50 dark:bg-slate-700/50">
+          <SectionHeader title="🧼 Purification Calculator (AAOIFI Standard No. 21)" />
         </div>
         <div className="p-8">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-            <div className="sm:col-span-2">
-              <h3 className="text-sm font-semibold text-white mb-3">
-                Purification Amount
-              </h3>
-              <div className="flex items-baseline gap-3">
-                <div className="text-4xl font-bold text-amber-700 dark:text-amber-400">
-                  {data.purification.percentage}%
-                </div>
-                <div className="text-sm text-white">
-                  of annual investment returns
-                </div>
-              </div>
-              <div className="mt-4 p-3 rounded-lg bg-white/50 dark:bg-slate-800/50 border border-amber-200 dark:border-amber-700">
-                <p className="text-sm font-mono text-white">
-                  Donate: <span className="font-bold text-amber-700 dark:text-amber-400">
-                    {data.purification.amount}
-                  </span>
-                </p>
-              </div>
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-white mb-3">
-                Explanation
-              </h3>
-              <p className="text-sm text-white leading-relaxed">
-                {data.purification.explanation}
-              </p>
-            </div>
-          </div>
+          <PurificationCalculator
+            verdict={data.verdict}
+            impureIncomePercentage={nonCompliantPercentage}
+          />
         </div>
       </Card>
 
