@@ -7,6 +7,7 @@ import {
   Lightbulb, Wallet, CheckCircle2, Download, Headphones, X, TrendingUp, Check
 } from 'lucide-react';
 import StockTicker from './components/StockTicker';
+import PurificationCalculator from './components/PurificationCalculator';
 
 interface AnalysisResult {
   ticker: string;
@@ -824,21 +825,13 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
               </div>
             </div>
 
-            {/* PURIFICATION */}
+            {/* PURIFICATION CALCULATOR */}
             <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 backdrop-blur border border-purple-500/30 rounded-lg p-6">
-              <h3 className="text-xl font-bold text-white mb-4" style={{ fontFamily: 'var(--font-rajdhani)' }}>PURIFICATION REQUIREMENT</h3>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm mb-2">Recommended Donation (Zakat Purification)</p>
-                  <p className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent" style={{ fontFamily: 'var(--font-rajdhani)' }}>
-                    {results.financialMetrics.purificationPercentage.toFixed(2)}%
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-gray-400 text-xs mb-1">Of annual gains to charitable causes</p>
-                  <p className="text-gray-500 text-xs">Calculated based on non-compliant revenue</p>
-                </div>
-              </div>
+              <h3 className="text-xl font-bold text-white mb-4" style={{ fontFamily: 'var(--font-rajdhani)' }}>🧼 PURIFICATION CALCULATOR (AAOIFI STANDARD NO. 21)</h3>
+              <PurificationCalculator
+                verdict={results.analysis.verdict.toLowerCase() as 'halal' | 'questionable' | 'non-compliant'}
+                impureIncomePercentage={results.ratios.impureIncomeRatio * 100}
+              />
             </div>
           </div>
         )}
