@@ -138,15 +138,17 @@ export default function Home() {
         {/* Navigation */}
         <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-sm border-b border-gray-200 shadow-sm">
           <div className="max-w-7xl mx-auto px-8 py-4 flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <Image src="/logo.png" alt="HalalStocks AI Logo" width={56} height={56} priority className="rounded-full object-cover" />
-              <span className="font-bold text-4xl bg-gradient-to-r from-blue-500 to-blue-700 bg-clip-text text-transparent" style={{ fontFamily: 'var(--font-poppins)' }}>
+            <div className="flex items-center gap-3">
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-100 to-blue-50 p-1 shadow-sm border border-blue-200/50 flex items-center justify-center flex-shrink-0">
+                <Image src="/logo.png" alt="HalalStocks AI Logo" width={52} height={52} priority className="rounded-full object-cover" />
+              </div>
+              <span className="font-bold text-3xl bg-gradient-to-r from-blue-500 to-blue-700 bg-clip-text text-transparent" style={{ fontFamily: 'var(--font-poppins)' }}>
                 HalalStocks AI
               </span>
             </div>
             <button
               onClick={() => setShowAnalyzer(true)}
-              className="px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded font-medium transition shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50"
+              className="px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded font-medium text-white transition shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50"
             >
               Launch App
             </button>
@@ -162,7 +164,7 @@ export default function Home() {
         <section className="max-w-6xl mx-auto px-8 py-14 text-center">
           <div className="mb-8">
             <h1 className="text-5xl font-black mb-6 bg-gradient-to-r from-blue-600 via-gray-900 to-blue-400 bg-clip-text text-transparent leading-tight" style={{ fontFamily: 'var(--font-poppins)', letterSpacing: '0.02em' }}>
-              GROW WEALTH WITHOUT<br />COMPROMISING VALUES OR PRINCIPLES
+              GROW YOUR WEALTH<br />WITHOUT COMPROMISING PRINCIPLES
             </h1>
             <p className="text-xl text-gray-600 mb-4">
               The future of Shariah-compliant investing powered by AI
