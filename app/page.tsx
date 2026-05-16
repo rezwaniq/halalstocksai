@@ -66,7 +66,7 @@ export default function Home() {
           <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
-                <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#2563eb" strokeWidth="0.5" opacity="0.5" />
+                <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#3B82F6" strokeWidth="0.5" opacity="0.5" />
               </pattern>
             </defs>
             <rect width="100%" height="100%" fill="url(#grid)" />
@@ -77,8 +77,8 @@ export default function Home() {
         <svg className="absolute inset-0 w-full h-full opacity-5" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <linearGradient id="chartGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#2563eb" />
-              <stop offset="100%" stopColor="#1e40af" />
+              <stop offset="0%" stopColor="#3B82F6" />
+              <stop offset="100%" stopColor="#1D4ED8" />
             </linearGradient>
             <filter id="glow">
               <feGaussianBlur stdDeviation="3" result="coloredBlur" />
@@ -140,13 +140,13 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-8 py-4 flex justify-between items-center">
             <div className="flex items-center gap-2">
               <Image src="/logo.png" alt="HalalStocks AI Logo" width={56} height={56} priority className="rounded-full object-cover" />
-              <span className="font-bold text-4xl bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent" style={{ fontFamily: 'var(--font-rajdhani)' }}>
+              <span className="font-bold text-4xl bg-gradient-to-r from-blue-500 to-blue-700 bg-clip-text text-transparent" style={{ fontFamily: 'var(--font-poppins)' }}>
                 HalalStocks AI
               </span>
             </div>
             <button
               onClick={() => setShowAnalyzer(true)}
-              className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded font-medium transition shadow-lg shadow-blue-600/30 hover:shadow-blue-600/50"
+              className="px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded font-medium transition shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50"
             >
               Launch App
             </button>
@@ -161,8 +161,8 @@ export default function Home() {
         {/* Hero */}
         <section className="max-w-6xl mx-auto px-8 py-14 text-center">
           <div className="mb-8">
-            <h1 className="text-5xl font-black mb-6 bg-gradient-to-r from-blue-700 via-gray-900 to-blue-500 bg-clip-text text-transparent leading-tight" style={{ fontFamily: 'var(--font-rajdhani)', letterSpacing: '0.05em' }}>
-              ISLAMIC FINANCE<br />INTELLIGENCE
+            <h1 className="text-5xl font-black mb-6 bg-gradient-to-r from-blue-600 via-gray-900 to-blue-400 bg-clip-text text-transparent leading-tight" style={{ fontFamily: 'var(--font-poppins)', letterSpacing: '0.02em' }}>
+              GROW WEALTH WITHOUT<br />COMPROMISING VALUES OR PRINCIPLES
             </h1>
             <p className="text-xl text-gray-600 mb-4">
               The future of Shariah-compliant investing powered by AI
@@ -174,7 +174,7 @@ export default function Home() {
 
           <button
             onClick={() => setShowAnalyzer(true)}
-            className="group relative px-10 py-4 font-bold text-lg text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg hover:from-blue-700 hover:to-blue-800 transition shadow-2xl shadow-blue-600/30 hover:shadow-blue-600/50 hover:scale-105"
+            className="group relative px-10 py-4 font-bold text-lg text-white bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg hover:from-blue-600 hover:to-blue-700 transition shadow-2xl shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-105"
           >
             <span className="relative flex items-center justify-center gap-2">
               Start Analyzing
@@ -192,7 +192,7 @@ export default function Home() {
             { label: '∞ Stocks', value: 'Global Coverage' },
           ].map((stat, idx) => (
             <div key={idx} className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition">
-              <p className="text-blue-700 font-bold text-sm mb-1">{stat.label}</p>
+              <p className="text-blue-500 font-bold text-sm mb-1">{stat.label}</p>
               <p className="text-gray-500 text-xs">{stat.value}</p>
             </div>
           ))}
@@ -200,7 +200,7 @@ export default function Home() {
 
         {/* How It Works */}
         <section className="max-w-6xl mx-auto px-8 py-10 border-t border-gray-200">
-          <h2 className="text-4xl font-bold text-center mb-16 bg-gradient-to-r from-blue-800 to-blue-600 bg-clip-text text-transparent" style={{ fontFamily: 'var(--font-rajdhani)' }}>
+          <h2 className="text-4xl font-bold text-center mb-16 bg-gradient-to-r from-blue-700 to-blue-500 bg-clip-text text-transparent" style={{ fontFamily: 'var(--font-poppins)' }}>
             HOW IT WORKS
           </h2>
           <div className="grid md:grid-cols-4 gap-6">
@@ -213,11 +213,11 @@ export default function Home() {
               const Icon = step.Icon;
               return (
                 <div key={idx} className="relative group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg blur opacity-0 group-hover:opacity-20 transition"></div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg blur opacity-0 group-hover:opacity-20 transition"></div>
                   <div className="relative border border-gray-200 rounded-lg p-6 bg-white shadow-sm hover:shadow-md transition">
-                    <div className="text-4xl font-bold text-blue-700 mb-2" style={{ fontFamily: 'var(--font-space-mono)' }}>{step.num}</div>
-                    <div className="text-2xl mb-3"><Icon size={28} className="text-blue-600" strokeWidth={1.5} /></div>
-                    <h3 className="font-bold text-gray-900 mb-1" style={{ fontFamily: 'var(--font-rajdhani)' }}>{step.title}</h3>
+                    <div className="text-4xl font-bold text-blue-500 mb-2" style={{ fontFamily: 'var(--font-space-mono)' }}>{step.num}</div>
+                    <div className="text-2xl mb-3"><Icon size={28} className="text-blue-500" strokeWidth={1.5} /></div>
+                    <h3 className="font-bold text-gray-900 mb-1" style={{ fontFamily: 'var(--font-poppins)' }}>{step.title}</h3>
                     <p className="text-sm text-gray-600">{step.desc}</p>
                   </div>
                 </div>
@@ -228,7 +228,7 @@ export default function Home() {
 
         {/* Features Grid */}
         <section className="max-w-6xl mx-auto px-8 py-10 border-t border-gray-200">
-          <h2 className="text-4xl font-bold text-center mb-16 bg-gradient-to-r from-blue-800 to-blue-600 bg-clip-text text-transparent" style={{ fontFamily: 'var(--font-rajdhani)' }}>
+          <h2 className="text-4xl font-bold text-center mb-16 bg-gradient-to-r from-blue-700 to-blue-500 bg-clip-text text-transparent" style={{ fontFamily: 'var(--font-poppins)' }}>
             POWERFUL FEATURES
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -246,7 +246,7 @@ export default function Home() {
               return (
                 <div key={idx} className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition">
                   <div className="flex justify-between items-start mb-2">
-                    <Icon size={24} className="text-blue-600" strokeWidth={1.5} />
+                    <Icon size={24} className="text-blue-500" strokeWidth={1.5} />
                     <span className={`text-xs font-bold px-2 py-1 rounded ${
                       feature.status === '✓'
                         ? 'bg-green-100 text-green-700'
@@ -255,7 +255,7 @@ export default function Home() {
                       {feature.status}
                     </span>
                   </div>
-                  <h3 className="font-semibold text-sm text-gray-900" style={{ fontFamily: 'var(--font-rajdhani)' }}>{feature.title}</h3>
+                  <h3 className="font-semibold text-sm text-gray-900" style={{ fontFamily: 'var(--font-poppins)' }}>{feature.title}</h3>
                 </div>
               );
             })}
@@ -264,13 +264,13 @@ export default function Home() {
 
         {/* CTA */}
         <section className="max-w-4xl mx-auto px-8 py-10 text-center border-t border-gray-200">
-          <h2 className="text-4xl font-bold mb-6 text-gray-900" style={{ fontFamily: 'var(--font-rajdhani)' }}>READY TO START?</h2>
+          <h2 className="text-4xl font-bold mb-6 text-gray-900" style={{ fontFamily: 'var(--font-poppins)' }}>READY TO START?</h2>
           <p className="text-gray-600 mb-10 text-lg">
             Join thousands screening stocks with confidence
           </p>
           <button
             onClick={() => setShowAnalyzer(true)}
-            className="group relative px-10 py-4 font-bold text-lg text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg hover:from-blue-700 hover:to-blue-800 transition shadow-2xl shadow-blue-600/30 hover:shadow-blue-600/50 hover:scale-105"
+            className="group relative px-10 py-4 font-bold text-lg text-white bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg hover:from-blue-600 hover:to-blue-700 transition shadow-2xl shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-105"
           >
             <span className="relative flex items-center justify-center gap-2">
               Launch Analyzer
@@ -406,7 +406,7 @@ function AnalyzerContent({ onClose }: { onClose: () => void }) {
   };
 
   const getRatioColor = (value: number, threshold: number) => {
-    return value <= threshold ? 'bg-blue-600' : 'bg-red-500';
+    return value <= threshold ? 'bg-blue-500' : 'bg-red-500';
   };
 
   const getMockData = (ticker: string) => {
@@ -543,7 +543,7 @@ function AnalyzerContent({ onClose }: { onClose: () => void }) {
 
         {/* Verdict - Two Gate System */}
         <div className="space-y-3">
-          <h4 className="text-sm font-semibold text-blue-700">Verdict (AAOIFI Standard No. 21 - Two Gate System)</h4>
+          <h4 className="text-sm font-semibold text-blue-500">Verdict (AAOIFI Standard No. 21 - Two Gate System)</h4>
 
           {/* Gate 1 */}
           <div className={`${gate1Color} border rounded-lg p-3`}>
@@ -611,7 +611,7 @@ function AnalyzerContent({ onClose }: { onClose: () => void }) {
 
         {/* Overall Assessment */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h4 className="text-sm font-semibold text-blue-700 mb-2">Overall Assessment</h4>
+          <h4 className="text-sm font-semibold text-blue-500 mb-2">Overall Assessment</h4>
           <p className="text-gray-700 text-sm leading-relaxed">
             According to AAOIFI standards, {lastSentence.toLowerCase().startsWith('this company') ? lastSentence.substring(0, 1).toLowerCase() + lastSentence.substring(1) : lastSentence}
           </p>
@@ -623,10 +623,10 @@ function AnalyzerContent({ onClose }: { onClose: () => void }) {
   return (
     <div className="max-w-6xl mx-auto px-8 py-8">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent" style={{ fontFamily: 'var(--font-rajdhani)' }}>
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent" style={{ fontFamily: 'var(--font-poppins)' }}>
           HALAL STOCK ANALYZER
         </h1>
-        <button onClick={onClose} className="text-gray-400 hover:text-blue-700">
+        <button onClick={onClose} className="text-gray-400 hover:text-blue-500">
           <X size={28} strokeWidth={1.5} />
         </button>
       </div>
@@ -642,7 +642,7 @@ function AnalyzerContent({ onClose }: { onClose: () => void }) {
                 onChange={(e) => handleSearch(e.target.value)}
                 onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
                 placeholder="Search by name or ticker (e.g., Apple, AAPL)"
-                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50"
+                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400/50"
               />
 
               {showDropdown && searchResults.length > 0 && (
@@ -665,7 +665,7 @@ function AnalyzerContent({ onClose }: { onClose: () => void }) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-3 rounded-lg transition disabled:opacity-50 shadow-lg shadow-blue-600/30"
+              className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold py-3 rounded-lg transition disabled:opacity-50 shadow-lg shadow-blue-600/30"
             >
               {loading ? 'Analyzing...' : 'Analyze Stock'}
             </button>
@@ -690,7 +690,7 @@ function AnalyzerContent({ onClose }: { onClose: () => void }) {
                   <p className="text-gray-600 text-sm mt-2">{results.company.name} • {results.company.sector}</p>
                 </div>
                 <div className="text-right">
-                  <div className={`px-6 py-3 rounded-lg border font-bold text-lg mb-2 inline-block ${getVerdictColor(results.analysis.verdict)}`} style={{ fontFamily: 'var(--font-rajdhani)' }}>
+                  <div className={`px-6 py-3 rounded-lg border font-bold text-lg mb-2 inline-block ${getVerdictColor(results.analysis.verdict)}`} style={{ fontFamily: 'var(--font-poppins)' }}>
                     {results.analysis.verdict.toUpperCase()}
                   </div>
                   <p className="text-gray-500 text-xs">Analysis Date: {results.date}</p>
@@ -700,7 +700,7 @@ function AnalyzerContent({ onClose }: { onClose: () => void }) {
 
             {/* BUSINESS ACTIVITY SCREEN */}
             <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-4">
-              <h3 className="text-lg font-bold text-gray-900 mb-3" style={{ fontFamily: 'var(--font-rajdhani)' }}>BUSINESS ACTIVITY SCREEN</h3>
+              <h3 className="text-lg font-bold text-gray-900 mb-3" style={{ fontFamily: 'var(--font-poppins)' }}>BUSINESS ACTIVITY SCREEN</h3>
               <div className="space-y-3">
                 <div className="flex items-center gap-3 mb-4">
                   {results.ratios.impureIncomeRatio <= 0.05 ? (
@@ -718,11 +718,11 @@ function AnalyzerContent({ onClose }: { onClose: () => void }) {
                 <div>
                   <div className="flex justify-between mb-2">
                     <span className="text-gray-700 text-sm">Compliant vs Non-Compliant Revenue</span>
-                    <span className="text-blue-700 font-semibold text-sm">{((1 - results.ratios.impureIncomeRatio) * 100).toFixed(1)}% / {(results.ratios.impureIncomeRatio * 100).toFixed(1)}%</span>
+                    <span className="text-blue-500 font-semibold text-sm">{((1 - results.ratios.impureIncomeRatio) * 100).toFixed(1)}% / {(results.ratios.impureIncomeRatio * 100).toFixed(1)}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                     <div
-                      className="h-3 rounded-full bg-blue-600"
+                      className="h-3 rounded-full bg-blue-500"
                       style={{ width: `${Math.min((1 - results.ratios.impureIncomeRatio) * 100, 100)}%` }}
                     ></div>
                   </div>
@@ -731,7 +731,7 @@ function AnalyzerContent({ onClose }: { onClose: () => void }) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-200">
                   <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                     <p className="text-xs text-gray-500 mb-1">Compliant Revenue</p>
-                    <p className="text-blue-700 font-bold">{((1 - results.ratios.impureIncomeRatio) * 100).toFixed(1)}%</p>
+                    <p className="text-blue-500 font-bold">{((1 - results.ratios.impureIncomeRatio) * 100).toFixed(1)}%</p>
                   </div>
                   <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                     <p className="text-xs text-gray-500 mb-1">Non-Compliant Revenue</p>
@@ -743,7 +743,7 @@ function AnalyzerContent({ onClose }: { onClose: () => void }) {
 
             {/* FINANCIAL SCREEN */}
             <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-4">
-              <h3 className="text-lg font-bold text-gray-900 mb-4" style={{ fontFamily: 'var(--font-rajdhani)' }}>FINANCIAL SCREEN</h3>
+              <h3 className="text-lg font-bold text-gray-900 mb-4" style={{ fontFamily: 'var(--font-poppins)' }}>FINANCIAL SCREEN</h3>
               <div className="space-y-4">
                 {/* Debt Ratio */}
                 <div className="pb-4 border-b border-gray-200">
@@ -762,7 +762,7 @@ function AnalyzerContent({ onClose }: { onClose: () => void }) {
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-2">
                     <div className="flex justify-between items-baseline mb-2">
                       <span className="text-gray-600 text-xs">Interest-Bearing Debt</span>
-                      <span className="text-blue-700 font-bold text-sm">${(results.financialMetrics.interestBearingDebtDollars / 1e9).toFixed(2)}B</span>
+                      <span className="text-blue-500 font-bold text-sm">${(results.financialMetrics.interestBearingDebtDollars / 1e9).toFixed(2)}B</span>
                     </div>
                     <div className="flex justify-between items-baseline">
                       <span className="text-gray-600 text-xs">Market Cap</span>
@@ -775,7 +775,7 @@ function AnalyzerContent({ onClose }: { onClose: () => void }) {
                 {/* Deposits Ratio */}
                 <div className="pb-4 border-b border-gray-200">
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded flex items-center gap-1">
+                    <div className="px-2 py-1 bg-blue-100 text-blue-500 text-xs font-bold rounded flex items-center gap-1">
                       <Check size={12} /> INFO
                     </div>
                     <span className="text-gray-700 font-semibold text-sm">Interest-Bearing Deposits Ratio</span>
@@ -783,7 +783,7 @@ function AnalyzerContent({ onClose }: { onClose: () => void }) {
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-2">
                     <div className="flex justify-between items-baseline mb-2">
                       <span className="text-gray-600 text-xs">Interest-Bearing Deposits</span>
-                      <span className="text-blue-700 font-bold text-sm">${(results.financialMetrics.interestBearingDepositsDollars / 1e9).toFixed(2)}B</span>
+                      <span className="text-blue-500 font-bold text-sm">${(results.financialMetrics.interestBearingDepositsDollars / 1e9).toFixed(2)}B</span>
                     </div>
                     <div className="flex justify-between items-baseline">
                       <span className="text-gray-600 text-xs">Market Cap</span>
@@ -820,7 +820,7 @@ function AnalyzerContent({ onClose }: { onClose: () => void }) {
 
             {/* AI ANALYSIS */}
             <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-4">
-              <h3 className="text-lg font-bold text-gray-900 mb-3" style={{ fontFamily: 'var(--font-rajdhani)' }}>SHARIAH COMPLIANCE ANALYSIS</h3>
+              <h3 className="text-lg font-bold text-gray-900 mb-3" style={{ fontFamily: 'var(--font-poppins)' }}>SHARIAH COMPLIANCE ANALYSIS</h3>
               <div className="bg-gray-50 rounded-lg p-4">
                 {renderAnalysisWithSections(results.analysis.explanation, results.analysis.verdict, results.ratios)}
               </div>
@@ -828,7 +828,7 @@ function AnalyzerContent({ onClose }: { onClose: () => void }) {
 
             {/* PURIFICATION CALCULATOR */}
             <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-4" style={{ fontFamily: 'var(--font-rajdhani)' }}>🧼 PURIFICATION CALCULATOR (AAOIFI STANDARD NO. 21)</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-4" style={{ fontFamily: 'var(--font-poppins)' }}>🧼 PURIFICATION CALCULATOR (AAOIFI STANDARD NO. 21)</h3>
               <PurificationCalculator
                 verdict={results.analysis.verdict.toLowerCase() as 'halal' | 'questionable' | 'non-compliant'}
                 impureIncomePercentage={results.ratios.impureIncomeRatio * 100}

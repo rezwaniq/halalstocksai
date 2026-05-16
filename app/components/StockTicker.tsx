@@ -87,11 +87,11 @@ export default function StockTicker() {
               )}
               <span
                 className="font-bold text-sm text-white tracking-wide"
-                style={{ fontFamily: 'var(--font-space-mono)' }}
+                style={{ fontFamily: 'var(--font-geist-mono)' }}
               >
                 {stock.symbol}
               </span>
-              <span className="text-blue-300 font-semibold text-sm" style={{ fontFamily: 'var(--font-space-mono)' }}>
+              <span className="text-blue-300 font-semibold text-sm" style={{ fontFamily: 'var(--font-geist-mono)' }}>
                 ${typeof stock.price === 'string' ? stock.price : stock.price.toFixed(2)}
               </span>
               <span
