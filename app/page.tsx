@@ -340,6 +340,14 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
     setResults(null);
 
     try {
+      // Check for mock data first
+      const mockData = getMockData(tickerToUse);
+      if (mockData) {
+        setResults(mockData);
+        setLoading(false);
+        return;
+      }
+
       const res = await fetch('/api/analyze-stock', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -375,6 +383,116 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
 
   const getRatioColor = (value: number, threshold: number) => {
     return value <= threshold ? 'bg-emerald-500' : 'bg-red-500';
+  };
+
+  const getMockData = (ticker: string) => {
+    const mockCompanies: { [key: string]: AnalysisResult } = {
+      'GOOD': {
+        ticker: 'GOOD',
+        company: {
+          name: 'Good Halal Corp',
+          sector: 'Technology',
+          industry: 'Software',
+          marketCap: 500000000000,
+        },
+        ratios: {
+          debtToMarketCap: 0.15,
+          cashToMarketCap: 0.25,
+          impureIncomeRatio: 0.02,
+          interestBearingDebtRatio: 0.1125,
+          interestBearingDepositsRatio: 0.125,
+        },
+        financialMetrics: {
+          totalDebtDollars: 75000000000,
+          interestBearingDebtDollars: 56250000000,
+          cashDollars: 125000000000,
+          interestBearingDepositsDollars: 62500000000,
+          purificationPercentage: 2,
+        },
+        analysis: {
+          verdict: 'Halal',
+          explanation: `This company demonstrates strong Shariah compliance. The debt-to-market-cap ratio of 0.15 is well below the 0.33 threshold, indicating conservative leverage. The impure income ratio of 2% is significantly below the 5% threshold, showing excellent business activity alignment with Islamic principles. The company operates primarily in technology and software, both halal-compliant sectors. Interest-bearing debt represents only 11.25% of market cap, further supporting compliance. The business model is transparent and excludes involvement in prohibited industries. Overall assessment: HALAL - This company is suitable for Islamic investment portfolios.`,
+        },
+        date: new Date().toISOString().split('T')[0],
+      },
+      'BAD': {
+        ticker: 'BAD',
+        company: {
+          name: 'Bad Finance Inc',
+          sector: 'Financial Services',
+          industry: 'Banking',
+          marketCap: 300000000000,
+        },
+        ratios: {
+          debtToMarketCap: 0.65,
+          cashToMarketCap: 0.12,
+          impureIncomeRatio: 0.85,
+          interestBearingDebtRatio: 0.4875,
+          interestBearingDepositsRatio: 0.06,
+        },
+        financialMetrics: {
+          totalDebtDollars: 195000000000,
+          interestBearingDebtDollars: 146250000000,
+          cashDollars: 36000000000,
+          interestBearingDepositsDollars: 18000000000,
+          purificationPercentage: 85,
+        },
+        analysis: {
+          verdict: 'Non-compliant',
+          explanation: `This company fails multiple Shariah compliance criteria and is not suitable for Islamic investment. The debt-to-market-cap ratio of 0.65 significantly exceeds the acceptable threshold of 0.33, indicating excessive leverage. Most critically, the impure income ratio of 85% far exceeds the 5% threshold, indicating the company derives the majority of its revenue from non-compliant sources including interest-based banking operations. The company operates in the financial services sector with a core business model built on riba (interest), which is explicitly prohibited in Islamic finance. Interest-bearing debt accounts for 48.75% of market cap. The business structure is fundamentally incompatible with Shariah principles. Overall assessment: NON-COMPLIANT - This company is unsuitable for Islamic investment portfolios.`,
+        },
+        date: new Date().toISOString().split('T')[0],
+      },
+    };
+    return mockCompanies[ticker.toUpperCase()] || null;
+  };
+
+  const renderColorCodedAnalysis = (text: string) => {
+    const keywordMap: { [key: string]: string } = {
+      'Halal': 'text-emerald-400 font-semibold',
+      'Non-compliant': 'text-red-400 font-semibold',
+      'Questionable': 'text-yellow-400 font-semibold',
+      'exceeds': 'text-red-400',
+      'below': 'text-emerald-400',
+      'compliance': 'text-emerald-400 font-semibold',
+      'prohibited': 'text-red-400 font-semibold',
+      'HALAL': 'text-emerald-400 font-bold',
+      'suitable': 'text-emerald-400',
+      'unsuitable': 'text-red-400 font-semibold',
+      'excellent': 'text-emerald-400',
+      'fails': 'text-red-500 font-semibold',
+      'threshold': 'text-cyan-400',
+      'interest': 'text-red-400',
+    };
+
+    let result = text;
+    Object.entries(keywordMap).forEach(([keyword, classes]) => {
+      const regex = new RegExp(`\\b${keyword}\\b`, 'g');
+      result = result.replace(regex, `<span className="${classes}">${keyword}</span>`);
+    });
+
+    return (
+      <div className="space-y-2">
+        {result.split('\n').map((line, idx) => (
+          <div key={idx} className="text-gray-300 text-sm leading-relaxed">
+            {line.split(/<span[^>]*>[^<]*<\/span>|(\S+)/).map((part, i) => {
+              if (!part) return null;
+              if (part.startsWith('<span')) {
+                const match = part.match(/className="([^"]*)">([^<]*)/);
+                if (match) {
+                  return (
+                    <span key={i} className={match[1]}>
+                      {match[2]}
+                    </span>
+                  );
+                }
+              }
+              return part;
+            })}
+          </div>
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -436,10 +554,10 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
         </div>
 
         {results && (
-          <div className="space-y-6">
+          <div className="space-y-3">
             {/* VERDICT HEADER */}
-            <div className="bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 backdrop-blur border border-emerald-500/40 rounded-lg p-8">
-              <div className="flex justify-between items-start mb-4">
+            <div className="bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 backdrop-blur border border-emerald-500/40 rounded-lg p-5">
+              <div className="flex justify-between items-start mb-2">
                 <div>
                   <h2 className="text-4xl font-black" style={{ fontFamily: 'var(--font-rajdhani)', letterSpacing: '0.05em' }}>
                     {results.ticker}
@@ -456,9 +574,9 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
             </div>
 
             {/* BUSINESS ACTIVITY SCREEN */}
-            <div className="bg-black/50 backdrop-blur border border-emerald-500/30 rounded-lg p-6">
-              <h3 className="text-xl font-bold text-white mb-4" style={{ fontFamily: 'var(--font-rajdhani)' }}>BUSINESS ACTIVITY SCREEN</h3>
-              <div className="space-y-4">
+            <div className="bg-black/50 backdrop-blur border border-emerald-500/30 rounded-lg p-4">
+              <h3 className="text-lg font-bold text-white mb-3" style={{ fontFamily: 'var(--font-rajdhani)' }}>BUSINESS ACTIVITY SCREEN</h3>
+              <div className="space-y-3">
                 <div className="flex items-center gap-3 mb-4">
                   {results.ratios.impureIncomeRatio <= 0.05 ? (
                     <div className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded flex items-center gap-1">
@@ -499,12 +617,12 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
             </div>
 
             {/* FINANCIAL SCREEN */}
-            <div className="bg-black/50 backdrop-blur border border-emerald-500/30 rounded-lg p-6">
-              <h3 className="text-xl font-bold text-white mb-6" style={{ fontFamily: 'var(--font-rajdhani)' }}>FINANCIAL SCREEN</h3>
-              <div className="space-y-8">
+            <div className="bg-black/50 backdrop-blur border border-emerald-500/30 rounded-lg p-4">
+              <h3 className="text-lg font-bold text-white mb-4" style={{ fontFamily: 'var(--font-rajdhani)' }}>FINANCIAL SCREEN</h3>
+              <div className="space-y-4">
                 {/* Debt Ratio */}
-                <div className="pb-6 border-b border-gray-700">
-                  <div className="flex items-center gap-3 mb-4">
+                <div className="pb-4 border-b border-gray-700">
+                  <div className="flex items-center gap-2 mb-3">
                     {results.ratios.debtToMarketCap <= 0.33 ? (
                       <div className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded flex items-center gap-1">
                         <Check size={14} /> PASS
@@ -516,35 +634,35 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
                     )}
                     <span className="text-gray-300 font-semibold">Interest-Bearing Debt Ratio</span>
                   </div>
-                  <div className="bg-gray-900/50 rounded-lg p-4 mb-3">
-                    <div className="flex justify-between items-baseline mb-3">
-                      <span className="text-gray-400 text-sm">Interest-Bearing Debt</span>
-                      <span className="text-cyan-400 font-bold text-lg">${(results.financialMetrics.interestBearingDebtDollars / 1e9).toFixed(2)}B</span>
+                  <div className="bg-gray-900/50 rounded-lg p-3 mb-2">
+                    <div className="flex justify-between items-baseline mb-2">
+                      <span className="text-gray-400 text-xs">Interest-Bearing Debt</span>
+                      <span className="text-cyan-400 font-bold text-sm">${(results.financialMetrics.interestBearingDebtDollars / 1e9).toFixed(2)}B</span>
                     </div>
                     <div className="flex justify-between items-baseline">
-                      <span className="text-gray-400 text-sm">Market Cap</span>
-                      <span className="text-white font-bold text-lg">${(results.company.marketCap / 1e9).toFixed(2)}B</span>
+                      <span className="text-gray-400 text-xs">Market Cap</span>
+                      <span className="text-white font-bold text-sm">${(results.company.marketCap / 1e9).toFixed(2)}B</span>
                     </div>
                   </div>
                   <p className="text-xs text-gray-400 text-center">Ratio: {results.ratios.debtToMarketCap.toFixed(4)} | Threshold: 0.33</p>
                 </div>
 
                 {/* Deposits Ratio */}
-                <div className="pb-6 border-b border-gray-700">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded flex items-center gap-1">
-                      <Check size={14} /> INFO
+                <div className="pb-4 border-b border-gray-700">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="px-2 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded flex items-center gap-1">
+                      <Check size={12} /> INFO
                     </div>
-                    <span className="text-gray-300 font-semibold">Interest-Bearing Deposits Ratio</span>
+                    <span className="text-gray-300 font-semibold text-sm">Interest-Bearing Deposits Ratio</span>
                   </div>
-                  <div className="bg-gray-900/50 rounded-lg p-4 mb-3">
-                    <div className="flex justify-between items-baseline mb-3">
-                      <span className="text-gray-400 text-sm">Interest-Bearing Deposits</span>
-                      <span className="text-cyan-400 font-bold text-lg">${(results.financialMetrics.interestBearingDepositsDollars / 1e9).toFixed(2)}B</span>
+                  <div className="bg-gray-900/50 rounded-lg p-3 mb-2">
+                    <div className="flex justify-between items-baseline mb-2">
+                      <span className="text-gray-400 text-xs">Interest-Bearing Deposits</span>
+                      <span className="text-cyan-400 font-bold text-sm">${(results.financialMetrics.interestBearingDepositsDollars / 1e9).toFixed(2)}B</span>
                     </div>
                     <div className="flex justify-between items-baseline">
-                      <span className="text-gray-400 text-sm">Market Cap</span>
-                      <span className="text-white font-bold text-lg">${(results.company.marketCap / 1e9).toFixed(2)}B</span>
+                      <span className="text-gray-400 text-xs">Market Cap</span>
+                      <span className="text-white font-bold text-sm">${(results.company.marketCap / 1e9).toFixed(2)}B</span>
                     </div>
                   </div>
                   <p className="text-xs text-gray-400 text-center">Ratio: {(results.ratios.interestBearingDepositsRatio || 0).toFixed(4)}</p>
@@ -552,17 +670,17 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
 
                 {/* Impure Income */}
                 <div>
-                  <div className="flex items-center gap-3 mb-4">
+                  <div className="flex items-center gap-2 mb-3">
                     {results.ratios.impureIncomeRatio <= 0.05 ? (
-                      <div className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded flex items-center gap-1">
-                        <Check size={14} /> PASS
+                      <div className="px-2 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded flex items-center gap-1">
+                        <Check size={12} /> PASS
                       </div>
                     ) : (
-                      <div className="px-3 py-1 bg-red-500/20 text-red-400 text-xs font-bold rounded flex items-center gap-1">
-                        <X size={14} /> FAIL
+                      <div className="px-2 py-1 bg-red-500/20 text-red-400 text-xs font-bold rounded flex items-center gap-1">
+                        <X size={12} /> FAIL
                       </div>
                     )}
-                    <span className="text-gray-300 font-semibold">Impure Income Ratio</span>
+                    <span className="text-gray-300 font-semibold text-sm">Impure Income Ratio</span>
                   </div>
                   <div className="w-full bg-gray-800/50 rounded-full h-2 mb-2">
                     <div
@@ -576,10 +694,10 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
             </div>
 
             {/* AI ANALYSIS */}
-            <div className="bg-black/50 backdrop-blur border border-emerald-500/30 rounded-lg p-6">
-              <h3 className="text-xl font-bold text-white mb-4" style={{ fontFamily: 'var(--font-rajdhani)' }}>SHARIAH COMPLIANCE ANALYSIS</h3>
-              <div className="text-gray-300 whitespace-pre-wrap text-sm leading-relaxed bg-gray-900/30 rounded-lg p-4">
-                {results.analysis.explanation}
+            <div className="bg-black/50 backdrop-blur border border-emerald-500/30 rounded-lg p-4">
+              <h3 className="text-lg font-bold text-white mb-3" style={{ fontFamily: 'var(--font-rajdhani)' }}>SHARIAH COMPLIANCE ANALYSIS</h3>
+              <div className="bg-gray-900/30 rounded-lg p-3 text-sm leading-relaxed">
+                {renderColorCodedAnalysis(results.analysis.explanation)}
               </div>
             </div>
 
