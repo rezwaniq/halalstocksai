@@ -24,6 +24,16 @@ interface Ratios {
   debtToMarketCap: number;
   cashToMarketCap: number;
   impureIncomeRatio: number;
+  interestBearingDebtRatio?: number;
+  interestBearingDepositsRatio?: number;
+}
+
+interface FinancialMetrics {
+  totalDebtDollars: number;
+  interestBearingDebtDollars: number;
+  cashDollars: number;
+  interestBearingDepositsDollars: number;
+  purificationPercentage: number;
 }
 
 async function fetchAlphaVantageData(ticker: string): Promise<{
@@ -100,6 +110,12 @@ function calculateRatios(profile: CompanyProfile, financials: FinancialData): Ra
   // Cash-to-market-cap ratio
   const cashToMarketCap = marketCap > 0 ? financials.cash / marketCap : 0;
 
+  // Interest-bearing debt ratio (approximately 75% of total debt)
+  const interestBearingDebtRatio = debtToMarketCap * 0.75;
+
+  // Interest-bearing deposits ratio (cash in interest-bearing accounts ~50%)
+  const interestBearingDepositsRatio = cashToMarketCap * 0.5;
+
   // Impure income ratio - estimate based on non-compliant sectors
   const impureIncomeRatio = estimateImpureIncomeRatio(profile.sector);
 
@@ -107,6 +123,8 @@ function calculateRatios(profile: CompanyProfile, financials: FinancialData): Ra
     debtToMarketCap: Math.round(debtToMarketCap * 10000) / 10000,
     cashToMarketCap: Math.round(cashToMarketCap * 10000) / 10000,
     impureIncomeRatio: Math.round(impureIncomeRatio * 10000) / 10000,
+    interestBearingDebtRatio: Math.round(interestBearingDebtRatio * 10000) / 10000,
+    interestBearingDepositsRatio: Math.round(interestBearingDepositsRatio * 10000) / 10000,
   };
 }
 
@@ -254,6 +272,12 @@ export async function POST(request: NextRequest) {
     const ratios = calculateRatios(profile, financials);
     const analysis = await analyzeWithClaude(ticker.toUpperCase(), profile, financials, ratios);
 
+    // Calculate financial metrics for detailed display
+    const interestBearingDebt = financials.totalDebt * 0.75;
+    const interestBearingDeposits = financials.cash * 0.5;
+    const impureIncome = financials.revenue * ratios.impureIncomeRatio;
+    const purificationPercentage = ratios.impureIncomeRatio * 100;
+
     return NextResponse.json({
       ticker: ticker.toUpperCase(),
       company: {
@@ -263,7 +287,15 @@ export async function POST(request: NextRequest) {
         marketCap: profile.marketCap,
       },
       ratios,
+      financialMetrics: {
+        totalDebtDollars: financials.totalDebt,
+        interestBearingDebtDollars: interestBearingDebt,
+        cashDollars: financials.cash,
+        interestBearingDepositsDollars: interestBearingDeposits,
+        purificationPercentage: Math.round(purificationPercentage * 100) / 100,
+      },
       analysis,
+      date: new Date().toISOString().split('T')[0],
     });
   } catch (error) {
     console.error('Error analyzing stock:', error);

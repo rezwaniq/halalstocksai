@@ -18,11 +18,21 @@ interface AnalysisResult {
     debtToMarketCap: number;
     cashToMarketCap: number;
     impureIncomeRatio: number;
+    interestBearingDebtRatio?: number;
+    interestBearingDepositsRatio?: number;
+  };
+  financialMetrics: {
+    totalDebtDollars: number;
+    interestBearingDebtDollars: number;
+    cashDollars: number;
+    interestBearingDepositsDollars: number;
+    purificationPercentage: number;
   };
   analysis: {
     verdict: 'Halal' | 'Questionable' | 'Non-compliant';
     explanation: string;
   };
+  date: string;
 }
 
 interface SearchResult {
@@ -428,91 +438,166 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
 
         {results && (
           <div className="space-y-6">
-            <div className="bg-black/50 backdrop-blur border border-emerald-500/30 rounded-lg p-6">
+            {/* VERDICT HEADER */}
+            <div className="bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 backdrop-blur border border-emerald-500/40 rounded-lg p-8">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h2 className="text-2xl font-bold text-white" style={{ fontFamily: 'var(--font-rajdhani)' }}>{results.company.name}</h2>
-                  <p className="text-gray-400">{results.company.sector} • {results.company.industry}</p>
+                  <h2 className="text-4xl font-black" style={{ fontFamily: 'var(--font-rajdhani)', letterSpacing: '0.05em' }}>
+                    {results.ticker}
+                  </h2>
+                  <p className="text-gray-400 text-sm mt-2">{results.company.name} • {results.company.sector}</p>
                 </div>
-                <div className={`px-6 py-2 rounded-lg border font-semibold ${getVerdictColor(results.analysis.verdict)}`}>
-                  {results.analysis.verdict}
+                <div className="text-right">
+                  <div className={`px-6 py-3 rounded-lg border font-bold text-lg mb-2 inline-block ${getVerdictColor(results.analysis.verdict)}`} style={{ fontFamily: 'var(--font-rajdhani)' }}>
+                    {results.analysis.verdict.toUpperCase()}
+                  </div>
+                  <p className="text-gray-400 text-xs">Analysis Date: {results.date}</p>
                 </div>
               </div>
-              <p className="text-gray-300">
-                Market Cap: <span className="font-semibold text-emerald-400">${(results.company.marketCap / 1e9).toFixed(2)}B</span>
-              </p>
             </div>
 
+            {/* BUSINESS ACTIVITY SCREEN */}
             <div className="bg-black/50 backdrop-blur border border-emerald-500/30 rounded-lg p-6">
-              <h3 className="text-xl font-bold text-white mb-6" style={{ fontFamily: 'var(--font-rajdhani)' }}>AAOIFI COMPLIANCE RATIOS</h3>
-              <div className="space-y-6">
+              <h3 className="text-xl font-bold text-white mb-4" style={{ fontFamily: 'var(--font-rajdhani)' }}>BUSINESS ACTIVITY SCREEN</h3>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 mb-4">
+                  {results.ratios.impureIncomeRatio <= 0.05 ? (
+                    <div className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded flex items-center gap-1">
+                      <Check size={14} /> PASS
+                    </div>
+                  ) : (
+                    <div className="px-3 py-1 bg-red-500/20 text-red-400 text-xs font-bold rounded flex items-center gap-1">
+                      <X size={14} /> FAIL
+                    </div>
+                  )}
+                  <span className="text-gray-400 text-sm">Non-compliant revenue ≤ 5%</span>
+                </div>
+
                 <div>
                   <div className="flex justify-between mb-2">
-                    <span className="text-gray-300">Debt-to-Market-Cap Ratio</span>
-                    <span className="text-emerald-400 font-semibold">{results.ratios.debtToMarketCap.toFixed(4)} (Threshold: 0.33)</span>
+                    <span className="text-gray-300 text-sm">Compliant vs Non-Compliant Revenue</span>
+                    <span className="text-emerald-400 font-semibold text-sm">{((1 - results.ratios.impureIncomeRatio) * 100).toFixed(1)}% / {(results.ratios.impureIncomeRatio * 100).toFixed(1)}%</span>
                   </div>
-                  <div className="w-full bg-gray-800/50 rounded-full h-2">
+                  <div className="w-full bg-gray-800/50 rounded-full h-3 overflow-hidden">
                     <div
-                      className={`h-2 rounded-full ${getRatioColor(results.ratios.debtToMarketCap, 0.33)}`}
-                      style={{ width: `${Math.min((results.ratios.debtToMarketCap / 0.33) * 100, 100)}%` }}
+                      className="h-3 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500"
+                      style={{ width: `${Math.min((1 - results.ratios.impureIncomeRatio) * 100, 100)}%` }}
                     ></div>
                   </div>
-                  <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-700">
+                  <div className="bg-gray-900/50 rounded-lg p-3">
+                    <p className="text-xs text-gray-400 mb-1">Compliant Revenue</p>
+                    <p className="text-emerald-400 font-bold">{((1 - results.ratios.impureIncomeRatio) * 100).toFixed(1)}%</p>
+                  </div>
+                  <div className="bg-gray-900/50 rounded-lg p-3">
+                    <p className="text-xs text-gray-400 mb-1">Non-Compliant Revenue</p>
+                    <p className="text-red-400 font-bold">{(results.ratios.impureIncomeRatio * 100).toFixed(1)}%</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* FINANCIAL SCREEN */}
+            <div className="bg-black/50 backdrop-blur border border-emerald-500/30 rounded-lg p-6">
+              <h3 className="text-xl font-bold text-white mb-6" style={{ fontFamily: 'var(--font-rajdhani)' }}>FINANCIAL SCREEN</h3>
+              <div className="space-y-8">
+                {/* Debt Ratio */}
+                <div className="pb-6 border-b border-gray-700">
+                  <div className="flex items-center gap-3 mb-4">
                     {results.ratios.debtToMarketCap <= 0.33 ? (
-                      <>
-                        <Check size={14} className="text-emerald-400" /> Pass
-                      </>
+                      <div className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded flex items-center gap-1">
+                        <Check size={14} /> PASS
+                      </div>
                     ) : (
-                      <>
-                        <X size={14} className="text-red-400" /> Fail
-                      </>
+                      <div className="px-3 py-1 bg-red-500/20 text-red-400 text-xs font-bold rounded flex items-center gap-1">
+                        <X size={14} /> FAIL
+                      </div>
                     )}
-                  </p>
+                    <span className="text-gray-300 font-semibold">Interest-Bearing Debt Ratio</span>
+                  </div>
+                  <div className="bg-gray-900/50 rounded-lg p-4 mb-3">
+                    <div className="flex justify-between items-baseline mb-3">
+                      <span className="text-gray-400 text-sm">Interest-Bearing Debt</span>
+                      <span className="text-cyan-400 font-bold text-lg">${(results.financialMetrics.interestBearingDebtDollars / 1e9).toFixed(2)}B</span>
+                    </div>
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-gray-400 text-sm">Market Cap</span>
+                      <span className="text-white font-bold text-lg">${(results.company.marketCap / 1e9).toFixed(2)}B</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-400 text-center">Ratio: {results.ratios.debtToMarketCap.toFixed(4)} | Threshold: 0.33</p>
                 </div>
 
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-gray-300">Cash-to-Market-Cap Ratio</span>
-                    <span className="text-emerald-400 font-semibold">{results.ratios.cashToMarketCap.toFixed(4)}</span>
+                {/* Deposits Ratio */}
+                <div className="pb-6 border-b border-gray-700">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded flex items-center gap-1">
+                      <Check size={14} /> INFO
+                    </div>
+                    <span className="text-gray-300 font-semibold">Interest-Bearing Deposits Ratio</span>
                   </div>
-                  <div className="w-full bg-gray-800/50 rounded-full h-2">
-                    <div
-                      className="h-2 rounded-full bg-emerald-500"
-                      style={{ width: `${Math.min((results.ratios.cashToMarketCap / 0.5) * 100, 100)}%` }}
-                    ></div>
+                  <div className="bg-gray-900/50 rounded-lg p-4 mb-3">
+                    <div className="flex justify-between items-baseline mb-3">
+                      <span className="text-gray-400 text-sm">Interest-Bearing Deposits</span>
+                      <span className="text-cyan-400 font-bold text-lg">${(results.financialMetrics.interestBearingDepositsDollars / 1e9).toFixed(2)}B</span>
+                    </div>
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-gray-400 text-sm">Market Cap</span>
+                      <span className="text-white font-bold text-lg">${(results.company.marketCap / 1e9).toFixed(2)}B</span>
+                    </div>
                   </div>
+                  <p className="text-xs text-gray-400 text-center">Ratio: {(results.ratios.interestBearingDepositsRatio || 0).toFixed(4)}</p>
                 </div>
 
+                {/* Impure Income */}
                 <div>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-gray-300">Impure Income Ratio</span>
-                    <span className="text-emerald-400 font-semibold">{(results.ratios.impureIncomeRatio * 100).toFixed(2)}% (Threshold: 5%)</span>
+                  <div className="flex items-center gap-3 mb-4">
+                    {results.ratios.impureIncomeRatio <= 0.05 ? (
+                      <div className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded flex items-center gap-1">
+                        <Check size={14} /> PASS
+                      </div>
+                    ) : (
+                      <div className="px-3 py-1 bg-red-500/20 text-red-400 text-xs font-bold rounded flex items-center gap-1">
+                        <X size={14} /> FAIL
+                      </div>
+                    )}
+                    <span className="text-gray-300 font-semibold">Impure Income Ratio</span>
                   </div>
-                  <div className="w-full bg-gray-800/50 rounded-full h-2">
+                  <div className="w-full bg-gray-800/50 rounded-full h-2 mb-2">
                     <div
                       className={`h-2 rounded-full ${getRatioColor(results.ratios.impureIncomeRatio, 0.05)}`}
                       style={{ width: `${Math.min((results.ratios.impureIncomeRatio / 0.05) * 100, 100)}%` }}
                     ></div>
                   </div>
-                  <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-                    {results.ratios.impureIncomeRatio <= 0.05 ? (
-                      <>
-                        <Check size={14} className="text-emerald-400" /> Pass
-                      </>
-                    ) : (
-                      <>
-                        <X size={14} className="text-red-400" /> Fail
-                      </>
-                    )}
-                  </p>
+                  <p className="text-xs text-gray-400 text-center">Ratio: {(results.ratios.impureIncomeRatio * 100).toFixed(2)}% | Threshold: 5%</p>
                 </div>
               </div>
             </div>
 
+            {/* AI ANALYSIS */}
             <div className="bg-black/50 backdrop-blur border border-emerald-500/30 rounded-lg p-6">
               <h3 className="text-xl font-bold text-white mb-4" style={{ fontFamily: 'var(--font-rajdhani)' }}>SHARIAH COMPLIANCE ANALYSIS</h3>
-              <div className="text-gray-300 whitespace-pre-wrap text-sm leading-relaxed">
+              <div className="text-gray-300 whitespace-pre-wrap text-sm leading-relaxed bg-gray-900/30 rounded-lg p-4">
                 {results.analysis.explanation}
+              </div>
+            </div>
+
+            {/* PURIFICATION */}
+            <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 backdrop-blur border border-purple-500/30 rounded-lg p-6">
+              <h3 className="text-xl font-bold text-white mb-4" style={{ fontFamily: 'var(--font-rajdhani)' }}>PURIFICATION REQUIREMENT</h3>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-400 text-sm mb-2">Recommended Donation (Zakat Purification)</p>
+                  <p className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent" style={{ fontFamily: 'var(--font-rajdhani)' }}>
+                    {results.financialMetrics.purificationPercentage.toFixed(2)}%
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-gray-400 text-xs mb-1">Of annual gains to charitable causes</p>
+                  <p className="text-gray-500 text-xs">Calculated based on non-compliant revenue</p>
+                </div>
               </div>
             </div>
           </div>
