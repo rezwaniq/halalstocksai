@@ -510,9 +510,23 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
                 {gate1Status}
               </span>
             </div>
-            <p className="text-xs text-gray-400">
-              Impure Income Ratio: {(ratios?.impureIncomeRatio * 100).toFixed(2)}% (Threshold: 5%)
-            </p>
+            <div className="space-y-2">
+              <p className="text-xs text-gray-400">
+                <span className="text-gray-300">Non-Halal Revenue Ratio:</span> {(ratios?.impureIncomeRatio * 100).toFixed(2)}% (Threshold: 5%)
+              </p>
+              <p className="text-xs text-gray-300 leading-relaxed">
+                {gate1Pass
+                  ? `✓ This company generates less than 5% revenue from non-Islamic sources. The majority of its business comes from halal-compliant activities, meaning the products and services are permissible under Islamic law.`
+                  : `✗ This company derives more than 5% of revenue from activities prohibited in Islam (such as interest-based services, alcohol, gambling, or other haram businesses). This exceeds the acceptable threshold for Muslim investors.`
+                }
+              </p>
+              <p className="text-xs text-gray-300 mt-2 italic">
+                {text.includes('operates') || text.includes('sector')
+                  ? text.match(/(?:operates|produces|provides|manufactures)[^.]*\./i)?.[0]
+                  : 'Business activities evaluated for Islamic compliance.'
+                }
+              </p>
+            </div>
           </div>
 
           {/* Gate 2 */}
@@ -523,16 +537,31 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
                 {gate2Status}
               </span>
             </div>
-            <div className="space-y-2 text-xs text-gray-400">
-              <p>
-                <span className="text-gray-300">Ratio 1 — Interest-Bearing Debt:</span> {ratios?.debtToMarketCap.toFixed(4)} (Threshold: 0.33)
-              </p>
-              <p>
-                <span className="text-gray-300">Ratio 2 — Interest-Bearing Cash:</span> {(ratios?.interestBearingDepositsRatio || 0).toFixed(4)}
-              </p>
-              <p>
-                <span className="text-gray-300">Ratio 3 — Impure Income:</span> {(ratios?.impureIncomeRatio * 100).toFixed(2)}% (Threshold: 5%)
-              </p>
+            <div className="space-y-3 text-xs text-gray-400">
+              <div>
+                <p className="text-gray-300 font-semibold mb-1">Ratio 1 — Interest-Bearing Debt: {ratios?.debtToMarketCap.toFixed(4)} (Threshold: 0.33)</p>
+                <p className="text-gray-300 leading-relaxed">
+                  {ratios?.debtToMarketCap <= 0.33
+                    ? `✓ The company's interest-bearing debt is well-controlled and below the Islamic threshold. This means the company doesn't rely heavily on forbidden riba (interest) financing.`
+                    : `✗ The company has excessive interest-bearing debt compared to its value. High reliance on interest-based financing violates Islamic financial principles.`
+                  }
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-300 font-semibold mb-1">Ratio 2 — Interest-Bearing Cash: {(ratios?.interestBearingDepositsRatio || 0).toFixed(4)}</p>
+                <p className="text-gray-300 leading-relaxed">
+                  This tracks how much of the company's cash is held in interest-bearing accounts, which is discouraged in Islamic finance.
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-300 font-semibold mb-1">Ratio 3 — Impure Income: {(ratios?.impureIncomeRatio * 100).toFixed(2)}% (Threshold: 5%)</p>
+                <p className="text-gray-300 leading-relaxed">
+                  {ratios?.impureIncomeRatio <= 0.05
+                    ? `✓ Non-halal revenue is minimal and acceptable. Most income comes from legitimate business operations.`
+                    : `✗ The company earns too much from forbidden sources. Revenue from interest, gambling, alcohol, or other haram activities is excessive.`
+                  }
+                </p>
+              </div>
             </div>
           </div>
         </div>
