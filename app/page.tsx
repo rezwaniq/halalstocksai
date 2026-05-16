@@ -447,50 +447,27 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
     return mockCompanies[ticker.toUpperCase()] || null;
   };
 
-  const renderColorCodedAnalysis = (text: string) => {
-    const keywordMap: { [key: string]: string } = {
-      'Halal': 'text-emerald-400 font-semibold',
-      'Non-compliant': 'text-red-400 font-semibold',
-      'Questionable': 'text-yellow-400 font-semibold',
-      'exceeds': 'text-red-400',
-      'below': 'text-emerald-400',
-      'compliance': 'text-emerald-400 font-semibold',
-      'prohibited': 'text-red-400 font-semibold',
-      'HALAL': 'text-emerald-400 font-bold',
-      'suitable': 'text-emerald-400',
-      'unsuitable': 'text-red-400 font-semibold',
-      'excellent': 'text-emerald-400',
-      'fails': 'text-red-500 font-semibold',
-      'threshold': 'text-cyan-400',
-      'interest': 'text-red-400',
-    };
-
-    let result = text;
-    Object.entries(keywordMap).forEach(([keyword, classes]) => {
-      const regex = new RegExp(`\\b${keyword}\\b`, 'g');
-      result = result.replace(regex, `<span className="${classes}">${keyword}</span>`);
-    });
-
+  const renderAnalysisWithHighlight = (text: string) => {
     return (
-      <div className="space-y-2">
-        {result.split('\n').map((line, idx) => (
-          <div key={idx} className="text-gray-300 text-sm leading-relaxed">
-            {line.split(/<span[^>]*>[^<]*<\/span>|(\S+)/).map((part, i) => {
-              if (!part) return null;
-              if (part.startsWith('<span')) {
-                const match = part.match(/className="([^"]*)">([^<]*)/);
-                if (match) {
-                  return (
-                    <span key={i} className={match[1]}>
-                      {match[2]}
-                    </span>
-                  );
-                }
-              }
-              return part;
-            })}
-          </div>
-        ))}
+      <div className="whitespace-pre-wrap text-gray-300 text-sm leading-relaxed">
+        {text.split('\n').map((line, idx) => {
+          let processedLine = line;
+
+          // Highlight verdict keywords
+          processedLine = processedLine.replace(/\bHALAL\b/g, '<span style="color: #10b981; font-weight: bold;">HALAL</span>');
+          processedLine = processedLine.replace(/\bNON-COMPLIANT\b/g, '<span style="color: #ef4444; font-weight: bold;">NON-COMPLIANT</span>');
+          processedLine = processedLine.replace(/\bQuestionable\b/g, '<span style="color: #eab308; font-weight: bold;">Questionable</span>');
+          processedLine = processedLine.replace(/\bHalal\b/g, '<span style="color: #10b981; font-weight: 600;">Halal</span>');
+          processedLine = processedLine.replace(/\bNon-compliant\b/g, '<span style="color: #ef4444; font-weight: 600;">Non-compliant</span>');
+          processedLine = processedLine.replace(/\bsuitable\b/g, '<span style="color: #06b6d4;">suitable</span>');
+          processedLine = processedLine.replace(/\bunsuitable\b/g, '<span style="color: #ef4444; font-weight: 600;">unsuitable</span>');
+          processedLine = processedLine.replace(/\bfails\b/g, '<span style="color: #ef4444; font-weight: 600;">fails</span>');
+          processedLine = processedLine.replace(/\bexcellent\b/g, '<span style="color: #10b981;">excellent</span>');
+
+          return (
+            <div key={idx} dangerouslySetInnerHTML={{ __html: processedLine }} />
+          );
+        })}
       </div>
     );
   };
@@ -574,7 +551,7 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
             </div>
 
             {/* BUSINESS ACTIVITY SCREEN */}
-            <div className="bg-black/50 backdrop-blur border border-emerald-500/30 rounded-lg p-4">
+            <div className="bg-gradient-to-r from-emerald-500/5 to-cyan-500/5 backdrop-blur border border-emerald-500/40 rounded-lg p-4">
               <h3 className="text-lg font-bold text-white mb-3" style={{ fontFamily: 'var(--font-rajdhani)' }}>BUSINESS ACTIVITY SCREEN</h3>
               <div className="space-y-3">
                 <div className="flex items-center gap-3 mb-4">
@@ -617,7 +594,7 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
             </div>
 
             {/* FINANCIAL SCREEN */}
-            <div className="bg-black/50 backdrop-blur border border-emerald-500/30 rounded-lg p-4">
+            <div className="bg-gradient-to-r from-cyan-500/5 to-blue-500/5 backdrop-blur border border-cyan-500/40 rounded-lg p-4">
               <h3 className="text-lg font-bold text-white mb-4" style={{ fontFamily: 'var(--font-rajdhani)' }}>FINANCIAL SCREEN</h3>
               <div className="space-y-4">
                 {/* Debt Ratio */}
@@ -634,13 +611,13 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
                     )}
                     <span className="text-gray-300 font-semibold">Interest-Bearing Debt Ratio</span>
                   </div>
-                  <div className="bg-gray-900/50 rounded-lg p-3 mb-2">
+                  <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-lg p-3 mb-2">
                     <div className="flex justify-between items-baseline mb-2">
-                      <span className="text-gray-400 text-xs">Interest-Bearing Debt</span>
-                      <span className="text-cyan-400 font-bold text-sm">${(results.financialMetrics.interestBearingDebtDollars / 1e9).toFixed(2)}B</span>
+                      <span className="text-gray-300 text-xs">Interest-Bearing Debt</span>
+                      <span className="text-cyan-300 font-bold text-sm">${(results.financialMetrics.interestBearingDebtDollars / 1e9).toFixed(2)}B</span>
                     </div>
                     <div className="flex justify-between items-baseline">
-                      <span className="text-gray-400 text-xs">Market Cap</span>
+                      <span className="text-gray-300 text-xs">Market Cap</span>
                       <span className="text-white font-bold text-sm">${(results.company.marketCap / 1e9).toFixed(2)}B</span>
                     </div>
                   </div>
@@ -655,13 +632,13 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
                     </div>
                     <span className="text-gray-300 font-semibold text-sm">Interest-Bearing Deposits Ratio</span>
                   </div>
-                  <div className="bg-gray-900/50 rounded-lg p-3 mb-2">
+                  <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 mb-2">
                     <div className="flex justify-between items-baseline mb-2">
-                      <span className="text-gray-400 text-xs">Interest-Bearing Deposits</span>
-                      <span className="text-cyan-400 font-bold text-sm">${(results.financialMetrics.interestBearingDepositsDollars / 1e9).toFixed(2)}B</span>
+                      <span className="text-gray-300 text-xs">Interest-Bearing Deposits</span>
+                      <span className="text-blue-300 font-bold text-sm">${(results.financialMetrics.interestBearingDepositsDollars / 1e9).toFixed(2)}B</span>
                     </div>
                     <div className="flex justify-between items-baseline">
-                      <span className="text-gray-400 text-xs">Market Cap</span>
+                      <span className="text-gray-300 text-xs">Market Cap</span>
                       <span className="text-white font-bold text-sm">${(results.company.marketCap / 1e9).toFixed(2)}B</span>
                     </div>
                   </div>
@@ -694,10 +671,10 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
             </div>
 
             {/* AI ANALYSIS */}
-            <div className="bg-black/50 backdrop-blur border border-emerald-500/30 rounded-lg p-4">
+            <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 backdrop-blur border border-purple-500/30 rounded-lg p-4">
               <h3 className="text-lg font-bold text-white mb-3" style={{ fontFamily: 'var(--font-rajdhani)' }}>SHARIAH COMPLIANCE ANALYSIS</h3>
-              <div className="bg-gray-900/30 rounded-lg p-3 text-sm leading-relaxed">
-                {renderColorCodedAnalysis(results.analysis.explanation)}
+              <div className="bg-gray-900/50 rounded-lg p-4">
+                {renderAnalysisWithHighlight(results.analysis.explanation)}
               </div>
             </div>
 
