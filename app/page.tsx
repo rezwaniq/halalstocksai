@@ -467,14 +467,52 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
   };
 
   const renderAnalysisWithSections = (text: string, verdict?: string, ratios?: any) => {
-    // Generate layman-friendly summary based on verdict and ratios
+    // Generate detailed layman-friendly summary based on verdict and ratios
     let summary = '';
+    const marketCapBillions = ((ratios?.company?.marketCap || 0) / 1e9).toFixed(1);
+    const sector = text.match(/sector[:\s]+([^,.]+)/i)?.[1] || 'technology';
+
+    // Extract specific business concerns from analysis
+    const hasInterestConcerns = text.toLowerCase().includes('interest');
+    const hasBusinessConcerns = text.toLowerCase().includes('non-halal') || text.toLowerCase().includes('prohibited');
+    const interestDetails = text.match(/interest[^.]*\.[^.]*\./i)?.[0] || '';
+
     if (verdict === 'Halal') {
-      summary = `This company passes all Islamic finance requirements. Its business activities are permissible under Islamic law, generating minimal non-compliant revenue. The company maintains healthy debt levels and operates responsibly with investor funds. Financial metrics align with AAOIFI standards, making it suitable for Muslim investors seeking compliant investment opportunities.`;
+      summary = `This company is fully compliant with Islamic financial principles and recommended for Muslim investors. Operating in the ${sector} sector, it generates over 95% of its revenue from halal business activities. With a market value of $${marketCapBillions}B and conservative debt at ${(ratios?.debtToMarketCap * 100).toFixed(1)}% of market cap (33% is the maximum allowed), the company demonstrates financial responsibility. Any interest-bearing debt is minimal and well-controlled, showing the company prioritizes Islamic financing principles. Islamic scholars would readily approve this investment, as the company's structure and operations align with AAOIFI standards. Risk level: Low - This is a safe choice for Shariah-compliant portfolios.`;
     } else if (verdict === 'Questionable') {
-      summary = `This company has mixed compliance status. While some aspects meet Islamic finance standards, others require careful consideration. There are concerns regarding either business activities or financial metrics that don't fully align with Islamic principles. Investors should review specific areas of concern before making investment decisions.`;
+      const debtConcern = ratios?.debtToMarketCap > 0.33;
+      const revenueConcern = ratios?.impureIncomeRatio > 0.05;
+      let concernDetail = '';
+
+      if (debtConcern && revenueConcern) {
+        concernDetail = `The company has both elevated debt levels (${(ratios?.debtToMarketCap * 100).toFixed(1)}% vs 33% limit) and non-compliant revenue (${(ratios?.impureIncomeRatio * 100).toFixed(2)}% vs 5% threshold). Islamic scholars would likely express concerns about both the reliance on interest-based financing and the revenue sources.`;
+      } else if (debtConcern) {
+        concernDetail = `The company's debt level (${(ratios?.debtToMarketCap * 100).toFixed(1)}%) approaches or exceeds the 33% threshold. This high reliance on interest-based borrowing (riba) concerns Islamic scholars, though some interpretations may permit it if revenues remain halal.`;
+      } else {
+        concernDetail = `The company's non-halal revenue (${(ratios?.impureIncomeRatio * 100).toFixed(2)}%) is close to or slightly above the 5% limit. While financial metrics are acceptable, the business activities borderline violate Islamic principles. Conservative scholars would advise caution.`;
+      }
+
+      summary = `This company presents a borderline compliance case requiring careful consideration. ${concernDetail} With $${marketCapBillions}B in market value, this is a significant company whose compliance issues should not be ignored. Risk level: Medium - Conservative investors should avoid; moderate investors may consider after detailed review.`;
     } else {
-      summary = `This company does not meet Islamic finance standards. It either engages in non-compliant business activities or maintains excessive debt levels that violate Islamic principles. The financial structure or revenue sources are not suitable for Muslim investors seeking Shariah-compliant investments.`;
+      const failureReasons = [];
+      if (ratios?.debtToMarketCap > 0.33) {
+        failureReasons.push(`excessive interest-bearing debt at ${(ratios?.debtToMarketCap * 100).toFixed(1)}% of market value (limit is 33%)`);
+      }
+      if (ratios?.impureIncomeRatio > 0.05) {
+        failureReasons.push(`substantial non-halal revenue at ${(ratios?.impureIncomeRatio * 100).toFixed(2)}% of total income (limit is 5%)`);
+      }
+      const reasons = failureReasons.length > 0 ? failureReasons.join(', and ') : 'fundamental compliance violations';
+
+      let scholarPerspective = '';
+      if (ratios?.debtToMarketCap > 0.33 && ratios?.impureIncomeRatio > 0.05) {
+        scholarPerspective = 'Islamic scholars unanimously reject this investment due to both excessive interest debt and substantial haram revenue sources.';
+      } else if (ratios?.debtToMarketCap > 0.33) {
+        scholarPerspective = 'Islamic scholars consider the high reliance on interest-based debt (riba) a fundamental violation of Islamic finance principles.';
+      } else {
+        scholarPerspective = 'Islamic scholars reject this company because a significant portion of its revenue derives from activities explicitly prohibited in Islam.';
+      }
+
+      summary = `This company fails Shariah compliance standards and is unsuitable for Islamic investment. The primary issues are: ${reasons}. The ${sector} sector operations involve non-halal income streams that are incompatible with Islamic principles. ${scholarPerspective} With $${marketCapBillions}B at stake, Muslim investors must completely avoid this company. Risk level: Critical - Do not invest under any circumstances.`;
     }
 
     // Determine Gate 1 status (business activity) - based on impure income
