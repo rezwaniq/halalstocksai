@@ -466,52 +466,76 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
     return mockCompanies[ticker.toUpperCase()] || null;
   };
 
-  const renderAnalysisWithSections = (text: string) => {
-    // Extract summary (first sentence)
-    const summaryMatch = text.match(/^[^.!?]+[.!?]/);
-    const summary = summaryMatch ? summaryMatch[0].trim() : 'Analysis in progress...';
+  const renderAnalysisWithSections = (text: string, verdict?: string, ratios?: any) => {
+    // Extract summary (first 1-2 sentences)
+    const summaryMatch = text.match(/^[^.!?]+[.!?]\s*[^.!?]*[.!?]?/);
+    const summary = summaryMatch ? summaryMatch[0].trim() : text.substring(0, 150);
 
-    // Extract overall assessment (last sentence mentioning unsuitable/suitable)
-    const assessmentMatch = text.match(/[^.]*(?:unsuitable|suitable|HALAL|Non-compliant)[^.]*\./i);
-    const assessment = assessmentMatch ? assessmentMatch[0].trim() : 'See analysis details below.';
+    // Determine Gate 1 status (business activity) - based on impure income
+    const gate1Pass = ratios?.impureIncomeRatio <= 0.05;
+    const gate1Status = gate1Pass ? 'PASS' : 'FAIL';
+    const gate1Color = gate1Pass ? 'bg-emerald-500/10 border-emerald-500/40' : 'bg-red-500/10 border-red-500/40';
 
-    // Extract finances section (contains debt, ratio, interest, market cap, threshold)
-    const financesMatch = text.match(/(?:[^.]*(?:debt|ratio|interest|market cap|threshold|exceeds|below)[^.]*\.)+/gi);
-    const finances = financesMatch
-      ? financesMatch.join(' ').trim()
-      : 'Financial metrics analyzed based on AAOIFI standards.';
+    // Determine Gate 2 status (financial ratios)
+    const gate2Pass = ratios?.debtToMarketCap <= 0.33 && ratios?.impureIncomeRatio <= 0.05;
+    const gate2Status = gate2Pass ? 'PASS' : 'FAIL';
+    const gate2Color = gate2Pass ? 'bg-emerald-500/10 border-emerald-500/40' : 'bg-red-500/10 border-red-500/40';
 
-    // Extract portfolio section (contains sector, industry, business, operations, services)
-    const portfolioMatch = text.match(/(?:[^.]*(?:operates|sector|industry|business|services|products)[^.]*\.)+/gi);
-    const portfolio = portfolioMatch
-      ? portfolioMatch.join(' ').trim()
-      : 'Business activities evaluated against Islamic principles.';
+    // Extract overall assessment and conclusion
+    const lastSentence = text.match(/[^.]*[.!?](?!.*[.!?])/)?.[0] || 'See detailed analysis below.';
 
     return (
       <div className="space-y-5">
         {/* Summary */}
         <div>
-          <h4 className="text-sm font-semibold text-emerald-400 mb-2">Summary</h4>
+          <h4 className="text-sm font-semibold text-gray-300 mb-2">Summary</h4>
           <p className="text-gray-300 text-sm leading-relaxed">{summary}</p>
         </div>
 
-        {/* Finances */}
-        <div>
-          <h4 className="text-sm font-semibold text-cyan-400 mb-2">Finances</h4>
-          <p className="text-gray-300 text-sm leading-relaxed">{finances}</p>
-        </div>
+        {/* Verdict - Two Gate System */}
+        <div className="space-y-3">
+          <h4 className="text-sm font-semibold text-cyan-400">Verdict (AAOIFI Standard No. 21 - Two Gate System)</h4>
 
-        {/* Portfolio */}
-        <div>
-          <h4 className="text-sm font-semibold text-blue-400 mb-2">Portfolio</h4>
-          <p className="text-gray-300 text-sm leading-relaxed">{portfolio}</p>
+          {/* Gate 1 */}
+          <div className={`${gate1Color} border rounded-lg p-3`}>
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-xs font-semibold text-gray-300">Gate 1 — Business Activity Screening</span>
+              <span className={`text-xs font-bold px-2 py-1 rounded ${gate1Pass ? 'bg-emerald-500/30 text-emerald-300' : 'bg-red-500/30 text-red-300'}`}>
+                {gate1Status}
+              </span>
+            </div>
+            <p className="text-xs text-gray-400">
+              Impure Income Ratio: {(ratios?.impureIncomeRatio * 100).toFixed(2)}% (Threshold: 5%)
+            </p>
+          </div>
+
+          {/* Gate 2 */}
+          <div className={`${gate2Color} border rounded-lg p-3`}>
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-xs font-semibold text-gray-300">Gate 2 — Quantitative Financial Ratios</span>
+              <span className={`text-xs font-bold px-2 py-1 rounded ${gate2Pass ? 'bg-emerald-500/30 text-emerald-300' : 'bg-red-500/30 text-red-300'}`}>
+                {gate2Status}
+              </span>
+            </div>
+            <div className="space-y-2 text-xs text-gray-400">
+              <p>
+                <span className="text-gray-300">Ratio 1 — Interest-Bearing Debt:</span> {ratios?.debtToMarketCap.toFixed(4)} (Threshold: 0.33)
+              </p>
+              <p>
+                <span className="text-gray-300">Ratio 2 — Interest-Bearing Cash:</span> {(ratios?.interestBearingDepositsRatio || 0).toFixed(4)}
+              </p>
+              <p>
+                <span className="text-gray-300">Ratio 3 — Impure Income:</span> {(ratios?.impureIncomeRatio * 100).toFixed(2)}% (Threshold: 5%)
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Overall Assessment */}
-        <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-3">
-          <h4 className="text-sm font-semibold text-emerald-400 mb-2">Overall Assessment (AAOIFI Standards)</h4>
+        <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-4">
+          <h4 className="text-sm font-semibold text-blue-400 mb-2">Overall Assessment</h4>
           <p className="text-gray-300 text-sm leading-relaxed">
-            {assessment} Based on AAOIFI (Accounting and Auditing Organization for Islamic Financial Institutions) standards, this assessment concludes the company's Shariah compliance status.
+            According to AAOIFI standards, {lastSentence.toLowerCase().startsWith('this company') ? lastSentence.substring(0, 1).toLowerCase() + lastSentence.substring(1) : lastSentence}
           </p>
         </div>
       </div>
@@ -721,7 +745,7 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
             <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 backdrop-blur border border-purple-500/30 rounded-lg p-4">
               <h3 className="text-lg font-bold text-white mb-3" style={{ fontFamily: 'var(--font-rajdhani)' }}>SHARIAH COMPLIANCE ANALYSIS</h3>
               <div className="bg-gray-900/50 rounded-lg p-4">
-                {renderAnalysisWithSections(results.analysis.explanation)}
+                {renderAnalysisWithSections(results.analysis.explanation, results.analysis.verdict, results.ratios)}
               </div>
             </div>
 
