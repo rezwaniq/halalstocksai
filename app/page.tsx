@@ -57,10 +57,6 @@ export default function Home() {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  if (showAnalyzer) {
-    return <AnalyzerPage onClose={() => setShowAnalyzer(false)} />;
-  }
-
   return (
     <div className="min-h-screen bg-[#F8F9FA] text-gray-900 overflow-hidden">
       {/* Animated Background */}
@@ -70,7 +66,7 @@ export default function Home() {
           <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
-                <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#10b981" strokeWidth="0.5" opacity="0.5" />
+                <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#2563eb" strokeWidth="0.5" opacity="0.5" />
               </pattern>
             </defs>
             <rect width="100%" height="100%" fill="url(#grid)" />
@@ -81,8 +77,8 @@ export default function Home() {
         <svg className="absolute inset-0 w-full h-full opacity-5" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <linearGradient id="chartGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#10b981" />
-              <stop offset="100%" stopColor="#059669" />
+              <stop offset="0%" stopColor="#2563eb" />
+              <stop offset="100%" stopColor="#1e40af" />
             </linearGradient>
             <filter id="glow">
               <feGaussianBlur stdDeviation="3" result="coloredBlur" />
@@ -160,6 +156,8 @@ export default function Home() {
         {/* Stock Ticker - Top */}
         <StockTicker />
 
+        {!showAnalyzer ? (
+          <>
         {/* Hero */}
         <section className="max-w-6xl mx-auto px-8 py-14 text-center">
           <div className="mb-8">
@@ -215,7 +213,7 @@ export default function Home() {
               const Icon = step.Icon;
               return (
                 <div key={idx} className="relative group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-lg blur opacity-0 group-hover:opacity-20 transition"></div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg blur opacity-0 group-hover:opacity-20 transition"></div>
                   <div className="relative border border-gray-200 rounded-lg p-6 bg-white shadow-sm hover:shadow-md transition">
                     <div className="text-4xl font-bold text-blue-700 mb-2" style={{ fontFamily: 'var(--font-space-mono)' }}>{step.num}</div>
                     <div className="text-2xl mb-3"><Icon size={28} className="text-blue-600" strokeWidth={1.5} /></div>
@@ -282,15 +280,19 @@ export default function Home() {
         </section>
 
         {/* Footer */}
-        <footer className="border-t border-emerald-500/20 py-12 text-center text-gray-500 text-sm">
+        <footer className="border-t border-gray-200 py-6 text-center text-gray-500 text-sm">
           <p>&copy; 2026 HalalStocks AI. Powered by AI & Financial Intelligence.</p>
         </footer>
+          </>
+        ) : (
+          <AnalyzerContent onClose={() => setShowAnalyzer(false)} />
+        )}
       </div>
     </div>
   );
 }
 
-function AnalyzerPage({ onClose }: { onClose: () => void }) {
+function AnalyzerContent({ onClose }: { onClose: () => void }) {
   const [search, setSearch] = useState('');
   const [ticker, setTicker] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -404,7 +406,7 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
   };
 
   const getRatioColor = (value: number, threshold: number) => {
-    return value <= threshold ? 'bg-emerald-500' : 'bg-red-500';
+    return value <= threshold ? 'bg-blue-600' : 'bg-red-500';
   };
 
   const getMockData = (ticker: string) => {
@@ -541,7 +543,7 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
 
         {/* Verdict - Two Gate System */}
         <div className="space-y-3">
-          <h4 className="text-sm font-semibold text-cyan-700">Verdict (AAOIFI Standard No. 21 - Two Gate System)</h4>
+          <h4 className="text-sm font-semibold text-blue-700">Verdict (AAOIFI Standard No. 21 - Two Gate System)</h4>
 
           {/* Gate 1 */}
           <div className={`${gate1Color} border rounded-lg p-3`}>
@@ -619,16 +621,15 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] text-gray-900">
-      <div className="max-w-6xl mx-auto px-8 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent" style={{ fontFamily: 'var(--font-rajdhani)' }}>
-            HALAL STOCK ANALYZER
-          </h1>
-          <button onClick={onClose} className="text-gray-400 hover:text-emerald-700">
-            <X size={28} strokeWidth={1.5} />
-          </button>
-        </div>
+    <div className="max-w-6xl mx-auto px-8 py-8">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent" style={{ fontFamily: 'var(--font-rajdhani)' }}>
+          HALAL STOCK ANALYZER
+        </h1>
+        <button onClick={onClose} className="text-gray-400 hover:text-blue-700">
+          <X size={28} strokeWidth={1.5} />
+        </button>
+      </div>
 
         <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-6 mb-8">
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -641,7 +642,7 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
                 onChange={(e) => handleSearch(e.target.value)}
                 onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
                 placeholder="Search by name or ticker (e.g., Apple, AAPL)"
-                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50"
+                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50"
               />
 
               {showDropdown && searchResults.length > 0 && (
@@ -664,7 +665,7 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-black font-bold py-3 rounded-lg transition disabled:opacity-50 shadow-lg shadow-emerald-500/30"
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-3 rounded-lg transition disabled:opacity-50 shadow-lg shadow-blue-600/30"
             >
               {loading ? 'Analyzing...' : 'Analyze Stock'}
             </button>
@@ -717,11 +718,11 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
                 <div>
                   <div className="flex justify-between mb-2">
                     <span className="text-gray-700 text-sm">Compliant vs Non-Compliant Revenue</span>
-                    <span className="text-emerald-700 font-semibold text-sm">{((1 - results.ratios.impureIncomeRatio) * 100).toFixed(1)}% / {(results.ratios.impureIncomeRatio * 100).toFixed(1)}%</span>
+                    <span className="text-blue-700 font-semibold text-sm">{((1 - results.ratios.impureIncomeRatio) * 100).toFixed(1)}% / {(results.ratios.impureIncomeRatio * 100).toFixed(1)}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                     <div
-                      className="h-3 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500"
+                      className="h-3 rounded-full bg-blue-600"
                       style={{ width: `${Math.min((1 - results.ratios.impureIncomeRatio) * 100, 100)}%` }}
                     ></div>
                   </div>
@@ -730,7 +731,7 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-200">
                   <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                     <p className="text-xs text-gray-500 mb-1">Compliant Revenue</p>
-                    <p className="text-emerald-700 font-bold">{((1 - results.ratios.impureIncomeRatio) * 100).toFixed(1)}%</p>
+                    <p className="text-blue-700 font-bold">{((1 - results.ratios.impureIncomeRatio) * 100).toFixed(1)}%</p>
                   </div>
                   <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                     <p className="text-xs text-gray-500 mb-1">Non-Compliant Revenue</p>
@@ -758,10 +759,10 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
                     )}
                     <span className="text-gray-700 font-semibold">Interest-Bearing Debt Ratio</span>
                   </div>
-                  <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-3 mb-2">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-2">
                     <div className="flex justify-between items-baseline mb-2">
                       <span className="text-gray-600 text-xs">Interest-Bearing Debt</span>
-                      <span className="text-cyan-700 font-bold text-sm">${(results.financialMetrics.interestBearingDebtDollars / 1e9).toFixed(2)}B</span>
+                      <span className="text-blue-700 font-bold text-sm">${(results.financialMetrics.interestBearingDebtDollars / 1e9).toFixed(2)}B</span>
                     </div>
                     <div className="flex justify-between items-baseline">
                       <span className="text-gray-600 text-xs">Market Cap</span>
@@ -835,7 +836,6 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
             </div>
           </div>
         )}
-      </div>
     </div>
   );
 }
