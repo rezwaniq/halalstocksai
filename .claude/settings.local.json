@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(taskkill *)",
+      "PowerShell(Get-NetTCPConnection *)",
+      "PowerShell(Get-Process *)",
+      "PowerShell(npm run *)",
+      "Bash(Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue)",
+      "PowerShell(taskkill *)",
+      "Bash(curl -s 'https://www.alphavantage.co/query?function=OVERVIEW&symbol=TSLA&apikey=XM82P274RYWXHEX1')",
+      "Bash(curl -s 'https://finnhub.io/api/v1/stock/profile2?symbol=TSLA&token=d83vh0pr01qkm5c9msagd83vh0pr01qkm5c9msb0')",
+      "Bash(git checkout *)"
+    ]
+  }
+}

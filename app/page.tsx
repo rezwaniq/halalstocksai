@@ -1,65 +1,523 @@
-import Image from "next/image";
+'use client';
+
+import { useState, FormEvent, useEffect } from 'react';
+import {
+  Search, BarChart3, Zap, Sparkles, Brain, Database, Flag,
+  Lightbulb, Wallet, CheckCircle2, Download, Headphones, X, TrendingUp, Check
+} from 'lucide-react';
+
+interface AnalysisResult {
+  ticker: string;
+  company: {
+    name: string;
+    sector: string;
+    industry: string;
+    marketCap: number;
+  };
+  ratios: {
+    debtToMarketCap: number;
+    cashToMarketCap: number;
+    impureIncomeRatio: number;
+  };
+  analysis: {
+    verdict: 'Halal' | 'Questionable' | 'Non-compliant';
+    explanation: string;
+  };
+}
+
+interface SearchResult {
+  symbol: string;
+  name: string;
+  currency: string;
+  exchange: string;
+}
 
 export default function Home() {
+  const [showAnalyzer, setShowAnalyzer] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePos({ x: e.clientX, y: e.clientY });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
+  if (showAnalyzer) {
+    return <AnalyzerPage onClose={() => setShowAnalyzer(false)} />;
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-black to-slate-950 text-white overflow-hidden">
+      {/* Animated Background */}
+      <div className="fixed inset-0 z-0">
+        {/* Grid Background */}
+        <div className="absolute inset-0 opacity-10">
+          <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
+                <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#10b981" strokeWidth="0.5" opacity="0.5" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#grid)" />
+          </svg>
+        </div>
+
+        {/* Animated Chart Lines */}
+        <svg className="absolute inset-0 w-full h-full opacity-20" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="chartGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#10b981" />
+              <stop offset="100%" stopColor="#059669" />
+            </linearGradient>
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+              <feMerge>
+                <feMergeNode in="coloredBlur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
+          {/* Chart 1 - Top Left */}
+          <polyline
+            points="0,300 100,250 200,280 300,150 400,200 500,100"
+            fill="none"
+            stroke="url(#chartGrad)"
+            strokeWidth="2"
+            filter="url(#glow)"
+            style={{ animation: 'float 6s ease-in-out infinite' }}
+          />
+
+          {/* Chart 2 - Top Right */}
+          <polyline
+            points="1000,200 1100,180 1200,220 1300,160 1400,190"
+            fill="none"
+            stroke="#06b6d4"
+            strokeWidth="2"
+            filter="url(#glow)"
+            style={{ animation: 'float 7s ease-in-out infinite 1s' }}
+          />
+
+          {/* Chart 3 - Bottom Left */}
+          <polyline
+            points="100,800 200,750 300,800 400,700 500,750 600,650"
+            fill="none"
+            stroke="#8b5cf6"
+            strokeWidth="2"
+            filter="url(#glow)"
+            style={{ animation: 'float 8s ease-in-out infinite 2s' }}
+          />
+        </svg>
+
+        {/* Floating Orbs */}
+        <div className="absolute top-20 right-20 w-72 h-72 bg-emerald-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
+        <div className="absolute bottom-40 left-20 w-96 h-96 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute top-1/2 left-1/3 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10" style={{ animation: 'float 12s ease-in-out infinite' }}></div>
+
+        <style>{`
+          @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-30px); }
+          }
+          @keyframes glow {
+            0%, 100% { filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.5)); }
+            50% { filter: drop-shadow(0 0 20px rgba(16, 185, 129, 0.8)); }
+          }
+        `}</style>
+      </div>
+
+      {/* Content */}
+      <div className="relative z-10">
+        {/* Navigation */}
+        <nav className="sticky top-0 z-50 bg-black/40 backdrop-blur-md border-b border-emerald-500/20">
+          <div className="max-w-7xl mx-auto px-8 py-4 flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded flex items-center justify-center">
+                <CheckCircle2 size={20} className="text-white" />
+              </div>
+              <span className="font-bold text-xl bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent" style={{ fontFamily: 'var(--font-rajdhani)' }}>
+                HalalStocks AI
+              </span>
+            </div>
+            <button
+              onClick={() => setShowAnalyzer(true)}
+              className="px-6 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 rounded font-medium transition shadow-lg shadow-emerald-500/50 hover:shadow-emerald-500/80"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+              Launch App
+            </button>
+          </div>
+        </nav>
+
+        {/* Hero */}
+        <section className="max-w-6xl mx-auto px-8 py-32 text-center">
+          <div className="mb-8">
+            <h1 className="text-7xl font-black mb-6 bg-gradient-to-r from-emerald-300 via-white to-cyan-300 bg-clip-text text-transparent leading-tight" style={{ fontFamily: 'var(--font-rajdhani)', letterSpacing: '0.05em' }}>
+              ISLAMIC FINANCE<br />INTELLIGENCE
+            </h1>
+            <p className="text-xl text-gray-400 mb-4">
+              The future of Shariah-compliant investing powered by AI
+            </p>
+            <p className="text-gray-500 text-sm">
+              Real-time financial analysis • AAOIFI compliance • Intelligent verdicts
+            </p>
+          </div>
+
+          <button
+            onClick={() => setShowAnalyzer(true)}
+            className="group relative px-10 py-4 font-bold text-lg text-black bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-lg hover:from-emerald-500 hover:to-emerald-600 transition shadow-2xl shadow-emerald-500/50 hover:shadow-emerald-500/80 hover:scale-105"
+          >
+            <span className="relative flex items-center justify-center gap-2">
+              Start Analyzing
+              <span className="group-hover:translate-x-1 transition">→</span>
+            </span>
+          </button>
+        </section>
+
+        {/* Stats Bar */}
+        <section className="max-w-6xl mx-auto px-8 py-12 grid grid-cols-2 md:grid-cols-4 gap-6 mb-24">
+          {[
+            { label: '3 AAOIFI Ratios', value: 'Debt • Cash • Impure' },
+            { label: '100% Real Data', value: 'Live APIs' },
+            { label: '<2s Analysis', value: 'Instant Results' },
+            { label: '∞ Stocks', value: 'Global Coverage' },
+          ].map((stat, idx) => (
+            <div key={idx} className="border border-emerald-500/30 rounded-lg p-4 bg-emerald-500/5 backdrop-blur hover:bg-emerald-500/10 transition">
+              <p className="text-emerald-400 font-bold text-sm mb-1">{stat.label}</p>
+              <p className="text-gray-400 text-xs">{stat.value}</p>
+            </div>
+          ))}
+        </section>
+
+        {/* How It Works */}
+        <section className="max-w-6xl mx-auto px-8 py-24 border-t border-emerald-500/20">
+          <h2 className="text-4xl font-bold text-center mb-16 bg-gradient-to-r from-emerald-300 to-cyan-300 bg-clip-text text-transparent" style={{ fontFamily: 'var(--font-rajdhani)' }}>
+            HOW IT WORKS
+          </h2>
+          <div className="grid md:grid-cols-4 gap-6">
+            {[
+              { num: '01', title: 'Enter Ticker', Icon: Search, desc: 'Search any stock' },
+              { num: '02', title: 'Fetch Data', Icon: BarChart3, desc: 'Real-time data' },
+              { num: '03', title: 'AI Analysis', Icon: Brain, desc: 'Smart verification' },
+              { num: '04', title: 'Get Verdict', Icon: Sparkles, desc: 'Halal/Non-compliant' },
+            ].map((step, idx) => {
+              const Icon = step.Icon;
+              return (
+                <div key={idx} className="relative group">
+                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-lg blur opacity-0 group-hover:opacity-30 transition"></div>
+                  <div className="relative border border-emerald-500/30 rounded-lg p-6 bg-black/50 backdrop-blur hover:bg-emerald-500/5 transition">
+                    <div className="text-4xl font-bold text-emerald-500 mb-2" style={{ fontFamily: 'var(--font-space-mono)' }}>{step.num}</div>
+                    <div className="text-2xl mb-3"><Icon size={28} className="text-cyan-400" strokeWidth={1.5} /></div>
+                    <h3 className="font-bold text-white mb-1" style={{ fontFamily: 'var(--font-rajdhani)' }}>{step.title}</h3>
+                    <p className="text-sm text-gray-400">{step.desc}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Features Grid */}
+        <section className="max-w-6xl mx-auto px-8 py-24 border-t border-emerald-500/20">
+          <h2 className="text-4xl font-bold text-center mb-16 bg-gradient-to-r from-emerald-300 to-cyan-300 bg-clip-text text-transparent" style={{ fontFamily: 'var(--font-rajdhani)' }}>
+            POWERFUL FEATURES
+          </h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { Icon: Brain, title: 'AI Verdicts', status: '✓' },
+              { Icon: Database, title: 'Data Source', status: '✓' },
+              { Icon: Flag, title: 'TSX Stocks', status: 'Limited' },
+              { Icon: Lightbulb, title: 'Alternatives', status: '✓' },
+              { Icon: Wallet, title: 'Zakat Calc', status: 'Pro' },
+              { Icon: CheckCircle2, title: 'Purification', status: 'Basic' },
+              { Icon: Download, title: 'Download', status: '✓' },
+              { Icon: Headphones, title: '24/7 Support', status: '✓' },
+            ].map((feature, idx) => {
+              const Icon = feature.Icon;
+              return (
+                <div key={idx} className="border border-emerald-500/20 rounded-lg p-4 bg-black/50 backdrop-blur hover:border-emerald-500/50 transition">
+                  <div className="flex justify-between items-start mb-2">
+                    <Icon size={24} className="text-cyan-400" strokeWidth={1.5} />
+                    <span className={`text-xs font-bold px-2 py-1 rounded ${
+                      feature.status === '✓'
+                        ? 'bg-emerald-500/20 text-emerald-400'
+                        : 'bg-gray-500/20 text-gray-400'
+                    }`}>
+                      {feature.status}
+                    </span>
+                  </div>
+                  <h3 className="font-semibold text-sm text-white" style={{ fontFamily: 'var(--font-rajdhani)' }}>{feature.title}</h3>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="max-w-4xl mx-auto px-8 py-24 text-center border-t border-emerald-500/20">
+          <h2 className="text-4xl font-bold mb-6" style={{ fontFamily: 'var(--font-rajdhani)' }}>READY TO START?</h2>
+          <p className="text-gray-400 mb-10 text-lg">
+            Join thousands screening stocks with confidence
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            onClick={() => setShowAnalyzer(true)}
+            className="group relative px-10 py-4 font-bold text-lg text-black bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-lg hover:from-emerald-500 hover:to-emerald-600 transition shadow-2xl shadow-emerald-500/50 hover:shadow-emerald-500/80 hover:scale-105"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <span className="relative flex items-center justify-center gap-2">
+              Launch Analyzer
+              <span className="group-hover:translate-x-1 transition">→</span>
+            </span>
+          </button>
+        </section>
+
+        {/* Footer */}
+        <footer className="border-t border-emerald-500/20 py-12 text-center text-gray-500 text-sm">
+          <p>&copy; 2026 HalalStocks AI. Powered by AI & Financial Intelligence.</p>
+        </footer>
+      </div>
+    </div>
+  );
+}
+
+function AnalyzerPage({ onClose }: { onClose: () => void }) {
+  const [search, setSearch] = useState('');
+  const [ticker, setTicker] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [results, setResults] = useState<AnalysisResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSearch = async (query: string) => {
+    setSearch(query);
+    if (query.length < 2) {
+      setSearchResults([]);
+      setShowDropdown(false);
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/search-companies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      });
+      const data = await res.json();
+      setSearchResults(data.results || []);
+      setShowDropdown(true);
+    } catch (err) {
+      console.error('Search failed:', err);
+    }
+  };
+
+  const selectCompany = (symbol: string) => {
+    setTicker(symbol);
+    setSearch(symbol);
+    setShowDropdown(false);
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    const tickerToUse = ticker.trim() || search.trim().toUpperCase();
+
+    if (!tickerToUse) {
+      setError('Please enter a ticker symbol');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setResults(null);
+
+    try {
+      const res = await fetch('/api/analyze-stock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticker: tickerToUse.toUpperCase() }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Analysis failed');
+      }
+
+      const data: AnalysisResult = await res.json();
+      setResults(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getVerdictColor = (verdict: string) => {
+    switch (verdict) {
+      case 'Halal':
+        return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50';
+      case 'Questionable':
+        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50';
+      case 'Non-compliant':
+        return 'bg-red-500/20 text-red-400 border-red-500/50';
+      default:
+        return 'bg-gray-500/20 text-gray-400 border-gray-500/50';
+    }
+  };
+
+  const getRatioColor = (value: number, threshold: number) => {
+    return value <= threshold ? 'bg-emerald-500' : 'bg-red-500';
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-black to-slate-950 text-white">
+      <div className="max-w-6xl mx-auto px-8 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent" style={{ fontFamily: 'var(--font-rajdhani)' }}>
+            HALAL STOCK ANALYZER
+          </h1>
+          <button onClick={onClose} className="text-gray-400 hover:text-emerald-400">
+            <X size={28} strokeWidth={1.5} />
+          </button>
         </div>
-      </main>
+
+        <div className="bg-black/50 backdrop-blur border border-emerald-500/30 rounded-lg p-6 mb-8">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm text-gray-400 mb-2">Company Name or Ticker</label>
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => handleSearch(e.target.value)}
+                onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
+                placeholder="Search by name or ticker (e.g., Apple, AAPL)"
+                className="w-full px-4 py-3 bg-gray-900 border border-emerald-500/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50"
+              />
+
+              {showDropdown && searchResults.length > 0 && (
+                <div className="absolute z-10 w-full mt-2 bg-gray-900 border border-emerald-500/30 rounded-lg shadow-2xl max-w-2xl">
+                  {searchResults.map((result) => (
+                    <button
+                      key={result.symbol}
+                      type="button"
+                      onClick={() => selectCompany(result.symbol)}
+                      className="w-full text-left px-4 py-3 hover:bg-emerald-500/10 text-gray-100 border-b border-gray-700 last:border-0"
+                    >
+                      <div className="font-semibold">{result.name}</div>
+                      <div className="text-sm text-gray-400">{result.symbol} • {result.exchange}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-black font-bold py-3 rounded-lg transition disabled:opacity-50 shadow-lg shadow-emerald-500/30"
+            >
+              {loading ? 'Analyzing...' : 'Analyze Stock'}
+            </button>
+          </form>
+
+          {error && (
+            <div className="mt-4 p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400">
+              {error}
+            </div>
+          )}
+        </div>
+
+        {results && (
+          <div className="space-y-6">
+            <div className="bg-black/50 backdrop-blur border border-emerald-500/30 rounded-lg p-6">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-white" style={{ fontFamily: 'var(--font-rajdhani)' }}>{results.company.name}</h2>
+                  <p className="text-gray-400">{results.company.sector} • {results.company.industry}</p>
+                </div>
+                <div className={`px-6 py-2 rounded-lg border font-semibold ${getVerdictColor(results.analysis.verdict)}`}>
+                  {results.analysis.verdict}
+                </div>
+              </div>
+              <p className="text-gray-300">
+                Market Cap: <span className="font-semibold text-emerald-400">${(results.company.marketCap / 1e9).toFixed(2)}B</span>
+              </p>
+            </div>
+
+            <div className="bg-black/50 backdrop-blur border border-emerald-500/30 rounded-lg p-6">
+              <h3 className="text-xl font-bold text-white mb-6" style={{ fontFamily: 'var(--font-rajdhani)' }}>AAOIFI COMPLIANCE RATIOS</h3>
+              <div className="space-y-6">
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-gray-300">Debt-to-Market-Cap Ratio</span>
+                    <span className="text-emerald-400 font-semibold">{results.ratios.debtToMarketCap.toFixed(4)} (Threshold: 0.33)</span>
+                  </div>
+                  <div className="w-full bg-gray-800/50 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full ${getRatioColor(results.ratios.debtToMarketCap, 0.33)}`}
+                      style={{ width: `${Math.min((results.ratios.debtToMarketCap / 0.33) * 100, 100)}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                    {results.ratios.debtToMarketCap <= 0.33 ? (
+                      <>
+                        <Check size={14} className="text-emerald-400" /> Pass
+                      </>
+                    ) : (
+                      <>
+                        <X size={14} className="text-red-400" /> Fail
+                      </>
+                    )}
+                  </p>
+                </div>
+
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-gray-300">Cash-to-Market-Cap Ratio</span>
+                    <span className="text-emerald-400 font-semibold">{results.ratios.cashToMarketCap.toFixed(4)}</span>
+                  </div>
+                  <div className="w-full bg-gray-800/50 rounded-full h-2">
+                    <div
+                      className="h-2 rounded-full bg-emerald-500"
+                      style={{ width: `${Math.min((results.ratios.cashToMarketCap / 0.5) * 100, 100)}%` }}
+                    ></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-gray-300">Impure Income Ratio</span>
+                    <span className="text-emerald-400 font-semibold">{(results.ratios.impureIncomeRatio * 100).toFixed(2)}% (Threshold: 5%)</span>
+                  </div>
+                  <div className="w-full bg-gray-800/50 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full ${getRatioColor(results.ratios.impureIncomeRatio, 0.05)}`}
+                      style={{ width: `${Math.min((results.ratios.impureIncomeRatio / 0.05) * 100, 100)}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                    {results.ratios.impureIncomeRatio <= 0.05 ? (
+                      <>
+                        <Check size={14} className="text-emerald-400" /> Pass
+                      </>
+                    ) : (
+                      <>
+                        <X size={14} className="text-red-400" /> Fail
+                      </>
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-black/50 backdrop-blur border border-emerald-500/30 rounded-lg p-6">
+              <h3 className="text-xl font-bold text-white mb-4" style={{ fontFamily: 'var(--font-rajdhani)' }}>SHARIAH COMPLIANCE ANALYSIS</h3>
+              <div className="text-gray-300 whitespace-pre-wrap text-sm leading-relaxed">
+                {results.analysis.explanation}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
