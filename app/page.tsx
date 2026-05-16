@@ -298,6 +298,24 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const searchBox = document.getElementById('search-input');
+      const dropdown = document.getElementById('search-dropdown');
+      if (
+        searchBox &&
+        dropdown &&
+        !searchBox.contains(e.target as Node) &&
+        !dropdown.contains(e.target as Node)
+      ) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const handleSearch = async (query: string) => {
     setSearch(query);
     if (query.length < 2) {
@@ -324,6 +342,7 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
     setTicker(symbol);
     setSearch(symbol);
     setShowDropdown(false);
+    setSearchResults([]);
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -447,27 +466,40 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
     return mockCompanies[ticker.toUpperCase()] || null;
   };
 
-  const renderAnalysisWithHighlight = (text: string) => {
+  const renderAnalysisWithSections = (text: string) => {
+    const sections = [];
+    const lines = text.split('\n');
+    let currentSection = null;
+    let currentContent: string[] = [];
+
+    lines.forEach((line) => {
+      if (line.includes('compliance') && line.length < 80) {
+        if (currentContent.length > 0) {
+          sections.push({ heading: currentSection, content: currentContent.join('\n') });
+          currentContent = [];
+        }
+        currentSection = line.trim();
+      } else if (line.trim()) {
+        currentContent.push(line);
+      }
+    });
+
+    if (currentContent.length > 0) {
+      sections.push({ heading: currentSection, content: currentContent.join('\n') });
+    }
+
     return (
-      <div className="whitespace-pre-wrap text-gray-300 text-sm leading-relaxed">
-        {text.split('\n').map((line, idx) => {
-          let processedLine = line;
-
-          // Highlight verdict keywords
-          processedLine = processedLine.replace(/\bHALAL\b/g, '<span style="color: #10b981; font-weight: bold;">HALAL</span>');
-          processedLine = processedLine.replace(/\bNON-COMPLIANT\b/g, '<span style="color: #ef4444; font-weight: bold;">NON-COMPLIANT</span>');
-          processedLine = processedLine.replace(/\bQuestionable\b/g, '<span style="color: #eab308; font-weight: bold;">Questionable</span>');
-          processedLine = processedLine.replace(/\bHalal\b/g, '<span style="color: #10b981; font-weight: 600;">Halal</span>');
-          processedLine = processedLine.replace(/\bNon-compliant\b/g, '<span style="color: #ef4444; font-weight: 600;">Non-compliant</span>');
-          processedLine = processedLine.replace(/\bsuitable\b/g, '<span style="color: #06b6d4;">suitable</span>');
-          processedLine = processedLine.replace(/\bunsuitable\b/g, '<span style="color: #ef4444; font-weight: 600;">unsuitable</span>');
-          processedLine = processedLine.replace(/\bfails\b/g, '<span style="color: #ef4444; font-weight: 600;">fails</span>');
-          processedLine = processedLine.replace(/\bexcellent\b/g, '<span style="color: #10b981;">excellent</span>');
-
-          return (
-            <div key={idx} dangerouslySetInnerHTML={{ __html: processedLine }} />
-          );
-        })}
+      <div className="space-y-4">
+        {sections.map((section, idx) => (
+          <div key={idx}>
+            {section.heading && (
+              <h4 className="text-sm font-semibold text-cyan-400 mb-2">{section.heading}</h4>
+            )}
+            <div className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
+              {section.content}
+            </div>
+          </div>
+        ))}
       </div>
     );
   };
@@ -489,6 +521,7 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
             <div className="relative">
               <label className="block text-sm text-gray-400 mb-2">Company Name or Ticker</label>
               <input
+                id="search-input"
                 type="text"
                 value={search}
                 onChange={(e) => handleSearch(e.target.value)}
@@ -498,7 +531,7 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
               />
 
               {showDropdown && searchResults.length > 0 && (
-                <div className="absolute z-50 w-full mt-1 bg-gray-900 border border-emerald-500/30 rounded-lg shadow-2xl max-h-96 overflow-y-auto">
+                <div id="search-dropdown" className="absolute z-50 w-full mt-1 bg-gray-900 border border-emerald-500/30 rounded-lg shadow-2xl max-h-96 overflow-y-auto">
                   {searchResults.map((result) => (
                     <button
                       key={result.symbol}
@@ -674,7 +707,7 @@ function AnalyzerPage({ onClose }: { onClose: () => void }) {
             <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 backdrop-blur border border-purple-500/30 rounded-lg p-4">
               <h3 className="text-lg font-bold text-white mb-3" style={{ fontFamily: 'var(--font-rajdhani)' }}>SHARIAH COMPLIANCE ANALYSIS</h3>
               <div className="bg-gray-900/50 rounded-lg p-4">
-                {renderAnalysisWithHighlight(results.analysis.explanation)}
+                {renderAnalysisWithSections(results.analysis.explanation)}
               </div>
             </div>
 
