@@ -52,7 +52,7 @@ export default function PurificationCalculator({
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-lg font-bold text-emerald-400">💰 Dividends Purification</h3>
             <span className="text-xs font-bold px-2 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-              AAOIFI Required
+              AAOIFI Requirement
             </span>
           </div>
           <p className="text-sm text-gray-300">
