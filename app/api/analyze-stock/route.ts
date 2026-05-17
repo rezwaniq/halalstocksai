@@ -223,8 +223,10 @@ VERDICT: Non-compliant
 
 Then explain your reasoning. Be consistent and decisive - do not suggest exceptions or case-by-case reviews for prohibited sectors.`;
 
+  const selectedModel = model === 'sonnet' ? 'claude-sonnet-4-6' : 'claude-haiku-4-5-20251001';
+
   const message = await client.messages.create({
-    model: 'claude-sonnet-4-6',
+    model: selectedModel,
     max_tokens: 1024,
     temperature: 0,
     messages: [
@@ -268,7 +270,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { ticker } = await request.json();
+    const { ticker, model = 'haiku' } = await request.json();
 
     if (!ticker || typeof ticker !== 'string') {
       return NextResponse.json(
