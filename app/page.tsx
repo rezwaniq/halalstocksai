@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import StockTicker from './components/StockTicker';
 import PurificationCalculator from './components/PurificationCalculator';
+import GeopoliticalScreen from './components/GeopoliticalScreen';
 
 interface AnalysisResult {
   ticker: string;
@@ -830,6 +831,12 @@ function AnalyzerContent({ onClose }: { onClose: () => void }) {
                 impureIncomePercentage={results.ratios.impureIncomeRatio * 100}
               />
             </div>
+
+            {/* GEOPOLITICAL EXPOSURE SCREEN */}
+            <GeopoliticalScreen
+              ticker={results.ticker}
+              companyName={results.company.name}
+            />
           </div>
         )}
     </div>
