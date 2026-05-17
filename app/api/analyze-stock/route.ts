@@ -186,22 +186,32 @@ Sector: ${company.sector}
 Industry: ${company.industry}
 Market Cap: $${(company.marketCap / 1e9).toFixed(2)}B
 
-Key Financial Metrics:
-- Debt-to-Market-Cap Ratio: ${ratios.debtToMarketCap.toFixed(4)} (threshold: 0.33)
-- Cash-to-Market-Cap Ratio: ${ratios.cashToMarketCap.toFixed(4)}
-- Impure Income Ratio: ${ratios.impureIncomeRatio.toFixed(4)} (threshold: 0.05)
+Financial Metrics (AAOIFI Two-Gate Test):
+- Interest-Bearing Debt Ratio: ${(ratios.debtToMarketCap * 100).toFixed(2)}% (Threshold: 33%)
+  ${ratios.debtToMarketCap <= 0.33 ? '✓ PASS - Acceptable debt levels' : '✗ FAIL - Excessive debt'}
+- Impure Income Ratio: ${(ratios.impureIncomeRatio * 100).toFixed(2)}% (Threshold: 5%)
+  ${ratios.impureIncomeRatio <= 0.05 ? '✓ PASS - Minimal non-halal revenue' : '✗ FAIL - Significant non-halal revenue'}
 
-Guidelines:
-1. A company is compliant if debt-to-market-cap < 0.33 AND impure income < 0.05
-2. Consider the nature of the business and sector
-3. Evaluate if the company's operations align with Islamic principles
+Analysis Framework:
+1. Evaluate the company's PRIMARY BUSINESS MODEL and SECTOR for halal compliance
+   - Is the core business activity permissible under Islamic law?
+   - Does the company operate in prohibited sectors? (alcohol, gambling, weapons/defense, interest banking, etc.)
+   - What percentage of operations are compliant vs. non-compliant?
+
+2. Evaluate the FINANCIAL METRICS using AAOIFI thresholds
+   - Debt and interest-bearing assets must pass both gates
+
+3. Make your VERDICT based on BOTH factors:
+   - HALAL: Both gates pass AND core business is Islamic-compliant
+   - QUESTIONABLE: Gates pass but core business has concerns OR gates fail but business is mostly halal
+   - NON-COMPLIANT: Core business is prohibited OR both gates fail
 
 START your response with EXACTLY ONE of these lines:
 VERDICT: Halal
 VERDICT: Questionable
 VERDICT: Non-compliant
 
-Then explain your reasoning in plain English.`;
+Then explain your reasoning, discussing both financial metrics and business sector appropriateness.`;
 
   const message = await client.messages.create({
     model: 'claude-haiku-4-5-20251001',
