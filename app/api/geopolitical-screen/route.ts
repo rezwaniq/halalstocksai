@@ -32,51 +32,122 @@ async function fetchFMPGeographicData(ticker: string): Promise<string> {
   try {
     if (!FMP_API_KEY) return '';
 
-    // Try multiple FMP endpoints for geographic data
-    const endpoints = [
-      `https://financialmodelingprep.com/stable/geographic-revenue?symbol=${ticker}&apikey=${FMP_API_KEY}`,
-      `https://financialmodelingprep.com/api/v4/geographic-revenue?symbol=${ticker}&apikey=${FMP_API_KEY}`,
-      `https://financialmodelingprep.com/api/v3/geographic-revenue?symbol=${ticker}&apikey=${FMP_API_KEY}`,
-    ];
+    // Try FMP revenue-geographic-segmentation endpoint (works with stable API)
+    const geoUrl = `https://financialmodelingprep.com/stable/revenue-geographic-segmentation?symbol=${ticker}&apikey=${FMP_API_KEY}`;
 
-    for (const endpoint of endpoints) {
-      try {
-        const response = await fetch(endpoint);
+    try {
+      console.log(`Fetching geographic revenue from: ${geoUrl.split('?')[0]}`);
+      const geoResponse = await fetch(geoUrl);
+      console.log(`FMP geographic-segmentation response status: ${geoResponse.status}`);
 
-        // Skip if status is not ok
-        if (!response.ok) {
-          console.log(`FMP endpoint ${endpoint.split('?')[0]} - Status: ${response.status}`);
-          continue;
-        }
+      if (geoResponse.ok) {
+        const geoData = await geoResponse.json() as any;
+        console.log(`FMP data received, keys: ${JSON.stringify(Object.keys(geoData).slice(0, 5))}`);
 
-        const data = await response.json();
-
-        // Check if response has error message
-        if (data?.Error || data?.ErrorMessage) {
-          console.log(`FMP endpoint returned error:`, data.Error || data.ErrorMessage);
-          continue;
+        // Log first item to see structure
+        if (Array.isArray(geoData) && geoData.length > 0) {
+          console.log(`First FMP data item: ${JSON.stringify(geoData[0]).substring(0, 200)}`);
         }
 
         // Check if we got valid geographic data
-        if (Array.isArray(data) && data.length > 0) {
-          let formatted = 'FMP GEOGRAPHIC REVENUE DATA (Financial Modeling Prep):\n';
-          data.forEach((item: any) => {
-            const country = item.country || item.region || item.countryName;
-            const revenue = item.revenue || item.value || item.revenueBillion;
-            const year = item.fiscalYear || item.year || 'Latest';
-            if (country && revenue) {
-              formatted += `- ${country}: $${revenue}${typeof revenue === 'number' && revenue < 100 ? 'B' : ''} (FY${year})\n`;
-            }
-          });
-          if (formatted.split('\n').length > 2) {
-            console.log('FMP geographic data found');
+        if (geoData && typeof geoData === 'object' && Object.keys(geoData).length > 0) {
+          let formatted = 'FMP REVENUE BY GEOGRAPHIC SEGMENT:\n';
+          let foundData = false;
+
+          // Handle FMP revenue-geographic-segmentation array response
+          if (Array.isArray(geoData)) {
+            geoData.forEach((report: any) => {
+              const year = report.fiscalYear || report.year || 'Latest';
+              const reportDate = report.date || '';
+
+              // FMP returns segment data in the 'data' field
+              if (report.data && typeof report.data === 'object') {
+                Object.entries(report.data).forEach(([segmentName, revenue]: [string, any]) => {
+                  if (!revenue || revenue === 0) return;
+
+                  // Map segment names to countries
+                  let country = '';
+                  const lowerSegment = segmentName.toLowerCase();
+
+                  if (lowerSegment.includes('china')) country = 'China';
+                  else if (lowerSegment.includes('israel')) country = 'Israel';
+                  else if (lowerSegment.includes('iran')) country = 'Iran';
+                  else if (lowerSegment.includes('russia')) country = 'Russia';
+                  else if (lowerSegment.includes('ukraine')) country = 'Ukraine';
+                  else if (lowerSegment.includes('korea')) country = 'North Korea';
+                  // Also try direct country matches
+                  else if (lowerSegment.includes('americas') || lowerSegment.includes('us ') || lowerSegment.includes('north america')) country = 'Americas';
+                  else if (lowerSegment.includes('europe')) country = 'Europe';
+                  else if (lowerSegment.includes('asia') && !lowerSegment.includes('china')) country = 'Asia Pacific';
+                  else return; // Skip non-matching segments
+
+                  if (country && revenue > 0) {
+                    const revenueBillions = typeof revenue === 'number' ? (revenue / 1000000000).toFixed(2) : revenue;
+                    formatted += `- ${country}: $${revenueBillions}B (FY${year})\n`;
+                    foundData = true;
+                  }
+                });
+              }
+            });
+          } else {
+            // Handle object response
+            Object.entries(geoData).forEach(([key, value]: [string, any]) => {
+              if (typeof value === 'object' && value !== null) {
+                const country = value.country || value.region || key;
+                const revenue = value.revenue || value.value || value.amount;
+                const year = value.fiscalYear || value.year || 'Latest';
+                const percent = value.percentage || value.percent;
+
+                if (revenue || percent) {
+                  if (revenue) {
+                    formatted += `- ${country}: $${typeof revenue === 'number' ? (revenue / 1000000).toFixed(2) : revenue}M${percent ? ` (${percent}%)` : ''} (${year})\n`;
+                  } else if (percent) {
+                    formatted += `- ${country}: ${percent}% of revenue (${year})\n`;
+                  }
+                  foundData = true;
+                }
+              }
+            });
+          }
+
+          if (foundData) {
+            console.log('FMP geographic revenue data found');
             return formatted;
           }
         }
-      } catch (err) {
-        console.log(`FMP endpoint error: ${err}`);
-        continue;
+      } else if (geoResponse.status === 404) {
+        console.log(`FMP geographic-segmentation endpoint returned 404 (not available for this ticker)`);
+      } else {
+        console.log(`FMP geographic-segmentation returned status ${geoResponse.status}`);
       }
+    } catch (err) {
+      console.log(`Error fetching FMP geographic data: ${err}`);
+    }
+
+    // Try financial-reports-json for segment data
+    try {
+      console.log(`Attempting financial-reports-json for geographic segments`);
+      const reportsUrl = `https://financialmodelingprep.com/stable/financial-reports-json?symbol=${ticker}&year=2023&period=FY&apikey=${FMP_API_KEY}`;
+      const reportsResponse = await fetch(reportsUrl);
+
+      if (reportsResponse.ok) {
+        const reportsData = await reportsResponse.json() as any;
+        // Check if there's segment data in financial reports
+        if (reportsData?.segment && Object.keys(reportsData.segment).length > 0) {
+          let formatted = 'FMP SEGMENT DATA (Geographic):\n';
+          Object.entries(reportsData.segment).forEach(([country, data]: [string, any]) => {
+            if (typeof data === 'object' && data.revenue) {
+              formatted += `- ${country}: $${(data.revenue / 1000000).toFixed(2)}M\n`;
+            }
+          });
+          if (formatted.split('\n').length > 2) {
+            console.log('Geographic segment data found in financial reports');
+            return formatted;
+          }
+        }
+      }
+    } catch (err) {
+      console.log(`Error fetching financial reports: ${err}`);
     }
 
     console.log('No geographic revenue data available from FMP for', ticker);
@@ -217,6 +288,11 @@ async function analyzeCountryInvestment(
       apiKey: ANTHROPIC_API_KEY,
     });
 
+    // Log what data we have
+    console.log(`analyzeCountryInvestment called for ${companyName}`);
+    console.log(`FMP data available: ${fmpGeographicData ? 'YES (' + fmpGeographicData.length + ' chars)' : 'NO'}`);
+    console.log(`SEC data available: ${secText ? 'YES (' + secText.length + ' chars)' : 'NO'}`);
+
     // Prepare context for Claude
     const dataContext = [];
     if (fmpGeographicData) {
@@ -268,11 +344,41 @@ Format output as short paragraphs, one per country. Be concise.`;
 
     const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
 
-    // Parse response for each country
-    return selectedCountries.map(country => ({
-      country,
-      analysis: responseText.match(new RegExp(`${country}[^.]*\\.`, 'i'))?.[0] || `${country}: Data not found in filing`,
-    }));
+    console.log(`Claude response length: ${responseText.length} chars`);
+    if (responseText.length > 0) {
+      console.log(`Claude response preview: ${responseText.substring(0, 300)}`);
+    }
+
+    // Parse response for each country - if only one country, return full response
+    if (selectedCountries.length === 1) {
+      return [{
+        country: selectedCountries[0],
+        analysis: responseText || `${selectedCountries[0]}: Data not found`,
+      }];
+    }
+
+    // For multiple countries, split by country mentions
+    return selectedCountries.map(country => {
+      // Find all text between this country and the next country (or end of response)
+      const nextCountryIdx = selectedCountries.findIndex(c => c !== country && responseText.toLowerCase().indexOf(c.toLowerCase()) > responseText.toLowerCase().indexOf(country.toLowerCase()));
+      const startIdx = responseText.toLowerCase().indexOf(country.toLowerCase());
+
+      if (startIdx < 0) {
+        return { country, analysis: `${country}: Data not found` };
+      }
+
+      let endIdx = responseText.length;
+      if (nextCountryIdx >= 0) {
+        const nextCountry = selectedCountries[nextCountryIdx];
+        const nextIdx = responseText.toLowerCase().indexOf(nextCountry.toLowerCase());
+        if (nextIdx > startIdx) {
+          endIdx = nextIdx;
+        }
+      }
+
+      const analysis = responseText.substring(startIdx, endIdx).trim() || `${country}: Data not found`;
+      return { country, analysis };
+    });
   } catch (error) {
     console.error('Country investment analysis error:', error);
     return selectedCountries.map(country => ({
