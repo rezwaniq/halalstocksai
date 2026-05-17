@@ -174,7 +174,8 @@ async function analyzeWithClaude(
   ticker: string,
   company: CompanyProfile,
   financials: FinancialData,
-  ratios: Ratios
+  ratios: Ratios,
+  model: string = 'haiku'
 ): Promise<{
   verdict: 'Halal' | 'Questionable' | 'Non-compliant';
   explanation: string;
@@ -281,7 +282,7 @@ export async function POST(request: NextRequest) {
 
     const { profile, financials } = await fetchFMPData(ticker.toUpperCase());
     const ratios = calculateRatios(profile, financials);
-    const analysis = await analyzeWithClaude(ticker.toUpperCase(), profile, financials, ratios);
+    const analysis = await analyzeWithClaude(ticker.toUpperCase(), profile, financials, ratios, model);
 
     // Calculate financial metrics for detailed display
     const interestBearingDebt = financials.totalDebt * 0.75;
