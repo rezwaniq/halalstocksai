@@ -104,8 +104,8 @@ function calculateRatios(profile: CompanyProfile, financials: FinancialData): Ra
   // Interest-bearing deposits ratio (cash in interest-bearing accounts ~50%)
   const interestBearingDepositsRatio = cashToMarketCap * 0.5;
 
-  // Impure income ratio - estimate based on non-compliant sectors
-  const impureIncomeRatio = estimateImpureIncomeRatio(profile.sector);
+  // Impure income ratio - estimate based on non-compliant sectors and industries
+  const impureIncomeRatio = estimateImpureIncomeRatio(profile.sector, profile.industry);
 
   return {
     debtToMarketCap: Math.round(debtToMarketCap * 10000) / 10000,
@@ -116,8 +116,10 @@ function calculateRatios(profile: CompanyProfile, financials: FinancialData): Ra
   };
 }
 
-function estimateImpureIncomeRatio(sector: string): number {
+function estimateImpureIncomeRatio(sector: string, industry: string = ''): number {
   const sectorLower = sector.toLowerCase();
+  const industryLower = industry.toLowerCase();
+  const combined = `${sectorLower} ${industryLower}`;
 
   // Non-compliant sectors with high impure income
   const nonCompliantSectors: { [key: string]: number } = {
@@ -127,8 +129,10 @@ function estimateImpureIncomeRatio(sector: string): number {
     'alcohol': 0.95,
     'gambling': 0.95,
     'tobacco': 0.95,
-    'defense': 0.6,
-    'aerospace': 0.6,
+    'weapons': 0.95,
+    'defense': 0.95,
+    'aerospace & defense': 0.95,
+    'aerospace': 0.9,
     'entertainment': 0.4,
   };
 
@@ -151,14 +155,14 @@ function estimateImpureIncomeRatio(sector: string): number {
 
   // Check compliant sectors first
   for (const [key, value] of Object.entries(compliantSectors)) {
-    if (sectorLower.includes(key)) {
+    if (combined.includes(key)) {
       return value;
     }
   }
 
   // Check non-compliant sectors
   for (const [key, value] of Object.entries(nonCompliantSectors)) {
-    if (sectorLower.includes(key)) {
+    if (combined.includes(key)) {
       return value;
     }
   }
