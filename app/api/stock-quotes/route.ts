@@ -1,49 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 
-const ALPHA_VANTAGE_API_KEY = process.env.ALPHA_VANTAGE_API_KEY;
+const FMP_API_KEY = process.env.NEXT_PUBLIC_FMP_API_KEY;
 
 const POPULAR_STOCKS = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'JPM', 'V', 'JNJ', 'WMT', 'DIS'];
 
 export async function GET(request: NextRequest) {
   try {
-    if (!ALPHA_VANTAGE_API_KEY) {
+    if (!FMP_API_KEY) {
       return NextResponse.json(
-        { error: 'API key not configured' },
+        { error: 'FMP API key not configured' },
         { status: 500 }
       );
     }
 
     const quotes = [];
 
-    // Fetch quotes for popular stocks
-    for (const symbol of POPULAR_STOCKS) {
-      try {
-        const response = await axios.get(
-          `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${ALPHA_VANTAGE_API_KEY}`
-        );
+    // Fetch all quotes in one request using FMP batch endpoint
+    try {
+      const symbolList = POPULAR_STOCKS.join(',');
+      const response = await axios.get(
+        `https://financialmodelingprep.com/api/v3/quote/${symbolList}?apikey=${FMP_API_KEY}`
+      );
 
-        const data = response.data['Global Quote'];
+      const data = response.data;
 
-        if (data && data['05. price']) {
-          const price = parseFloat(data['05. price']);
-          const previousClose = parseFloat(data['08. previous close'] || data['05. price']);
-          const change = price - previousClose;
-          const changePercent = (change / previousClose) * 100;
+      if (Array.isArray(data)) {
+        for (const stock of data) {
+          if (stock.symbol && stock.price) {
+            const change = ((stock.price - stock.previousClose) / stock.previousClose) * 100;
 
-          quotes.push({
-            symbol,
-            price: price.toFixed(2),
-            change: changePercent.toFixed(2),
-          });
+            quotes.push({
+              symbol: stock.symbol,
+              price: stock.price.toFixed(2),
+              change: change.toFixed(2),
+            });
+          }
         }
-
-        // Add small delay to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 100));
-      } catch (error) {
-        console.error(`Error fetching ${symbol}:`, error);
-        // Continue with next stock on error
       }
+    } catch (error) {
+      console.error('Error fetching FMP quotes:', error);
+      // Return empty on error - UI will show fallback data
     }
 
     if (quotes.length === 0) {

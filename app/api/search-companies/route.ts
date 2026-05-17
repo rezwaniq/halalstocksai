@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 
-const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY;
+const FMP_API_KEY = process.env.NEXT_PUBLIC_FMP_API_KEY;
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,26 +15,16 @@ export async function POST(request: NextRequest) {
     }
 
     const response = await axios.get(
-      'https://finnhub.io/api/v1/search',
-      {
-        params: {
-          q: query.trim(),
-          token: FINNHUB_API_KEY,
-        },
-      }
+      `https://financialmodelingprep.com/api/v3/search?query=${encodeURIComponent(query.trim())}&limit=10&apikey=${FMP_API_KEY}`
     );
 
-    const results = (response.data.result || [])
-      .filter((item: any) => {
-        // Filter to common stocks
-        return item.type === 'Common Stock';
-      })
+    const results = (response.data || [])
       .slice(0, 10) // Limit to 10 results
       .map((item: any) => ({
         symbol: item.symbol,
-        name: item.description,
-        currency: 'USD',
-        exchange: item.displaySymbol,
+        name: item.name,
+        currency: item.currency || 'USD',
+        exchange: item.exchangeShortName || item.exchange || 'Unknown',
       }));
 
     return NextResponse.json(

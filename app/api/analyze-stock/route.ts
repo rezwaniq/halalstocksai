@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 
-const ALPHA_VANTAGE_API_KEY = process.env.ALPHA_VANTAGE_API_KEY;
+const FMP_API_KEY = process.env.NEXT_PUBLIC_FMP_API_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 interface CompanyProfile {
@@ -36,67 +36,55 @@ interface FinancialMetrics {
   purificationPercentage: number;
 }
 
-async function fetchAlphaVantageData(ticker: string): Promise<{
+async function fetchFMPData(ticker: string): Promise<{
   profile: CompanyProfile;
   financials: FinancialData;
 }> {
-  const baseUrl = 'https://www.alphavantage.co/query';
-
   try {
-    // Fetch company overview
-    const overviewRes = await fetch(
-      `${baseUrl}?function=OVERVIEW&symbol=${ticker}&apikey=${ALPHA_VANTAGE_API_KEY}`
+    // Fetch company profile
+    const profileRes = await fetch(
+      `https://financialmodelingprep.com/api/v3/profile/${ticker}?apikey=${FMP_API_KEY}`
     );
-    const overview = await overviewRes.json();
+    const profileData = await profileRes.json();
+    const profile = profileData[0];
 
-    console.log(`Alpha Vantage response for ${ticker}:`, overview);
-
-    if (!overview.Symbol) {
-      if (overview.Note) {
-        throw new Error(`Daily rate limit exceeded. Alpha Vantage free tier allows 25 requests/day. Please try again tomorrow or upgrade to a premium plan.`);
-      }
-      if (overview.Information) {
-        if (overview.Information.includes('rate limit')) {
-          throw new Error(`Daily rate limit exceeded. Alpha Vantage free tier allows 25 requests/day. Please try again tomorrow or upgrade to a premium plan.`);
-        }
-        throw new Error(`API Error: ${overview.Information}`);
-      }
+    if (!profile || !profile.symbol) {
       throw new Error(`Company not found: ${ticker}`);
     }
 
     // Fetch balance sheet
     const balanceRes = await fetch(
-      `${baseUrl}?function=BALANCE_SHEET&symbol=${ticker}&apikey=${ALPHA_VANTAGE_API_KEY}`
+      `https://financialmodelingprep.com/api/v3/balance-sheet-statement/${ticker}?limit=1&apikey=${FMP_API_KEY}`
     );
     const balanceData = await balanceRes.json();
-    const latestBalance = balanceData.annualReports?.[0] || {};
+    const latestBalance = balanceData[0] || {};
 
     // Fetch income statement
     const incomeRes = await fetch(
-      `${baseUrl}?function=INCOME_STATEMENT&symbol=${ticker}&apikey=${ALPHA_VANTAGE_API_KEY}`
+      `https://financialmodelingprep.com/api/v3/income-statement/${ticker}?limit=1&apikey=${FMP_API_KEY}`
     );
     const incomeData = await incomeRes.json();
-    const latestIncome = incomeData.annualReports?.[0] || {};
+    const latestIncome = incomeData[0] || {};
 
     const companyProfile: CompanyProfile = {
-      name: overview.Name || ticker,
-      marketCap: parseInt(overview.MarketCapitalization) || 0,
-      sector: overview.Sector || 'Unknown',
-      industry: overview.Industry || 'Unknown',
-      description: overview.Description || '',
+      name: profile.companyName || ticker,
+      marketCap: profile.mktCap || 0,
+      sector: profile.sector || 'Unknown',
+      industry: profile.industry || 'Unknown',
+      description: profile.description || '',
     };
 
     const financials: FinancialData = {
-      totalDebt: (parseInt(latestBalance.shortTermDebt) || 0) + (parseInt(latestBalance.longTermDebt) || 0),
-      cash: parseInt(latestBalance.cashAndCashEquivalents) || 0,
-      totalAssets: parseInt(latestBalance.totalAssets) || 0,
-      netIncome: parseInt(latestIncome.netIncome) || 0,
-      revenue: parseInt(latestIncome.totalRevenue) || 0,
+      totalDebt: (latestBalance.shortTermDebt || 0) + (latestBalance.longTermDebt || 0),
+      cash: latestBalance.cashAndCashEquivalents || 0,
+      totalAssets: latestBalance.totalAssets || 0,
+      netIncome: latestIncome.netIncome || 0,
+      revenue: latestIncome.revenue || 0,
     };
 
     return { profile: companyProfile, financials };
   } catch (error) {
-    console.error(`Error fetching data for ${ticker}:`, error);
+    console.error(`Error fetching FMP data for ${ticker}:`, error);
     throw new Error(`Failed to fetch data for ${ticker}`);
   }
 }
@@ -252,7 +240,7 @@ Then explain your reasoning in plain English.`;
 
 export async function POST(request: NextRequest) {
   try {
-    if (!ALPHA_VANTAGE_API_KEY || !ANTHROPIC_API_KEY) {
+    if (!FMP_API_KEY || !ANTHROPIC_API_KEY) {
       return NextResponse.json(
         { error: 'Missing API keys' },
         { status: 500 }
@@ -268,7 +256,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { profile, financials } = await fetchAlphaVantageData(ticker.toUpperCase());
+    const { profile, financials } = await fetchFMPData(ticker.toUpperCase());
     const ratios = calculateRatios(profile, financials);
     const analysis = await analyzeWithClaude(ticker.toUpperCase(), profile, financials, ratios);
 
