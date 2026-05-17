@@ -213,7 +213,7 @@ export default function GeopoliticalScreen({ ticker, companyName }: Geopolitical
           )}
 
           {/* Defense Contractor Exposure Section */}
-          {results.defenseExposure && (
+          {results && results.defenseExposure && (
             <div className="mt-6 pt-6 border-t border-gray-200 space-y-4">
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                 <h4 className="font-bold text-gray-900 mb-2">🛡️ DEFENSE CONTRACTOR INVESTMENT EXPOSURE (USA)</h4>

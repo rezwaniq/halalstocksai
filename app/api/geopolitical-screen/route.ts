@@ -413,7 +413,11 @@ Then provide one sentence summarizing overall exposure.`;
       summary,
       sources,
       filingDate: secData.filingDate,
-      defenseExposure,
+      defenseExposure: defenseExposure || {
+        totalExposure: 'Analysis unavailable',
+        contractors: [],
+        analysis: 'Defense contractor analysis could not be completed.',
+      },
     });
   } catch (error) {
     console.error('Geopolitical screen error:', error);
