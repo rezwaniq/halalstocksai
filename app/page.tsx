@@ -686,34 +686,11 @@ function AnalyzerContent({ onClose }: { onClose: () => void }) {
                   </h2>
                   <p className="text-gray-600 text-sm mt-2">{results.company.name} • {results.company.sector}</p>
                 </div>
-                <div className="text-right space-y-2">
+                <div className="text-right">
                   <div className={`px-6 py-3 rounded-lg border font-bold text-lg mb-2 inline-block ${getVerdictColor(results.analysis.verdict)}`} style={{ fontFamily: 'var(--font-poppins)' }}>
                     {results.analysis.verdict.toUpperCase()}
                   </div>
                   <p className="text-gray-500 text-xs">Analysis Date: {results.date}</p>
-                  <button
-                    onClick={() => {
-                      setLoading(true);
-                      fetch('/api/analyze-stock', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ ticker: results.ticker.toUpperCase(), model: 'sonnet' }),
-                      })
-                        .then(res => res.json())
-                        .then(data => {
-                          setResults(data);
-                          setLoading(false);
-                        })
-                        .catch(err => {
-                          setError('Failed to get detailed analysis');
-                          setLoading(false);
-                        });
-                    }}
-                    disabled={loading}
-                    className="block w-full text-xs px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold rounded transition disabled:opacity-50"
-                  >
-                    {loading ? 'Loading...' : 'Get detailed analysis (Sonnet)'}
-                  </button>
                 </div>
               </div>
             </div>

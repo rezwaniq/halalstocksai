@@ -40217,3 +40217,27 @@ Import traces:
  GET / 200 in 205ms (next.js: 107ms, application-code: 98ms)
  GET / 200 in 55ms (next.js: 9ms, application-code: 46ms)
  GET /api/stock-quotes 200 in 1401ms (next.js: 74ms, application-code: 1327ms)
+ GET / 200 in 152ms (next.js: 8ms, application-code: 144ms)
+[browser] Image with src "/logo.png" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+ GET /api/stock-quotes 200 in 2.1s (next.js: 4ms, application-code: 2.1s)
+ GET / 200 in 88ms (next.js: 10ms, application-code: 78ms)
+[browser] Image with src "/logo.png" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+ GET /api/stock-quotes 200 in 1305ms (next.js: 8ms, application-code: 1297ms)
+ POST /api/search-companies 200 in 41ms (next.js: 33ms, application-code: 8ms)
+ POST /api/search-companies 200 in 14ms (next.js: 5ms, application-code: 9ms)
+Error analyzing stock: ReferenceError: model is not defined
+    at analyzeWithClaude (app\api\analyze-stock\route.ts:226:25)
+    at POST (app\api\analyze-stock\route.ts:284:28)
+  224 | Then explain your reasoning. Be consistent and decisive - do not suggest exceptions or ca...
+  225 |
+> 226 |   const selectedModel = model === 'sonnet' ? 'claude-sonnet-4-6' : 'claude-haiku-4-5-2025...
+      |                         ^
+  227 |
+  228 |   const message = await client.messages.create({
+  229 |     model: selectedModel,
+ POST /api/analyze-stock 400 in 742ms (next.js: 63ms, application-code: 680ms)
+ GET / 200 in 225ms (next.js: 111ms, application-code: 114ms)
+ GET / 200 in 59ms (next.js: 9ms, application-code: 50ms)
+ GET / 200 in 171ms (next.js: 92ms, application-code: 79ms)
+ GET / 200 in 32ms (next.js: 8ms, application-code: 24ms)
+ GET /api/stock-quotes 200 in 3.0s (next.js: 72ms, application-code: 2.9s)
