@@ -139,9 +139,8 @@ export default function Home() {
         <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-sm border-b border-gray-200 shadow-sm">
           <div className="max-w-7xl mx-auto px-8 py-4 flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-100 to-blue-50 p-1 shadow-sm border border-blue-200/50 flex items-center justify-center flex-shrink-0">
-                <Image src="/logo.png" alt="HalalStocks AI Logo" width={52} height={52} priority className="rounded-full object-cover" />
-              </div>
+              <Image src="/logo.png" alt="HalalStocks AI Logo" width={56} height={56} priority className="rounded-full object-cover w-14 h-14 flex-shrink-0" />
+
               <span className="font-bold text-3xl bg-gradient-to-r from-blue-500 to-blue-700 bg-clip-text text-transparent" style={{ fontFamily: 'var(--font-poppins)' }}>
                 HalalStocks AI
               </span>
