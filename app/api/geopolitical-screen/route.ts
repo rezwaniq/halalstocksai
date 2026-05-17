@@ -10,6 +10,125 @@ interface ScreenRequest {
   selectedCountries: string[];
 }
 
+// Known US Defense Contractors
+const US_DEFENSE_CONTRACTORS = [
+  { name: 'Lockheed Martin', ticker: 'LMT', aliases: ['lockheed', 'lmt'] },
+  { name: 'Boeing', ticker: 'BA', aliases: ['boeing', 'ba'] },
+  { name: 'Raytheon Technologies', ticker: 'RTX', aliases: ['raytheon', 'rtx'] },
+  { name: 'General Dynamics', ticker: 'GD', aliases: ['general dynamics', 'gd'] },
+  { name: 'Northrop Grumman', ticker: 'NOG', aliases: ['northrop', 'nog'] },
+  { name: 'L3Harris Technologies', ticker: 'LHX', aliases: ['l3harris', 'lhx', 'l3'] },
+  { name: 'Huntington Ingalls', ticker: 'HII', aliases: ['huntington', 'hii'] },
+  { name: 'Leidos', ticker: 'LDOS', aliases: ['leidos', 'ldos'] },
+  { name: 'Spirit AeroSystems', ticker: 'SPR', aliases: ['spirit', 'spr'] },
+  { name: 'Meggitt', ticker: 'MGGT', aliases: ['meggitt'] },
+  { name: 'Textron', ticker: 'TXT', aliases: ['textron', 'txt'] },
+  { name: 'Heico', ticker: 'HEI', aliases: ['heico'] },
+  { name: 'TransDigm', ticker: 'TDG', aliases: ['transdigm', 'tdg'] },
+  { name: 'KBR', ticker: 'KBR', aliases: ['kbr'] },
+  { name: 'Orbital ATK', ticker: 'OPS', aliases: ['orbital', 'atk'] },
+];
+
+async function analyzeDefenseExposure(
+  companyName: string,
+  secText: string,
+  spendingData: string
+): Promise<{
+  totalExposure: string;
+  contractors: any[];
+  analysis: string;
+  trend?: string;
+}> {
+  try {
+    const client = new Anthropic({
+      apiKey: ANTHROPIC_API_KEY,
+    });
+
+    // Build search patterns for defense contractors
+    const contractorPatterns = US_DEFENSE_CONTRACTORS.map(c => c.aliases.join('|')).join('|');
+
+    const prompt = `Analyze the following company data for investments, partnerships, and supply chain relationships with US defense contractors.
+
+Company: ${companyName}
+
+Available data:
+SEC 10-K excerpts: ${secText.substring(0, 2000)}
+Government contracts/partnerships: ${spendingData}
+
+Known US Defense Contractors to search for:
+${US_DEFENSE_CONTRACTORS.map(c => `- ${c.name} (${c.ticker})`).join('\n')}
+
+For EACH defense contractor mentioned:
+1. State the company name and relationship type (supplier, partner, investor, joint venture, etc)
+2. If investment amount is mentioned: cite the amount and year
+3. If no specific amount: describe the nature of relationship
+4. Rate exposure as HIGH/MODERATE/LOW based on strategic importance
+
+If no defense contractor relationships are found, state that clearly.
+
+Format each contractor on one line: [Contractor]: [Relationship] [Amount if any]
+
+Then provide a 2-3 sentence overall analysis of defense sector exposure.`;
+
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1024,
+      temperature: 0,
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+    });
+
+    const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
+
+    // Parse Claude's response to extract contractor info
+    const contractors: any[] = [];
+    const lines = responseText.split('\n');
+
+    for (const line of lines) {
+      for (const contractor of US_DEFENSE_CONTRACTORS) {
+        if (line.toLowerCase().includes(contractor.name.toLowerCase())) {
+          const match = line.match(/([^:]+):\s*(.+)/);
+          if (match) {
+            contractors.push({
+              contractor: contractor.name,
+              relationship: match[2].trim(),
+              exposureLevel: line.toLowerCase().includes('high')
+                ? 'HIGH'
+                : line.toLowerCase().includes('moderate')
+                  ? 'MODERATE'
+                  : 'LOW',
+            });
+          }
+        }
+      }
+    }
+
+    // Extract analysis paragraph
+    const analysisMatch = responseText.match(/(?:analysis|overall)[\s\S]*?([^\n.]+\.[^\n.]+\.[^\n.]*\.)/i);
+    const analysis = analysisMatch ? analysisMatch[1].trim() : 'See detailed findings above.';
+
+    return {
+      totalExposure:
+        contractors.length > 0
+          ? `${contractors.length} contractor(s) identified`
+          : 'No direct defense contractor exposure identified',
+      contractors,
+      analysis,
+    };
+  } catch (error) {
+    console.error('Defense exposure analysis error:', error);
+    return {
+      totalExposure: 'Analysis unavailable',
+      contractors: [],
+      analysis: 'Unable to analyze defense contractor exposure at this time.',
+    };
+  }
+}
+
 interface ScreenResult {
   country: string;
   analysis: string;
@@ -185,10 +304,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch data from all sources
-    const [secData, spendingData, fmpDataResult] = await Promise.all([
+    const [secData, spendingData, fmpDataResult, defenseExposure] = await Promise.all([
       fetchSECData(companyName),
       fetchUSASpendingData(companyName),
       fetchFMPGeographicData(ticker),
+      analyzeDefenseExposure(companyName, (await fetchSECData(companyName)).text, await fetchUSASpendingData(companyName)),
     ]);
 
     const fmpData = fmpDataResult.formatted;
@@ -291,6 +411,7 @@ Then provide one sentence summarizing overall exposure.`;
       summary,
       sources,
       filingDate: secData.filingDate,
+      defenseExposure,
     });
   } catch (error) {
     console.error('Geopolitical screen error:', error);

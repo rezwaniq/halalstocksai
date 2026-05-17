@@ -14,6 +14,14 @@ interface ScreenResult {
   exposureLevel: 'HIGH' | 'MODERATE' | 'LOW' | 'NONE';
 }
 
+interface DefenseContractorExposure {
+  contractor: string;
+  relationship: string;
+  amount?: string;
+  years?: string;
+  exposureLevel: 'HIGH' | 'MODERATE' | 'LOW';
+}
+
 interface ScreeningResponse {
   ticker: string;
   selectedCountries: string[];
@@ -21,6 +29,12 @@ interface ScreeningResponse {
   summary: string;
   sources: string[];
   filingDate: string;
+  defenseExposure?: {
+    totalExposure: string;
+    contractors: DefenseContractorExposure[];
+    analysis: string;
+    trend?: string;
+  };
   error?: string;
 }
 
@@ -194,6 +208,67 @@ export default function GeopoliticalScreen({ ticker, companyName }: Geopolitical
               <div className="text-xs text-gray-600 space-y-1 pt-4 border-t border-gray-200">
                 {results.filingDate && <p>Filed: {results.filingDate}</p>}
                 <p>This analysis is for informational purposes only and does not constitute investment advice.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Defense Contractor Exposure Section */}
+          {results.defenseExposure && (
+            <div className="mt-6 pt-6 border-t border-gray-200 space-y-4">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <h4 className="font-bold text-gray-900 mb-2">🛡️ DEFENSE CONTRACTOR INVESTMENT EXPOSURE (USA)</h4>
+                <p className="text-sm text-gray-700 mb-3">
+                  <span className="font-semibold">Total Exposure:</span> {results.defenseExposure.totalExposure}
+                </p>
+
+                {results.defenseExposure.contractors.length > 0 ? (
+                  <div className="space-y-3">
+                    {results.defenseExposure.contractors.map((contractor, idx) => (
+                      <div key={idx} className="bg-white rounded p-3 border border-red-100">
+                        <div className="flex items-start justify-between mb-1">
+                          <h5 className="font-semibold text-gray-900">{contractor.contractor}</h5>
+                          <span
+                            className={`text-xs font-bold px-2 py-1 rounded ${
+                              contractor.exposureLevel === 'HIGH'
+                                ? 'bg-red-100 text-red-700'
+                                : contractor.exposureLevel === 'MODERATE'
+                                  ? 'bg-amber-100 text-amber-700'
+                                  : 'bg-yellow-100 text-yellow-700'
+                            }`}
+                          >
+                            {contractor.exposureLevel}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-700">{contractor.relationship}</p>
+                        {contractor.amount && (
+                          <p className="text-xs text-gray-600 mt-1">Amount: {contractor.amount}</p>
+                        )}
+                        {contractor.years && (
+                          <p className="text-xs text-gray-600">Years: {contractor.years}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-700 italic">
+                    No direct defense contractor investments identified in recent filings.
+                  </p>
+                )}
+
+                {results.defenseExposure.analysis && (
+                  <div className="mt-4 pt-4 border-t border-red-200">
+                    <h5 className="text-sm font-semibold text-gray-900 mb-2">Analysis</h5>
+                    <p className="text-sm text-gray-700 leading-relaxed">
+                      {results.defenseExposure.analysis}
+                    </p>
+                  </div>
+                )}
+
+                {results.defenseExposure.trend && (
+                  <p className="text-xs text-gray-600 mt-3 pt-3 border-t border-red-200">
+                    <span className="font-semibold">Trend:</span> {results.defenseExposure.trend}
+                  </p>
+                )}
               </div>
             </div>
           )}
