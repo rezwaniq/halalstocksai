@@ -41,41 +41,41 @@ async function fetchFMPData(ticker: string): Promise<{
   financials: FinancialData;
 }> {
   try {
-    // Fetch company profile
+    // Fetch company profile using stable endpoint
     const profileRes = await fetch(
-      `https://financialmodelingprep.com/api/v3/profile/${ticker}?apikey=${FMP_API_KEY}`
+      `https://financialmodelingprep.com/stable/profile?symbol=${ticker}&apikey=${FMP_API_KEY}`
     );
     const profileData = await profileRes.json();
-    const profile = profileData[0];
+    const profile = Array.isArray(profileData) ? profileData[0] : profileData;
 
     if (!profile || !profile.symbol) {
       throw new Error(`Company not found: ${ticker}`);
     }
 
-    // Fetch balance sheet
+    // Fetch balance sheet using stable endpoint
     const balanceRes = await fetch(
-      `https://financialmodelingprep.com/api/v3/balance-sheet-statement/${ticker}?limit=1&apikey=${FMP_API_KEY}`
+      `https://financialmodelingprep.com/stable/balance-sheet-statement?symbol=${ticker}&apikey=${FMP_API_KEY}`
     );
     const balanceData = await balanceRes.json();
-    const latestBalance = balanceData[0] || {};
+    const latestBalance = Array.isArray(balanceData) ? balanceData[0] : {};
 
-    // Fetch income statement
+    // Fetch income statement using stable endpoint
     const incomeRes = await fetch(
-      `https://financialmodelingprep.com/api/v3/income-statement/${ticker}?limit=1&apikey=${FMP_API_KEY}`
+      `https://financialmodelingprep.com/stable/income-statement?symbol=${ticker}&apikey=${FMP_API_KEY}`
     );
     const incomeData = await incomeRes.json();
-    const latestIncome = incomeData[0] || {};
+    const latestIncome = Array.isArray(incomeData) ? incomeData[0] : {};
 
     const companyProfile: CompanyProfile = {
       name: profile.companyName || ticker,
-      marketCap: profile.mktCap || 0,
+      marketCap: profile.marketCap || profile.marketCapitalization || 0,
       sector: profile.sector || 'Unknown',
       industry: profile.industry || 'Unknown',
       description: profile.description || '',
     };
 
     const financials: FinancialData = {
-      totalDebt: (latestBalance.shortTermDebt || 0) + (latestBalance.longTermDebt || 0),
+      totalDebt: latestBalance.totalDebt || (latestBalance.shortTermDebt || 0) + (latestBalance.longTermDebt || 0),
       cash: latestBalance.cashAndCashEquivalents || 0,
       totalAssets: latestBalance.totalAssets || 0,
       netIncome: latestIncome.netIncome || 0,

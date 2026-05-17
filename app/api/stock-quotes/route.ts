@@ -16,31 +16,28 @@ export async function GET(request: NextRequest) {
 
     const quotes = [];
 
-    // Fetch all quotes in one request using FMP batch endpoint
-    try {
-      const symbolList = POPULAR_STOCKS.join(',');
-      const response = await axios.get(
-        `https://financialmodelingprep.com/api/v3/quote/${symbolList}?apikey=${FMP_API_KEY}`
-      );
+    // Fetch quotes for popular stocks using stable endpoint
+    for (const symbol of POPULAR_STOCKS) {
+      try {
+        const response = await axios.get(
+          `https://financialmodelingprep.com/stable/quote?symbol=${symbol}&apikey=${FMP_API_KEY}`
+        );
 
-      const data = response.data;
+        const data = response.data && Array.isArray(response.data) ? response.data[0] : response.data;
 
-      if (Array.isArray(data)) {
-        for (const stock of data) {
-          if (stock.symbol && stock.price) {
-            const change = ((stock.price - stock.previousClose) / stock.previousClose) * 100;
+        if (data && data.price) {
+          const change = ((data.price - (data.previousClose || data.price)) / (data.previousClose || data.price)) * 100;
 
-            quotes.push({
-              symbol: stock.symbol,
-              price: stock.price.toFixed(2),
-              change: change.toFixed(2),
-            });
-          }
+          quotes.push({
+            symbol: data.symbol || symbol,
+            price: data.price.toFixed(2),
+            change: change.toFixed(2),
+          });
         }
+      } catch (error) {
+        console.error(`Error fetching ${symbol}:`, error);
+        // Continue with next stock on error
       }
-    } catch (error) {
-      console.error('Error fetching FMP quotes:', error);
-      // Return empty on error - UI will show fallback data
     }
 
     if (quotes.length === 0) {
