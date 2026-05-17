@@ -1,30 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
-import axios from 'axios';
-
-const FMP_API_KEY = process.env.NEXT_PUBLIC_FMP_API_KEY;
+import { stocksList } from '../stocks-list';
 
 export async function POST(request: NextRequest) {
   try {
     const { query } = await request.json();
 
-    if (!query || typeof query !== 'string' || query.length < 2) {
+    if (!query || typeof query !== 'string' || query.length < 1) {
       return NextResponse.json(
         { results: [] },
         { status: 200 }
       );
     }
 
-    const response = await axios.get(
-      `https://financialmodelingprep.com/api/v3/search?query=${encodeURIComponent(query.trim())}&limit=10&apikey=${FMP_API_KEY}`
-    );
+    const lowerQuery = query.toLowerCase().trim();
 
-    const results = (response.data || [])
+    // Fuzzy search through local stocks list
+    const results = stocksList
+      .filter((stock) => {
+        const symbolMatch = stock.symbol.toLowerCase().includes(lowerQuery);
+        const nameMatch = stock.name.toLowerCase().includes(lowerQuery);
+        return symbolMatch || nameMatch;
+      })
       .slice(0, 10) // Limit to 10 results
-      .map((item: any) => ({
-        symbol: item.symbol,
-        name: item.name,
-        currency: item.currency || 'USD',
-        exchange: item.exchangeShortName || item.exchange || 'Unknown',
+      .map((stock) => ({
+        symbol: stock.symbol,
+        name: stock.name,
+        currency: 'USD',
+        exchange: 'NYSE/NASDAQ',
       }));
 
     return NextResponse.json(
@@ -33,9 +35,6 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error('Search error:', error);
-    if (error instanceof Error) {
-      console.error('Error message:', error.message);
-    }
     return NextResponse.json(
       { results: [] },
       { status: 200 }

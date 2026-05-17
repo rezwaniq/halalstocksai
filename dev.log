@@ -31298,3 +31298,25 @@ Error fetching DIS: Error [AxiosError]: Request failed with status code 403
  GET /api/stock-quotes 200 in 2.5s (next.js: 7ms, application-code: 2.5s)
 (node:41032) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
+ GET / 200 in 648ms (next.js: 577ms, application-code: 71ms)
+(node:26556) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ GET / 200 in 152ms (next.js: 104ms, application-code: 48ms)
+ GET /api/stock-quotes 200 in 2.1s (next.js: 68ms, application-code: 2.0s)
+ GET /api/stock-quotes 200 in 2.3s (next.js: 7ms, application-code: 2.3s)
+ GET /api/stock-quotes 200 in 1373ms (next.js: 7ms, application-code: 1366ms)
+ GET /api/stock-quotes 200 in 1742ms (next.js: 8ms, application-code: 1734ms)
+ GET /api/stock-quotes 200 in 1834ms (next.js: 7ms, application-code: 1827ms)
+[browser] Image with src "/logo.png" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+ GET /api/stock-quotes 200 in 2.0s (next.js: 6ms, application-code: 2.0s)
+ GET / 200 in 165ms (next.js: 8ms, application-code: 157ms)
+[browser] Image with src "/logo.png" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+ GET /api/stock-quotes 200 in 1161ms (next.js: 6ms, application-code: 1154ms)
+ GET /api/stock-quotes 200 in 1355ms (next.js: 3ms, application-code: 1352ms)
+ GET /api/stock-quotes 200 in 1479ms (next.js: 3ms, application-code: 1476ms)
+ POST /api/analyze-stock 200 in 5.7s (next.js: 76ms, application-code: 5.7s)
+ GET / 200 in 147ms (next.js: 100ms, application-code: 48ms)
+ GET / 200 in 112ms (next.js: 77ms, application-code: 34ms)
+ GET /api/stock-quotes 200 in 1381ms (next.js: 54ms, application-code: 1327ms)
+ POST /api/analyze-stock 200 in 4.4s (next.js: 93ms, application-code: 4.3s)
+ GET /api/stock-quotes 200 in 1378ms (next.js: 8ms, application-code: 1370ms)
