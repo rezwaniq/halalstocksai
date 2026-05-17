@@ -88,38 +88,81 @@ async function fetchUSASpendingData(companyName: string): Promise<string> {
   }
 }
 
-async function fetchFMPGeographicData(ticker: string): Promise<string> {
+async function fetchFMPGeographicData(ticker: string): Promise<{ formatted: string; raw: any }> {
   try {
     if (!FMP_API_KEY) {
-      return 'Geographic revenue data unavailable - FMP API key not configured';
+      return {
+        formatted: 'Geographic revenue data unavailable - FMP API key not configured',
+        raw: null,
+      };
     }
 
-    const response = await fetch(
-      `https://financialmodelingprep.com/stable/revenue-geographic-segmentation?symbol=${ticker}&apikey=${FMP_API_KEY}`
-    );
+    // Try multiple endpoints to get geographic data
+    const endpoints = [
+      `https://financialmodelingprep.com/stable/revenue-geographic-segmentation?symbol=${ticker}&apikey=${FMP_API_KEY}`,
+      `https://financialmodelingprep.com/stable/earning-call-transcript?symbol=${ticker}&apikey=${FMP_API_KEY}`,
+    ];
 
-    if (!response.ok) throw new Error('FMP geographic fetch failed');
-
-    const data = await response.json();
-
-    if (!Array.isArray(data) || data.length === 0) {
-      return 'Geographic revenue data unavailable';
+    let data = null;
+    for (const endpoint of endpoints) {
+      try {
+        const response = await fetch(endpoint);
+        if (response.ok) {
+          data = await response.json();
+          if (data && (Array.isArray(data) ? data.length > 0 : Object.keys(data).length > 0)) {
+            break;
+          }
+        }
+      } catch (e) {
+        continue;
+      }
     }
 
-    // Extract geographic breakdown from first entry
-    const geographic = data[0];
-    const segments = geographic.geographicalSegments || [];
+    if (!data) {
+      return {
+        formatted: 'Geographic revenue breakdown not available in current FMP data',
+        raw: null,
+      };
+    }
+
+    // Parse geographic segments
+    let segments: any[] = [];
+    if (Array.isArray(data)) {
+      segments = data[0]?.geographicalSegments || data[0]?.segments || [];
+    } else {
+      segments = data.geographicalSegments || data.segments || [];
+    }
 
     if (segments.length === 0) {
-      return 'No geographic revenue breakdown available';
+      return {
+        formatted: 'No geographic revenue breakdown available in FMP data',
+        raw: null,
+      };
     }
 
-    return segments
-      .map((seg: any) => `${seg.country || 'Unknown'}: ${seg.revenue || 0}`)
+    const formatted = segments
+      .map((seg: any) => {
+        const country = seg.country || seg.region || seg.geography || 'Unknown';
+        const revenue = seg.revenue || seg.value || 0;
+        const percentage = seg.percentage || seg.percent || 0;
+
+        if (percentage) {
+          return `${country}: ${percentage}% of revenue (${revenue})`;
+        }
+        return `${country}: ${revenue}`;
+      })
       .join('; ');
+
+    return {
+      formatted,
+      raw: segments,
+    };
   } catch (error) {
     console.error('FMP geographic data fetch error:', error);
-    return 'Geographic revenue data unavailable';
+    return {
+      formatted: 'Geographic revenue data unavailable',
+      raw: null,
+    };
   }
 }
 
@@ -142,34 +185,39 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch data from all sources
-    const [secData, spendingData, fmpData] = await Promise.all([
+    const [secData, spendingData, fmpDataResult] = await Promise.all([
       fetchSECData(companyName),
       fetchUSASpendingData(companyName),
       fetchFMPGeographicData(ticker),
     ]);
 
-    // Prepare Claude prompt
+    const fmpData = fmpDataResult.formatted;
+
+    // Prepare Claude prompt with emphasis on geographic revenue data
     const prompt = `You are a neutral financial analyst specializing in geopolitical risk assessment. You provide factual, source-cited analysis only. You do not express political opinions or make moral judgments. You report only what is documented in official filings and government databases.
 
 Analyze ${companyName} (${ticker}) for geopolitical exposure to these countries: ${selectedCountries.join(', ')}.
 
+IMPORTANT: Use the Geographic Revenue data as your PRIMARY source for country exposure.
+Any country listed in the geographic revenue breakdown has material exposure.
+
 Data available:
+Geographic revenue breakdown by country: ${fmpData}
 SEC 10-K excerpts: ${secData.text || 'No SEC data available'}
 Defense contracts: ${spendingData}
-Geographic revenue: ${fmpData}
 
-For each selected country:
-1. State whether any exposure was found
-2. If found: describe it factually with figures
-3. Cite the specific source (10-K, USASpending, etc)
-4. If no exposure found: state that clearly
+For each of these selected countries: ${selectedCountries.join(', ')}
 
-Format your response with one paragraph per country, starting with the country name followed by a colon.
-Be concise — maximum 3 sentences per country.
-Do not editorialize or make recommendations.
+1. First, check the Geographic Revenue data above for any entry containing this country name
+2. If found in geographic data: state the revenue percentage/amount and describe the operations
+3. Then check SEC/defense contracts for additional details (military, government ties, etc)
+4. Cite sources precisely: "Geographic Revenue Data shows X%", "10-K mentions Y", "No government contracts found"
+5. If NO exposure found in ANY source: explicitly state "No documented exposure in available sources"
+
+Format: One paragraph per country, max 3 sentences. Be factual and cite specific percentages from the data.
 End with: Sources: [list actual sources used]
 
-Then provide a one-paragraph summary of overall geopolitical exposure.`;
+Then provide one sentence summarizing overall exposure.`;
 
     // Call Claude API
     const client = new Anthropic({
