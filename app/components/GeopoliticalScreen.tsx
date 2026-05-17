@@ -20,15 +20,6 @@ interface DefenseContract {
   date: string;
 }
 
-interface UserExposure {
-  id: string;
-  country: string;
-  exposureType: 'revenue' | 'capital' | 'other';
-  amount?: string;
-  description: string;
-  source: string;
-}
-
 interface ScreeningResponse {
   ticker: string;
   selectedCountries: string[];
@@ -72,47 +63,12 @@ export default function GeopoliticalScreen({ ticker, companyName }: Geopolitical
   const [error, setError] = useState<string>('');
   const [expanded, setExpanded] = useState(false);
 
-  // User-entered geographic exposures
-  const [userExposures, setUserExposures] = useState<UserExposure[]>([]);
-  const [formCountry, setFormCountry] = useState('');
-  const [formType, setFormType] = useState<'revenue' | 'capital' | 'other'>('revenue');
-  const [formAmount, setFormAmount] = useState('');
-  const [formDescription, setFormDescription] = useState('');
-  const [formSource, setFormSource] = useState('');
-
   const toggleCountry = (country: string) => {
     setSelectedCountries(prev =>
       prev.includes(country)
         ? prev.filter(c => c !== country)
         : [...prev, country]
     );
-  };
-
-  const addExposure = () => {
-    if (!formCountry || !formDescription || !formSource) {
-      alert('Please fill in Country, Description, and Source');
-      return;
-    }
-
-    const newExposure: UserExposure = {
-      id: Date.now().toString(),
-      country: formCountry,
-      exposureType: formType,
-      amount: formAmount || undefined,
-      description: formDescription,
-      source: formSource,
-    };
-
-    setUserExposures(prev => [...prev, newExposure]);
-    setFormCountry('');
-    setFormType('revenue');
-    setFormAmount('');
-    setFormDescription('');
-    setFormSource('');
-  };
-
-  const removeExposure = (id: string) => {
-    setUserExposures(prev => prev.filter(exp => exp.id !== id));
   };
 
   const handleScreening = async () => {
@@ -184,116 +140,6 @@ export default function GeopoliticalScreen({ ticker, companyName }: Geopolitical
             ))}
           </div>
 
-          {/* Known Geographic Exposures Form */}
-          <div className="mb-6 pb-6 border-b border-gray-200">
-            <h4 className="font-semibold text-gray-900 mb-4">📊 Known Geographic Exposures</h4>
-            <p className="text-xs text-gray-600 mb-4">
-              Add any geographic exposures you've found through research. This data is combined with automated screening.
-            </p>
-
-            {/* Input Form */}
-            <div className="space-y-3 bg-gray-50 p-4 rounded-lg mb-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-gray-700 block mb-1">Country</label>
-                  <select
-                    value={formCountry}
-                    onChange={(e) => setFormCountry(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500"
-                  >
-                    <option value="">Select country...</option>
-                    {COUNTRIES.map(c => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-gray-700 block mb-1">Exposure Type</label>
-                  <select
-                    value={formType}
-                    onChange={(e) => setFormType(e.target.value as any)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500"
-                  >
-                    <option value="revenue">Revenue</option>
-                    <option value="capital">Capital Invested</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-gray-700 block mb-1">Amount (optional)</label>
-                <input
-                  type="text"
-                  value={formAmount}
-                  onChange={(e) => setFormAmount(e.target.value)}
-                  placeholder="e.g., $8.5B, 12%, $500M"
-                  className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-gray-700 block mb-1">Description</label>
-                <input
-                  type="text"
-                  value={formDescription}
-                  onChange={(e) => setFormDescription(e.target.value)}
-                  placeholder="e.g., Gigafactory operations, manufacturing revenue"
-                  className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-gray-700 block mb-1">Source</label>
-                <input
-                  type="text"
-                  value={formSource}
-                  onChange={(e) => setFormSource(e.target.value)}
-                  placeholder="e.g., FY2023 10-K filing, news article, investor presentation"
-                  className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500"
-                />
-              </div>
-
-              <button
-                onClick={addExposure}
-                className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold py-2 px-4 rounded transition"
-              >
-                + Add Exposure
-              </button>
-            </div>
-
-            {/* User Exposures List */}
-            {userExposures.length > 0 && (
-              <div className="space-y-2">
-                {userExposures.map(exposure => (
-                  <div key={exposure.id} className="bg-blue-50 border border-blue-200 rounded p-3 flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-lg">{COUNTRY_EMOJIS[exposure.country]}</span>
-                        <span className="font-semibold text-gray-900">{exposure.country}</span>
-                        <span className="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded">
-                          {exposure.exposureType === 'revenue' ? '💰 Revenue' : exposure.exposureType === 'capital' ? '🏭 Capital' : '📌 Other'}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-700">{exposure.description}</p>
-                      {exposure.amount && (
-                        <p className="text-sm text-gray-600 mt-1">Amount: <span className="font-semibold">{exposure.amount}</span></p>
-                      )}
-                      <p className="text-xs text-gray-500 mt-1">Source: {exposure.source}</p>
-                    </div>
-                    <button
-                      onClick={() => removeExposure(exposure.id)}
-                      className="text-red-600 hover:text-red-800 font-bold ml-2"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
           {/* Start Screening Button */}
           <button
             onClick={handleScreening}
@@ -328,53 +174,22 @@ export default function GeopoliticalScreen({ ticker, companyName }: Geopolitical
                 </p>
               </div>
 
-              {/* Section 1: Country Investment Analysis */}
+              {/* Section 1: Country Investment Analysis - Clean Bullet Format */}
               <div className="space-y-4">
-                <h4 className="font-bold text-gray-900 text-base">Section 1: {results.section1.title}</h4>
+                <div className="space-y-2">
+                  {results.section1.countries.map(country => (
+                    <div key={country.country} className="text-sm text-gray-700">
+                      <p className="leading-relaxed">
+                        <span className="text-lg mr-2">{COUNTRY_EMOJIS[country.country]}</span>
+                        {country.analysis}
+                      </p>
+                    </div>
+                  ))}
+                </div>
 
-                {/* Automated Analysis Results */}
-                {results.section1.countries.length > 0 && (
-                  <div className="space-y-3">
-                    <p className="text-xs text-gray-500 italic">Automated analysis from available data sources:</p>
-                    {results.section1.countries.map(country => (
-                      <div key={country.country} className="border border-gray-200 rounded-lg p-4 bg-white">
-                        <h5 className="text-lg font-bold text-gray-900 mb-2">
-                          {COUNTRY_EMOJIS[country.country]} {country.country}
-                        </h5>
-                        <p className="text-sm text-gray-700 leading-relaxed">{country.analysis}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* User-Entered Exposures */}
-                {userExposures.length > 0 && (
-                  <div className="space-y-3 mt-4 pt-4 border-t border-gray-200">
-                    <p className="text-xs text-gray-500 italic">Your research data:</p>
-                    {userExposures.map(exposure => (
-                      <div key={exposure.id} className="bg-blue-50 border border-blue-300 rounded-lg p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-lg">{COUNTRY_EMOJIS[exposure.country]}</span>
-                          <h5 className="font-bold text-gray-900">{exposure.country}</h5>
-                          <span className="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded font-semibold">
-                            {exposure.exposureType === 'revenue' ? '💰 REVENUE' : exposure.exposureType === 'capital' ? '🏭 CAPITAL' : '📌 OTHER'}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-700 mb-1">{exposure.description}</p>
-                        {exposure.amount && (
-                          <p className="text-sm font-semibold text-blue-700 mb-1">Amount: {exposure.amount}</p>
-                        )}
-                        <p className="text-xs text-gray-600">Source: {exposure.source}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* No Data Message */}
-                {results.section1.countries.length === 0 && userExposures.length === 0 && (
-                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm">
-                    <p className="font-semibold mb-1">⚠️ No Geographic Data Available</p>
-                    <p>Geographic revenue APIs require premium subscription access. Use the "Known Geographic Exposures" form above to track any exposures you've found through research.</p>
+                {results.section1.countries.length === 0 && (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded text-amber-800 text-sm">
+                    ⚠️ Inconclusive data found
                   </div>
                 )}
               </div>

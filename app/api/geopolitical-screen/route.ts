@@ -306,29 +306,24 @@ async function analyzeCountryInvestment(
       ? dataContext.join('\n\n')
       : '(Note: Geographic revenue APIs are not available in the current subscription tier. This is a limitation - geographic revenue data exists in SEC 10-K filings but requires premium API access or manual review.)';
 
-    const prompt = `You are a neutral financial analyst researching geographic revenue exposure for ${companyName} in these countries: ${selectedCountries.join(', ')}
+    const prompt = `You are a financial analyst. Extract geographic revenue and capital investment data for ${companyName} in: ${selectedCountries.join(', ')}
 
-Your task: Extract ONLY exact figures for:
-1. Revenue earned FROM each country (in the company's fiscal year)
-2. Capital assets or investments LOCATED IN each country (manufacturing plants, facilities, joint ventures, subsidiaries)
+CRITICAL - Output ONLY in this format for EACH country:
+- {Country} is showing \$X.XXB {metric} ({FiscalYear}) OR
+- {Country}: Inconclusive data found
 
-CRITICAL RULES:
-- State exact dollar figures only if available in the provided data
-- Always cite the source (FMP, SEC, or filing date/section) for every figure
-- If a figure is not found, state clearly: "not separately disclosed"
-- DO NOT estimate, interpolate, or infer figures
-- DO NOT use external knowledge - only use data provided below
+Metrics: "revenue", "capital invested"
+Example outputs:
+- China is showing \$64.38B revenue (FY2025)
+- Israel: Inconclusive data found
+
+If the data has multiple fiscal years, show the most recent year ONLY.
+If you cannot find exact dollar figures, output "Inconclusive data found" for that country.
+DO NOT estimate, infer, or use external knowledge.
 
 PROVIDED DATA:
-${dataSection}
+${dataSection}`;
 
-For EACH country (${selectedCountries.join(', ')}):
-
-{Country}:
-- Revenue: [exact amount in FY20XX, source, OR "not separately disclosed"]
-- Capital Invested: [exact amount, type of assets, FY20XX, source, OR "not separately disclosed"]
-
-Format output as short paragraphs, one per country. Be concise.`;
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
@@ -344,40 +339,24 @@ Format output as short paragraphs, one per country. Be concise.`;
 
     const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
 
-    console.log(`Claude response length: ${responseText.length} chars`);
-    if (responseText.length > 0) {
-      console.log(`Claude response preview: ${responseText.substring(0, 300)}`);
-    }
+    console.log(`Claude response: ${responseText.substring(0, 200)}`);
 
-    // Parse response for each country - if only one country, return full response
-    if (selectedCountries.length === 1) {
-      return [{
-        country: selectedCountries[0],
-        analysis: responseText || `${selectedCountries[0]}: Data not found`,
-      }];
-    }
-
-    // For multiple countries, split by country mentions
+    // Parse bullet-point responses for each country
     return selectedCountries.map(country => {
-      // Find all text between this country and the next country (or end of response)
-      const nextCountryIdx = selectedCountries.findIndex(c => c !== country && responseText.toLowerCase().indexOf(c.toLowerCase()) > responseText.toLowerCase().indexOf(country.toLowerCase()));
-      const startIdx = responseText.toLowerCase().indexOf(country.toLowerCase());
+      // Look for lines mentioning this country
+      const lines = responseText.split('\n');
+      const countryLine = lines.find(line =>
+        line.toLowerCase().includes(country.toLowerCase()) &&
+        (line.includes('showing') || line.includes('Inconclusive') || line.includes(':'))
+      );
 
-      if (startIdx < 0) {
-        return { country, analysis: `${country}: Data not found` };
+      if (countryLine) {
+        // Extract just the core fact from the line
+        const cleaned = countryLine.replace(/^[-•]\s*/, '').trim();
+        return { country, analysis: cleaned };
       }
 
-      let endIdx = responseText.length;
-      if (nextCountryIdx >= 0) {
-        const nextCountry = selectedCountries[nextCountryIdx];
-        const nextIdx = responseText.toLowerCase().indexOf(nextCountry.toLowerCase());
-        if (nextIdx > startIdx) {
-          endIdx = nextIdx;
-        }
-      }
-
-      const analysis = responseText.substring(startIdx, endIdx).trim() || `${country}: Data not found`;
-      return { country, analysis };
+      return { country, analysis: `${country}: Inconclusive data found` };
     });
   } catch (error) {
     console.error('Country investment analysis error:', error);
