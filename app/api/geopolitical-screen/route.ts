@@ -87,86 +87,119 @@ async function fetchFMPGeographicData(ticker: string): Promise<string> {
   }
 }
 
-async function fetchSECData(companyName: string): Promise<{ text: string; filingDate: string }> {
+async function fetchSECData(companyName: string, ticker: string): Promise<{ text: string; filingDate: string }> {
   try {
-    const oneYearAgo = new Date();
-    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-    const startDate = oneYearAgo.toISOString().split('T')[0];
-    const endDate = new Date().toISOString().split('T')[0];
+    // Try to get CIK from company ticker lookup first
+    let cik: string | null = null;
 
-    // First, search for the filing
-    const searchUrl = `https://efts.sec.gov/LATEST/search-index?q=${encodeURIComponent(
-      companyName
-    )}&dateRange=custom&startdt=${startDate}&enddt=${endDate}&forms=10-K`;
-
-    const searchResponse = await fetch(searchUrl);
-    if (!searchResponse.ok) throw new Error('SEC search failed');
-
-    const searchHtml = await searchResponse.text();
-    const filingMatch = searchHtml.match(/Filing Date[^>]*>([^<]+)/);
-    const filingDate = filingMatch ? filingMatch[1].trim() : new Date().toISOString().split('T')[0];
-
-    // Extract the CIK from search results to construct direct filing URL
-    // Try to get the actual filing document instead of just metadata
-    // SEC EDGAR filing URL pattern: /cgi-bin/browse-edgar?action=getcompany&CIK=...
-    const cikMatch = searchHtml.match(/\/cgi-bin\/browse-edgar[^"]*CIK=(\d+)/);
-    if (!cikMatch) {
-      console.log('Could not extract CIK from SEC search results');
-      return { text: '', filingDate };
-    }
-
-    const cik = cikMatch[1];
-    // Fetch the company's recent filings
-    const companyUrl = `https://data.sec.gov/submissions/CIK${cik.padStart(10, '0')}.json`;
-
-    const companyResponse = await fetch(companyUrl);
-    if (companyResponse.ok) {
-      const companyData = await companyResponse.json();
-      // Get the most recent 10-K filing
-      const filings = companyData.filings?.recent?.form;
-      if (filings) {
-        const tenKIndex = filings.indexOf('10-K');
-        if (tenKIndex >= 0) {
-          const filingDetails = {
-            accession: companyData.filings.recent.accessionNumber[tenKIndex],
-            filingDate: companyData.filings.recent.filingDate[tenKIndex],
-          };
-
-          if (filingDetails.accession) {
-            // Construct the URL to the actual filing document
-            const accessionPath = filingDetails.accession.replace(/-/g, '');
-            const filePath = `https://www.sec.gov/cgi-bin/viewer?action=view&cik=${cik}&accession_number=${filingDetails.accession}&xbrl_type=v`;
-
-            try {
-              const filingResponse = await fetch(filePath);
-              if (filingResponse.ok) {
-                const filingText = await filingResponse.text();
-                // Extract relevant sections: Business, Risk Factors, Geographic data
-                const businessMatch = filingText.match(/Item\s+1[.\s]*Business([\s\S]{0,15000}?)(?=Item\s+\d|$)/i);
-                const riskMatch = filingText.match(/Item\s+1A[.\s]*Risk\s+Factors([\s\S]{0,10000}?)(?=Item\s+\d|$)/i);
-
-                let extracted = '';
-                if (businessMatch) extracted += 'BUSINESS SECTION:\n' + businessMatch[1].substring(0, 8000) + '\n\n';
-                if (riskMatch) extracted += 'RISK FACTORS:\n' + riskMatch[1].substring(0, 5000) + '\n';
-
-                return {
-                  text: extracted || filingText.substring(0, 15000),
-                  filingDate: filingDetails.filingDate || filingDate,
-                };
-              }
-            } catch (err) {
-              console.log('Could not fetch actual filing text:', err);
-            }
+    // Try fetching CIK using SEC company tickers JSON
+    try {
+      const tickersResponse = await fetch('https://www.sec.gov/files/company_tickers.json');
+      if (tickersResponse.ok) {
+        const tickersData = await tickersResponse.json();
+        // Find company by ticker
+        for (const [, company] of Object.entries(tickersData as any)) {
+          if ((company as any).ticker?.toUpperCase() === ticker?.toUpperCase()) {
+            cik = String((company as any).cik_str).padStart(10, '0');
+            console.log(`Found CIK for ${ticker}: ${cik}`);
+            break;
           }
         }
       }
+    } catch (err) {
+      console.log('Could not fetch CIK from tickers file');
     }
 
-    // Fallback to search metadata if direct filing fetch fails
-    return {
-      text: searchHtml.substring(0, 5000),
-      filingDate,
-    };
+    if (!cik) {
+      console.log('Could not find CIK for', ticker);
+      return { text: '', filingDate: '' };
+    }
+
+    // Fetch company filings from SEC data.sec.gov
+    const companyUrl = `https://data.sec.gov/submissions/CIK${cik}.json`;
+    const companyResponse = await fetch(companyUrl);
+
+    if (!companyResponse.ok) {
+      console.log('Could not fetch company filings:', companyResponse.status);
+      return { text: '', filingDate: '' };
+    }
+
+    const companyData = await companyResponse.json() as any;
+
+    // Get the most recent 10-K filing
+    const filings = companyData.filings?.recent?.form as string[];
+    const accessionNumbers = companyData.filings?.recent?.accessionNumber as string[];
+    const filingDates = companyData.filings?.recent?.filingDate as string[];
+    const primaryDocuments = companyData.filings?.recent?.primaryDocument as string[];
+
+    if (!filings || filings.length === 0) {
+      console.log('No filings found for company');
+      return { text: '', filingDate: '' };
+    }
+
+    // Find the most recent 10-K
+    const tenKIndex = filings.findIndex(f => f === '10-K');
+    if (tenKIndex < 0) {
+      console.log('No 10-K filing found');
+      return { text: '', filingDate: '' };
+    }
+
+    const accession = accessionNumbers[tenKIndex];
+    const filingDate = filingDates[tenKIndex];
+    const primaryDoc = primaryDocuments[tenKIndex];
+
+    if (!accession || !primaryDoc) {
+      console.log('Missing accession or primary document');
+      return { text: '', filingDate };
+    }
+
+    // Construct URL to the filing document
+    const accessionPath = accession.replace(/-/g, '');
+    const filingUrl = `https://www.sec.gov/cgi-bin/viewer?action=view&cik=${cik.replace(/^0+/, '')}&accession_number=${accession}&xbrl_type=v`;
+    const txtUrl = `https://www.sec.gov/Archives/edgar/${cik}/${accessionPath}/${primaryDoc}`;
+
+    console.log(`Fetching 10-K from: ${txtUrl}`);
+
+    try {
+      const filingResponse = await fetch(txtUrl);
+      if (filingResponse.ok) {
+        const filingText = await filingResponse.text();
+
+        // Extract relevant sections: Business, Geographic, Risk Factors
+        const businessMatch = filingText.match(/Item\s+1[.\s]*Business([\s\S]{0,20000}?)(?=Item\s+1A|$)/i);
+        const geoMatch = filingText.match(/(?:geographic|country|region|international|revenue by country|revenue by geography)([\s\S]{0,10000}?)(?=Item\s+\d|$)/i);
+        const riskMatch = filingText.match(/Item\s+1A[.\s]*Risk\s+Factors([\s\S]{0,15000}?)(?=Item\s+\d|$)/i);
+
+        let extracted = '';
+        if (businessMatch) {
+          extracted += 'BUSINESS SECTION:\n' + businessMatch[1].substring(0, 15000) + '\n\n';
+        }
+        if (geoMatch) {
+          extracted += 'GEOGRAPHIC/REVENUE SECTION:\n' + geoMatch[1].substring(0, 10000) + '\n\n';
+        }
+        if (riskMatch) {
+          extracted += 'RISK FACTORS:\n' + riskMatch[1].substring(0, 10000) + '\n';
+        }
+
+        if (extracted.length > 500) {
+          console.log(`Extracted ${extracted.length} characters from 10-K filing`);
+          return {
+            text: extracted,
+            filingDate: filingDate || '',
+          };
+        } else {
+          console.log('Extracted text too short, using full document snippet');
+          return {
+            text: filingText.substring(0, 20000),
+            filingDate: filingDate || '',
+          };
+        }
+      }
+    } catch (err) {
+      console.log('Could not fetch filing text:', err);
+    }
+
+    return { text: '', filingDate };
   } catch (error) {
     console.error('SEC data fetch error:', error);
     return { text: '', filingDate: '' };
@@ -184,31 +217,42 @@ async function analyzeCountryInvestment(
       apiKey: ANTHROPIC_API_KEY,
     });
 
-    const prompt = `You are a neutral financial analyst. From the following financial data for ${companyName}, extract ONLY the revenue and capital investment figures for these countries: ${selectedCountries.join(', ')}
+    // Prepare context for Claude
+    const dataContext = [];
+    if (fmpGeographicData) {
+      dataContext.push(`FMP GEOGRAPHIC REVENUE DATA (Primary Source):\n${fmpGeographicData}`);
+    }
+    if (secText) {
+      dataContext.push(`SEC 10-K Filing Content (Supplementary):\n${secText}`);
+    }
 
-IMPORTANT: Prioritize data from FMP Geographic Revenue (most reliable). If not found there, check SEC 10-K filing excerpts.
+    const dataSection = dataContext.length > 0
+      ? dataContext.join('\n\n')
+      : '(Note: Geographic revenue APIs are not available in the current subscription tier. This is a limitation - geographic revenue data exists in SEC 10-K filings but requires premium API access or manual review.)';
 
-1. Revenue earned from these countries: ${selectedCountries.join(', ')}
-   - State exact dollar figures if available
-   - Note the fiscal year
-   - Cite data source (FMP or SEC)
+    const prompt = `You are a neutral financial analyst researching geographic revenue exposure for ${companyName} in these countries: ${selectedCountries.join(', ')}
 
-2. Capital assets or investments located in these countries: ${selectedCountries.join(', ')}
-   - State exact dollar figures if available
-   - Include manufacturing plants, facilities, joint ventures, subsidiaries
-   - Note the fiscal year
+Your task: Extract ONLY exact figures for:
+1. Revenue earned FROM each country (in the company's fiscal year)
+2. Capital assets or investments LOCATED IN each country (manufacturing plants, facilities, joint ventures, subsidiaries)
 
-${fmpGeographicData ? `FMP GEOGRAPHIC REVENUE DATA (Primary Source):\n${fmpGeographicData}\n` : ''}
-${secText ? `SEC 10-K Filing Excerpts (Supplementary):\n${secText}` : ''}
+CRITICAL RULES:
+- State exact dollar figures only if available in the provided data
+- Always cite the source (FMP, SEC, or filing date/section) for every figure
+- If a figure is not found, state clearly: "not separately disclosed"
+- DO NOT estimate, interpolate, or infer figures
+- DO NOT use external knowledge - only use data provided below
 
-For EACH country:
-- If revenue figure is found: "{Country}: Revenue $X million/billion in FY20XX. Source: [FMP or SEC]"
-- If revenue not found: "{Country}: Revenue not separately disclosed"
-- If capital figure is found: "{Country}: Capital invested $X million/billion in FY20XX. Source: [FMP or SEC]"
-- If capital not found: "{Country}: Capital invested not separately disclosed"
+PROVIDED DATA:
+${dataSection}
 
-DO NOT estimate or infer figures. Only cite exact figures from the data.
-Format as one paragraph per country.`;
+For EACH country (${selectedCountries.join(', ')}):
+
+{Country}:
+- Revenue: [exact amount in FY20XX, source, OR "not separately disclosed"]
+- Capital Invested: [exact amount, type of assets, FY20XX, source, OR "not separately disclosed"]
+
+Format output as short paragraphs, one per country. Be concise.`;
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
@@ -335,7 +379,7 @@ export async function POST(request: NextRequest) {
 
     // Fetch SEC data and FMP geographic data in parallel
     const [secData, fmpGeographicData] = await Promise.all([
-      fetchSECData(companyName),
+      fetchSECData(companyName, ticker),
       fetchFMPGeographicData(ticker),
     ]);
 
