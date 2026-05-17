@@ -4,6 +4,29 @@ import Anthropic from '@anthropic-ai/sdk';
 const FMP_API_KEY = process.env.NEXT_PUBLIC_FMP_API_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
+// SEC EDGAR configuration
+const SEC_USER_AGENT = 'HalalStocksAI contact@halalstocksai.com';
+const SEC_HEADERS = {
+  'User-Agent': SEC_USER_AGENT,
+  'Accept': 'application/json',
+  'Host': 'efts.sec.gov',
+};
+
+// Rate limiting for SEC EDGAR (10 requests per second = 100ms between requests)
+let lastSecFetchTime = 0;
+async function secFetch(url: string, options?: RequestInit): Promise<Response> {
+  const now = Date.now();
+  const timeSinceLastFetch = now - lastSecFetchTime;
+  if (timeSinceLastFetch < 100) {
+    await new Promise(resolve => setTimeout(resolve, 100 - timeSinceLastFetch));
+  }
+  lastSecFetchTime = Date.now();
+  return fetch(url, {
+    ...options,
+    headers: { ...SEC_HEADERS, ...options?.headers },
+  });
+}
+
 interface ScreenRequest {
   ticker: string;
   companyName: string;
@@ -165,7 +188,7 @@ async function fetchSECData(companyName: string, ticker: string): Promise<{ text
 
     // Try fetching CIK using SEC company tickers JSON
     try {
-      const tickersResponse = await fetch('https://www.sec.gov/files/company_tickers.json');
+      const tickersResponse = await secFetch('https://www.sec.gov/files/company_tickers.json');
       if (tickersResponse.ok) {
         const tickersData = await tickersResponse.json();
         // Find company by ticker
@@ -188,7 +211,7 @@ async function fetchSECData(companyName: string, ticker: string): Promise<{ text
 
     // Fetch company filings from SEC data.sec.gov
     const companyUrl = `https://data.sec.gov/submissions/CIK${cik}.json`;
-    const companyResponse = await fetch(companyUrl);
+    const companyResponse = await secFetch(companyUrl);
 
     if (!companyResponse.ok) {
       console.log('Could not fetch company filings:', companyResponse.status);
@@ -232,7 +255,7 @@ async function fetchSECData(companyName: string, ticker: string): Promise<{ text
     console.log(`Fetching 10-K from: ${txtUrl}`);
 
     try {
-      const filingResponse = await fetch(txtUrl);
+      const filingResponse = await secFetch(txtUrl);
       if (filingResponse.ok) {
         const filingText = await filingResponse.text();
 
