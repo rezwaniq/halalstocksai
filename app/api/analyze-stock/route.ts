@@ -221,7 +221,15 @@ VERDICT: Halal
 VERDICT: Questionable
 VERDICT: Non-compliant
 
-Then explain your reasoning. Be consistent and decisive - do not suggest exceptions or case-by-case reviews for prohibited sectors.`;
+Then explain your reasoning. Be consistent and decisive - do not suggest exceptions or case-by-case reviews for prohibited sectors.
+
+END your response with EXACTLY this format (REQUIRED):
+CONCLUSION: [One clear sentence explaining why the verdict is Halal/Questionable/Non-compliant]
+
+Example conclusions:
+- CONCLUSION: This company passes both AAOIFI gates with permissible core business operations.
+- CONCLUSION: This company fails Gate 1 because non-halal revenue (X%) exceeds the 5% threshold.
+- CONCLUSION: This company is non-compliant because weapons manufacturing is categorically prohibited under Islamic law.`;
 
   const message = await client.messages.create({
     model: 'claude-sonnet-4-6',

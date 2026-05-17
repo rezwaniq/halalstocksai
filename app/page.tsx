@@ -523,11 +523,10 @@ function AnalyzerContent({ onClose }: { onClose: () => void }) {
     const gate2Status = gate2Pass ? 'PASS' : 'FAIL';
     const gate2Color = gate2Pass ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200';
 
-    // Extract overall assessment - find a clean conclusion sentence without markdown
-    const cleanText = text.replace(/\*\*/g, '').replace(/[#*_]/g, ''); // Remove markdown
-    const sentences = cleanText.split(/[.!?]+/).filter(s => s.trim().length > 20);
-    const lastSentence = sentences.length > 0
-      ? sentences[sentences.length - 1].trim() + '.'
+    // Extract CONCLUSION statement from response
+    const conclusionMatch = text.match(/CONCLUSION:\s*(.+?)(?:\n|$)/i);
+    const lastSentence = conclusionMatch
+      ? conclusionMatch[1].trim()
       : 'See detailed analysis below.';
 
     return (
