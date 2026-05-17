@@ -162,7 +162,7 @@ export default function Home() {
           <>
         {/* Hero */}
         <section className="max-w-6xl mx-auto px-8 py-14 text-center">
-          <div className="mb-8">
+          <div className="mb-8" style={{ animation: 'fadeInDown 0.8s ease-out 0.2s both' }}>
             <h1 className="text-5xl font-black mb-6 bg-gradient-to-r from-blue-600 via-gray-900 to-blue-400 bg-clip-text text-transparent leading-tight" style={{ fontFamily: 'var(--font-poppins)', letterSpacing: '0.02em' }}>
               GROW YOUR WEALTH<br />WITHOUT COMPROMISING PRINCIPLES
             </h1>
@@ -174,19 +174,21 @@ export default function Home() {
             </p>
           </div>
 
-          <button
-            onClick={() => setShowAnalyzer(true)}
-            className="group relative px-10 py-4 font-bold text-lg text-white bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg hover:from-blue-600 hover:to-blue-700 transition shadow-2xl shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-105"
-          >
-            <span className="relative flex items-center justify-center gap-2">
-              Start Analyzing
-              <span className="group-hover:translate-x-1 transition">→</span>
-            </span>
-          </button>
+          <div style={{ animation: 'fadeInUp 0.8s ease-out 0.4s both' }}>
+            <button
+              onClick={() => setShowAnalyzer(true)}
+              className="group relative px-10 py-4 font-bold text-lg text-white bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg hover:from-blue-600 hover:to-blue-700 transition shadow-2xl shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-105"
+            >
+              <span className="relative flex items-center justify-center gap-2">
+                Start Analyzing
+                <span className="group-hover:translate-x-1 transition">→</span>
+              </span>
+            </button>
+          </div>
         </section>
 
         {/* Stats Bar */}
-        <section className="max-w-6xl mx-auto px-8 py-8 grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+        <section className="max-w-6xl mx-auto px-8 py-8 grid grid-cols-2 md:grid-cols-4 gap-6 mb-8" style={{ animation: 'fadeInUp 0.8s ease-out 0.6s both' }}>
           {[
             { label: '3 AAOIFI Ratios', value: 'Debt • Cash • Impure' },
             { label: '100% Real Data', value: 'Live APIs' },
@@ -200,8 +202,31 @@ export default function Home() {
           ))}
         </section>
 
+        <style>{`
+          @keyframes fadeInDown {
+            from {
+              opacity: 0;
+              transform: translateY(-20px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+          @keyframes fadeInUp {
+            from {
+              opacity: 0;
+              transform: translateY(20px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+        `}</style>
+
         {/* How It Works */}
-        <section className="max-w-6xl mx-auto px-8 py-10 border-t border-gray-200">
+        <section className="max-w-6xl mx-auto px-8 py-10 border-t border-gray-200" style={{ animation: 'fadeInUp 0.8s ease-out 0.8s both' }}>
           <h2 className="text-4xl font-bold text-center mb-16 bg-gradient-to-r from-blue-700 to-blue-500 bg-clip-text text-transparent" style={{ fontFamily: 'var(--font-poppins)' }}>
             HOW IT WORKS
           </h2>
@@ -229,7 +254,7 @@ export default function Home() {
         </section>
 
         {/* Features Grid */}
-        <section className="max-w-6xl mx-auto px-8 py-10 border-t border-gray-200">
+        <section className="max-w-6xl mx-auto px-8 py-10 border-t border-gray-200" style={{ animation: 'fadeInUp 0.8s ease-out 1s both' }}>
           <h2 className="text-4xl font-bold text-center mb-16 bg-gradient-to-r from-blue-700 to-blue-500 bg-clip-text text-transparent" style={{ fontFamily: 'var(--font-poppins)' }}>
             POWERFUL FEATURES
           </h2>
@@ -265,7 +290,7 @@ export default function Home() {
         </section>
 
         {/* CTA */}
-        <section className="max-w-4xl mx-auto px-8 py-10 text-center border-t border-gray-200">
+        <section className="max-w-4xl mx-auto px-8 py-10 text-center border-t border-gray-200" style={{ animation: 'fadeInUp 0.8s ease-out 1.2s both' }}>
           <h2 className="text-4xl font-bold mb-6 text-gray-900" style={{ fontFamily: 'var(--font-poppins)' }}>READY TO START?</h2>
           <p className="text-gray-600 mb-10 text-lg">
             Join thousands screening stocks with confidence
