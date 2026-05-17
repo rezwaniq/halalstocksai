@@ -47,3 +47,90 @@ USASpending data fetch error: Error: USASpending fetch failed
  GET /api/stock-quotes 200 in 1435ms (next.js: 8ms, application-code: 1427ms)
 (node:45644) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
+✓ Compiled in 826ms
+ GET / 200 in 330ms (next.js: 158ms, application-code: 172ms)
+ GET / 200 in 83ms (next.js: 14ms, application-code: 70ms)
+ POST /api/search-companies 200 in 58ms (next.js: 42ms, application-code: 16ms)
+ POST /api/search-companies 200 in 23ms (next.js: 7ms, application-code: 16ms)
+ GET / 200 in 339ms (next.js: 184ms, application-code: 155ms)
+ GET / 200 in 69ms (next.js: 9ms, application-code: 60ms)
+ POST /api/analyze-stock 200 in 9.7s (next.js: 81ms, application-code: 9.6s)
+ GET /api/stock-quotes 200 in 1596ms (next.js: 86ms, application-code: 1510ms)
+USASpending data fetch error: Error: USASpending fetch failed
+    at fetchUSASpendingData (app\api\geopolitical-screen\route.ts:186:29)
+    at async POST (app\api\geopolitical-screen\route.ts:307:52)
+  184 |     });
+  185 |
+> 186 |     if (!response.ok) throw new Error('USASpending fetch failed');
+      |                             ^
+  187 |
+  188 |     const data = await response.json();
+  189 |
+ GET /api/stock-quotes 200 in 1677ms (next.js: 7ms, application-code: 1670ms)
+ POST /api/geopolitical-screen 200 in 30.9s (next.js: 68ms, application-code: 30.9s)
+ GET /api/stock-quotes 200 in 1937ms (next.js: 5ms, application-code: 1932ms)
+ GET /api/stock-quotes 200 in 1793ms (next.js: 4ms, application-code: 1790ms)
+ GET /api/stock-quotes 200 in 1433ms (next.js: 5ms, application-code: 1428ms)
+ GET /api/stock-quotes 200 in 1604ms (next.js: 4ms, application-code: 1600ms)
+ GET /api/stock-quotes 200 in 1743ms (next.js: 4ms, application-code: 1739ms)
+ GET /api/stock-quotes 200 in 1590ms (next.js: 4ms, application-code: 1587ms)
+ GET /api/stock-quotes 200 in 1577ms (next.js: 6ms, application-code: 1570ms)
+ GET /api/stock-quotes 200 in 1151ms (next.js: 3ms, application-code: 1148ms)
+ GET /api/stock-quotes 200 in 1979ms (next.js: 8ms, application-code: 1971ms)
+ GET /api/stock-quotes 200 in 1218ms (next.js: 5ms, application-code: 1213ms)
+ GET /api/stock-quotes 200 in 1777ms (next.js: 7ms, application-code: 1770ms)
+ GET /api/stock-quotes 200 in 1240ms (next.js: 4ms, application-code: 1237ms)
+ GET /api/stock-quotes 200 in 1698ms (next.js: 7ms, application-code: 1692ms)
+ GET /api/stock-quotes 200 in 1735ms (next.js: 7ms, application-code: 1728ms)
+ GET /api/stock-quotes 200 in 1189ms (next.js: 5ms, application-code: 1184ms)
+ GET /api/stock-quotes 200 in 1666ms (next.js: 8ms, application-code: 1657ms)
+ GET /api/stock-quotes 200 in 1170ms (next.js: 4ms, application-code: 1166ms)
+ GET /api/stock-quotes 200 in 1582ms (next.js: 7ms, application-code: 1575ms)
+ GET /api/stock-quotes 200 in 1241ms (next.js: 5ms, application-code: 1235ms)
+ GET /api/stock-quotes 200 in 1724ms (next.js: 6ms, application-code: 1718ms)
+ GET /api/stock-quotes 200 in 1635ms (next.js: 8ms, application-code: 1626ms)
+ GET /api/stock-quotes 200 in 1731ms (next.js: 6ms, application-code: 1725ms)
+ GET /api/stock-quotes 200 in 1269ms (next.js: 7ms, application-code: 1262ms)
+ GET /api/stock-quotes 200 in 1615ms (next.js: 7ms, application-code: 1608ms)
+ GET /api/stock-quotes 200 in 1230ms (next.js: 8ms, application-code: 1222ms)
+ GET /api/stock-quotes 200 in 1638ms (next.js: 8ms, application-code: 1629ms)
+ GET /api/stock-quotes 200 in 1229ms (next.js: 8ms, application-code: 1221ms)
+ GET /api/stock-quotes 200 in 1639ms (next.js: 6ms, application-code: 1632ms)
+ GET /api/stock-quotes 200 in 1716ms (next.js: 3ms, application-code: 1713ms)
+ GET /api/stock-quotes 200 in 1563ms (next.js: 8ms, application-code: 1555ms)
+ GET /api/stock-quotes 200 in 1211ms (next.js: 8ms, application-code: 1203ms)
+ GET /api/stock-quotes 200 in 1609ms (next.js: 8ms, application-code: 1601ms)
+ GET /api/stock-quotes 200 in 1283ms (next.js: 6ms, application-code: 1278ms)
+ GET /api/stock-quotes 200 in 1664ms (next.js: 7ms, application-code: 1658ms)
+ GET /api/stock-quotes 200 in 1190ms (next.js: 3ms, application-code: 1187ms)
+ GET /api/stock-quotes 200 in 1594ms (next.js: 7ms, application-code: 1587ms)
+ GET /api/stock-quotes 200 in 1169ms (next.js: 6ms, application-code: 1164ms)
+ GET /api/stock-quotes 200 in 1645ms (next.js: 6ms, application-code: 1639ms)
+ GET /api/stock-quotes 200 in 1179ms (next.js: 3ms, application-code: 1177ms)
+ GET /api/stock-quotes 200 in 1607ms (next.js: 7ms, application-code: 1601ms)
+ GET /api/stock-quotes 200 in 1177ms (next.js: 3ms, application-code: 1174ms)
+ GET / 200 in 145ms (next.js: 75ms, application-code: 70ms)
+ GET / 200 in 28ms (next.js: 5ms, application-code: 23ms)
+ GET /api/stock-quotes 200 in 1813ms (next.js: 67ms, application-code: 1746ms)
+ GET /api/stock-quotes 200 in 1287ms (next.js: 6ms, application-code: 1282ms)
+✓ Compiled in 52ms
+ GET / 200 in 137ms (next.js: 71ms, application-code: 66ms)
+ GET / 200 in 32ms (next.js: 5ms, application-code: 28ms)
+ GET /api/stock-quotes 200 in 1737ms (next.js: 70ms, application-code: 1667ms)
+ GET /api/stock-quotes 200 in 1516ms (next.js: 7ms, application-code: 1509ms)
+✓ Compiled in 64ms
+ GET / 200 in 134ms (next.js: 61ms, application-code: 73ms)
+ GET / 200 in 47ms (next.js: 9ms, application-code: 37ms)
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+✓ Compiled in 71ms
+ GET /api/stock-quotes 200 in 84ms (next.js: 61ms, application-code: 23ms)
+ GET / 200 in 137ms (next.js: 14ms, application-code: 123ms)
+ GET / 200 in 305ms (next.js: 73ms, application-code: 232ms)
+ GET /api/stock-quotes 200 in 1375ms (next.js: 3ms, application-code: 1372ms)
+✓ Compiled in 58ms
+ GET / 200 in 133ms (next.js: 60ms, application-code: 73ms)
+ GET / 200 in 48ms (next.js: 8ms, application-code: 40ms)
+✓ Compiled in 41ms
+ GET / 200 in 114ms (next.js: 62ms, application-code: 53ms)
+ GET / 200 in 24ms (next.js: 5ms, application-code: 19ms)
+[?25h
