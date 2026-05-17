@@ -196,30 +196,37 @@ Financial Metrics (AAOIFI Two-Gate Test):
 - Impure Income Ratio: ${(ratios.impureIncomeRatio * 100).toFixed(2)}% (Threshold: 5%)
   ${ratios.impureIncomeRatio <= 0.05 ? '✓ PASS - Minimal non-halal revenue' : '✗ FAIL - Significant non-halal revenue'}
 
+CRITICAL RULES - Apply these strictly with NO EXCEPTIONS:
+1. WEAPONS/DEFENSE MANUFACTURERS: Any company with weapons/defense/military primary business = AUTOMATICALLY NON-COMPLIANT, regardless of financial metrics
+2. ALCOHOL/GAMBLING/TOBACCO: Any company with these as primary business = AUTOMATICALLY NON-COMPLIANT
+3. FINANCE/BANKING: Banks with riba-based business = NON-COMPLIANT unless 100% Islamic banking focus
+
 Analysis Framework:
-1. Evaluate the company's PRIMARY BUSINESS MODEL and SECTOR for halal compliance
-   - Is the core business activity permissible under Islamic law?
-   - Does the company operate in prohibited sectors? (alcohol, gambling, weapons/defense, interest banking, etc.)
-   - What percentage of operations are compliant vs. non-compliant?
+1. Check PRIMARY BUSINESS first (weapons/alcohol/gambling/interest-banking)
+   - If prohibited business = VERDICT MUST BE: Non-compliant
+   - If allowed business, proceed to step 2
 
-2. Evaluate the FINANCIAL METRICS using AAOIFI thresholds
-   - Debt and interest-bearing assets must pass both gates
+2. Evaluate FINANCIAL METRICS (AAOIFI two gates)
+   - Both gates pass = HALAL
+   - One gate fails = QUESTIONABLE
+   - Both gates fail = NON-COMPLIANT
 
-3. Make your VERDICT based on BOTH factors:
-   - HALAL: Both gates pass AND core business is Islamic-compliant
-   - QUESTIONABLE: Gates pass but core business has concerns OR gates fail but business is mostly halal
-   - NON-COMPLIANT: Core business is prohibited OR both gates fail
+3. FINAL VERDICT (apply strictly):
+   - HALAL: Allowed business + both gates pass
+   - QUESTIONABLE: Allowed business + at least one gate fails
+   - NON-COMPLIANT: Prohibited business OR both gates fail OR impure income >50%
 
-START your response with EXACTLY ONE of these lines:
+START your response with EXACTLY ONE of these lines (NO VARIATIONS):
 VERDICT: Halal
 VERDICT: Questionable
 VERDICT: Non-compliant
 
-Then explain your reasoning, discussing both financial metrics and business sector appropriateness.`;
+Then explain your reasoning. Be consistent and decisive - do not suggest exceptions or case-by-case reviews for prohibited sectors.`;
 
   const message = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 1024,
+    temperature: 0,
     messages: [
       {
         role: 'user',

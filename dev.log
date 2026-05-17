@@ -40157,3 +40157,14 @@ Import traces:
 [browser] Image with src "/logo.png" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
  GET /api/stock-quotes 200 in 1497ms (next.js: 77ms, application-code: 1419ms)
  POST /api/analyze-stock 200 in 6.1s (next.js: 56ms, application-code: 6.0s)
+ POST /api/search-companies 200 in 40ms (next.js: 28ms, application-code: 13ms)
+ POST /api/search-companies 200 in 11ms (next.js: 4ms, application-code: 7ms)
+ POST /api/analyze-stock 200 in 6.1s (next.js: 6ms, application-code: 6.1s)
+ GET /api/stock-quotes 200 in 1427ms (next.js: 3ms, application-code: 1424ms)
+ GET /api/stock-quotes 200 in 1558ms (next.js: 3ms, application-code: 1554ms)
+ GET /api/stock-quotes 200 in 1410ms (next.js: 3ms, application-code: 1407ms)
+ GET / 200 in 126ms (next.js: 91ms, application-code: 35ms)
+ GET / 200 in 125ms (next.js: 9ms, application-code: 116ms)
+[browser] Image with src "/logo.png" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+ GET /api/stock-quotes 200 in 1560ms (next.js: 65ms, application-code: 1494ms)
+ GET /api/stock-quotes 200 in 1239ms (next.js: 5ms, application-code: 1234ms)
