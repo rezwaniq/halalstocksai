@@ -39669,3 +39669,491 @@ Error message: Request failed with status code 403
 ✓ Compiled in 53ms
  GET / 200 in 131ms (next.js: 83ms, application-code: 48ms)
  POST /api/analyze-stock 200 in 5.8s (next.js: 101ms, application-code: 5.7s)
+ GET /api/stock-quotes 200 in 1908ms (next.js: 86ms, application-code: 1821ms)
+ GET /api/stock-quotes 200 in 1833ms (next.js: 6ms, application-code: 1827ms)
+ POST /api/analyze-stock 200 in 5.5s (next.js: 5ms, application-code: 5.5s)
+ GET /api/stock-quotes 200 in 1907ms (next.js: 6ms, application-code: 1902ms)
+ GET /api/stock-quotes 200 in 1932ms (next.js: 3ms, application-code: 1929ms)
+ GET /api/stock-quotes 200 in 2.1s (next.js: 3ms, application-code: 2.0s)
+✓ Compiled in 99ms
+⨯ ./app/page.tsx:518:11
+the name `gate1Pass` is defined multiple times
+  [90m516 |[0m
+  [90m517 |[0m     [90m// Determine Gate 1 status (business activity) - based on impure income[0m
+[31m[1m>[0m [90m518 |[0m     [36mconst[0m gate1Pass = ratios?.impureIncomeRatio <= [35m0.05[0m;
+  [90m    |[0m           [31m[1m^^^^^^^^^[0m
+  [90m519 |[0m     [36mconst[0m gate1Status = gate1Pass ? [32m'PASS'[0m : [32m'FAIL'[0m;
+  [90m520 |[0m     [36mconst[0m gate1Color = gate1Pass ? [32m'bg-green-50 border-green-200'[0m : [32m'bg-red-50 border-red...[0m
+  [90m521 |[0m
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+
+
+./app/page.tsx:523:11
+the name `gate2Pass` is defined multiple times
+  [90m521 |[0m
+  [90m522 |[0m     [90m// Determine Gate 2 status (financial ratios)[0m
+[31m[1m>[0m [90m523 |[0m     [36mconst[0m gate2Pass = ratios?.debtToMarketCap <= [35m0.33[0m && ratios?.impureIncomeRatio <= [35m0.05[0m;
+  [90m    |[0m           [31m[1m^^^^^^^^^[0m
+  [90m524 |[0m     [36mconst[0m gate2Status = gate2Pass ? [32m'PASS'[0m : [32m'FAIL'[0m;
+  [90m525 |[0m     [36mconst[0m gate2Color = gate2Pass ? [32m'bg-green-50 border-green-200'[0m : [32m'bg-red-50 border-red...[0m
+  [90m526 |[0m
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+
+[browser] ./app/page.tsx:518:11
+the name `gate1Pass` is defined multiple times
+  516 |
+  517 |     // Determine Gate 1 status (business activity) - based on impure income
+> 518 |     const gate1Pass = ratios?.impureIncomeRatio <= 0.05;
+      |           ^^^^^^^^^
+  519 |     const gate1Status = gate1Pass ? 'PASS' : 'FAIL';
+  520 |     const gate1Color = gate1Pass ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red...
+  521 |
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component] 
+[browser] ./app/page.tsx:523:11
+the name `gate2Pass` is defined multiple times
+  521 |
+  522 |     // Determine Gate 2 status (financial ratios)
+> 523 |     const gate2Pass = ratios?.debtToMarketCap <= 0.33 && ratios?.impureIncomeRatio <= 0.05;
+      |           ^^^^^^^^^
+  524 |     const gate2Status = gate2Pass ? 'PASS' : 'FAIL';
+  525 |     const gate2Color = gate2Pass ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red...
+  526 |
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component] 
+[browser] ./app/page.tsx:518:11
+the name `gate1Pass` is defined multiple times
+  516 |
+  517 |     // Determine Gate 1 status (business activity) - based on impure income
+> 518 |     const gate1Pass = ratios?.impureIncomeRatio <= 0.05;
+      |           ^^^^^^^^^
+  519 |     const gate1Status = gate1Pass ? 'PASS' : 'FAIL';
+  520 |     const gate1Color = gate1Pass ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red...
+  521 |
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component] 
+[browser] ./app/page.tsx:523:11
+the name `gate2Pass` is defined multiple times
+  521 |
+  522 |     // Determine Gate 2 status (financial ratios)
+> 523 |     const gate2Pass = ratios?.debtToMarketCap <= 0.33 && ratios?.impureIncomeRatio <= 0.05;
+      |           ^^^^^^^^^
+  524 |     const gate2Status = gate2Pass ? 'PASS' : 'FAIL';
+  525 |     const gate2Color = gate2Pass ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red...
+  526 |
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component] 
+[browser] ./app/page.tsx:518:11
+the name `gate1Pass` is defined multiple times
+  516 |
+  517 |     // Determine Gate 1 status (business activity) - based on impure income
+> 518 |     const gate1Pass = ratios?.impureIncomeRatio <= 0.05;
+      |           ^^^^^^^^^
+  519 |     const gate1Status = gate1Pass ? 'PASS' : 'FAIL';
+  520 |     const gate1Color = gate1Pass ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red...
+  521 |
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component] 
+[browser] ./app/page.tsx:523:11
+the name `gate2Pass` is defined multiple times
+  521 |
+  522 |     // Determine Gate 2 status (financial ratios)
+> 523 |     const gate2Pass = ratios?.debtToMarketCap <= 0.33 && ratios?.impureIncomeRatio <= 0.05;
+      |           ^^^^^^^^^
+  524 |     const gate2Status = gate2Pass ? 'PASS' : 'FAIL';
+  525 |     const gate2Color = gate2Pass ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red...
+  526 |
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component] 
+[browser] ./app/page.tsx:518:11
+the name `gate1Pass` is defined multiple times
+  516 |
+  517 |     // Determine Gate 1 status (business activity) - based on impure income
+> 518 |     const gate1Pass = ratios?.impureIncomeRatio <= 0.05;
+      |           ^^^^^^^^^
+  519 |     const gate1Status = gate1Pass ? 'PASS' : 'FAIL';
+  520 |     const gate1Color = gate1Pass ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red...
+  521 |
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component] 
+[browser] ./app/page.tsx:523:11
+the name `gate2Pass` is defined multiple times
+  521 |
+  522 |     // Determine Gate 2 status (financial ratios)
+> 523 |     const gate2Pass = ratios?.debtToMarketCap <= 0.33 && ratios?.impureIncomeRatio <= 0.05;
+      |           ^^^^^^^^^
+  524 |     const gate2Status = gate2Pass ? 'PASS' : 'FAIL';
+  525 |     const gate2Color = gate2Pass ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red...
+  526 |
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component] 
+ GET / 500 in 1638ms (next.js: 1324ms, application-code: 314ms)
+[browser] ./app/page.tsx:518:11
+the name `gate1Pass` is defined multiple times
+  516 |
+  517 |     // Determine Gate 1 status (business activity) - based on impure income
+> 518 |     const gate1Pass = ratios?.impureIncomeRatio <= 0.05;
+      |           ^^^^^^^^^
+  519 |     const gate1Status = gate1Pass ? 'PASS' : 'FAIL';
+  520 |     const gate1Color = gate1Pass ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red...
+  521 |
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component] 
+[browser] ./app/page.tsx:523:11
+the name `gate2Pass` is defined multiple times
+  521 |
+  522 |     // Determine Gate 2 status (financial ratios)
+> 523 |     const gate2Pass = ratios?.debtToMarketCap <= 0.33 && ratios?.impureIncomeRatio <= 0.05;
+      |           ^^^^^^^^^
+  524 |     const gate2Status = gate2Pass ? 'PASS' : 'FAIL';
+  525 |     const gate2Color = gate2Pass ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red...
+  526 |
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component] 
+⨯ ./app/page.tsx:518:11
+the name `gate1Pass` is defined multiple times
+  [90m516 |[0m
+  [90m517 |[0m     [90m// Determine Gate 1 status (business activity) - based on impure income[0m
+[31m[1m>[0m [90m518 |[0m     [36mconst[0m gate1Pass = ratios?.impureIncomeRatio <= [35m0.05[0m;
+  [90m    |[0m           [31m[1m^^^^^^^^^[0m
+  [90m519 |[0m     [36mconst[0m gate1Status = gate1Pass ? [32m'PASS'[0m : [32m'FAIL'[0m;
+  [90m520 |[0m     [36mconst[0m gate1Color = gate1Pass ? [32m'bg-green-50 border-green-200'[0m : [32m'bg-red-50 border-red...[0m
+  [90m521 |[0m
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+
+
+./app/page.tsx:523:11
+the name `gate2Pass` is defined multiple times
+  [90m521 |[0m
+  [90m522 |[0m     [90m// Determine Gate 2 status (financial ratios)[0m
+[31m[1m>[0m [90m523 |[0m     [36mconst[0m gate2Pass = ratios?.debtToMarketCap <= [35m0.33[0m && ratios?.impureIncomeRatio <= [35m0.05[0m;
+  [90m    |[0m           [31m[1m^^^^^^^^^[0m
+  [90m524 |[0m     [36mconst[0m gate2Status = gate2Pass ? [32m'PASS'[0m : [32m'FAIL'[0m;
+  [90m525 |[0m     [36mconst[0m gate2Color = gate2Pass ? [32m'bg-green-50 border-green-200'[0m : [32m'bg-red-50 border-red...[0m
+  [90m526 |[0m
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+
+ GET / 500 in 50ms (next.js: 30ms, application-code: 19ms)
+[browser] Uncaught Error: ./app/page.tsx:518:11
+the name `gate1Pass` is defined multiple times
+  516 |
+  517 |     // Determine Gate 1 status (business activity) - based on impure income
+> 518 |     const gate1Pass = ratios?.impureIncomeRatio <= 0.05;
+      |           ^^^^^^^^^
+  519 |     const gate1Status = gate1Pass ? 'PASS' : 'FAIL';
+  520 |     const gate1Color = gate1Pass ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red...
+  521 |
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+
+    at <unknown> (Error: ./app/page.tsx:518:11)
+    at <unknown> (Error: (./app/page.tsx:518:11)
+[browser] ./app/page.tsx:518:11
+the name `gate1Pass` is defined multiple times
+  516 |
+  517 |     // Determine Gate 1 status (business activity) - based on impure income
+> 518 |     const gate1Pass = ratios?.impureIncomeRatio <= 0.05;
+      |           ^^^^^^^^^
+  519 |     const gate1Status = gate1Pass ? 'PASS' : 'FAIL';
+  520 |     const gate1Color = gate1Pass ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red...
+  521 |
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component] 
+[browser] ./app/page.tsx:523:11
+the name `gate2Pass` is defined multiple times
+  521 |
+  522 |     // Determine Gate 2 status (financial ratios)
+> 523 |     const gate2Pass = ratios?.debtToMarketCap <= 0.33 && ratios?.impureIncomeRatio <= 0.05;
+      |           ^^^^^^^^^
+  524 |     const gate2Status = gate2Pass ? 'PASS' : 'FAIL';
+  525 |     const gate2Color = gate2Pass ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red...
+  526 |
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component] 
+[browser] ./app/page.tsx:518:11
+the name `gate1Pass` is defined multiple times
+  516 |
+  517 |     // Determine Gate 1 status (business activity) - based on impure income
+> 518 |     const gate1Pass = ratios?.impureIncomeRatio <= 0.05;
+      |           ^^^^^^^^^
+  519 |     const gate1Status = gate1Pass ? 'PASS' : 'FAIL';
+  520 |     const gate1Color = gate1Pass ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red...
+  521 |
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component] 
+[browser] ./app/page.tsx:523:11
+the name `gate2Pass` is defined multiple times
+  521 |
+  522 |     // Determine Gate 2 status (financial ratios)
+> 523 |     const gate2Pass = ratios?.debtToMarketCap <= 0.33 && ratios?.impureIncomeRatio <= 0.05;
+      |           ^^^^^^^^^
+  524 |     const gate2Status = gate2Pass ? 'PASS' : 'FAIL';
+  525 |     const gate2Color = gate2Pass ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red...
+  526 |
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component] 
+[browser] ./app/page.tsx:518:11
+the name `gate1Pass` is defined multiple times
+  516 |
+  517 |     // Determine Gate 1 status (business activity) - based on impure income
+> 518 |     const gate1Pass = ratios?.impureIncomeRatio <= 0.05;
+      |           ^^^^^^^^^
+  519 |     const gate1Status = gate1Pass ? 'PASS' : 'FAIL';
+  520 |     const gate1Color = gate1Pass ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red...
+  521 |
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component] 
+[browser] ./app/page.tsx:523:11
+the name `gate2Pass` is defined multiple times
+  521 |
+  522 |     // Determine Gate 2 status (financial ratios)
+> 523 |     const gate2Pass = ratios?.debtToMarketCap <= 0.33 && ratios?.impureIncomeRatio <= 0.05;
+      |           ^^^^^^^^^
+  524 |     const gate2Status = gate2Pass ? 'PASS' : 'FAIL';
+  525 |     const gate2Color = gate2Pass ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red...
+  526 |
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component] 
+[browser] ./app/page.tsx:518:11
+the name `gate1Pass` is defined multiple times
+  516 |
+  517 |     // Determine Gate 1 status (business activity) - based on impure income
+> 518 |     const gate1Pass = ratios?.impureIncomeRatio <= 0.05;
+      |           ^^^^^^^^^
+  519 |     const gate1Status = gate1Pass ? 'PASS' : 'FAIL';
+  520 |     const gate1Color = gate1Pass ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red...
+  521 |
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component] 
+[browser] ./app/page.tsx:523:11
+the name `gate2Pass` is defined multiple times
+  521 |
+  522 |     // Determine Gate 2 status (financial ratios)
+> 523 |     const gate2Pass = ratios?.debtToMarketCap <= 0.33 && ratios?.impureIncomeRatio <= 0.05;
+      |           ^^^^^^^^^
+  524 |     const gate2Status = gate2Pass ? 'PASS' : 'FAIL';
+  525 |     const gate2Color = gate2Pass ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red...
+  526 |
+
+Ecmascript file had an error
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component] 
+ GET / 200 in 201ms (next.js: 79ms, application-code: 122ms)
+ GET / 200 in 64ms (next.js: 8ms, application-code: 56ms)
+[browser] Image with src "/logo.png" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+ GET /api/stock-quotes 200 in 1497ms (next.js: 77ms, application-code: 1419ms)
+ POST /api/analyze-stock 200 in 6.1s (next.js: 56ms, application-code: 6.0s)
