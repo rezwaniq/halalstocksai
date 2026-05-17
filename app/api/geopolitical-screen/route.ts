@@ -10,65 +10,205 @@ interface ScreenRequest {
   selectedCountries: string[];
 }
 
-// Known US Defense Contractors
-const US_DEFENSE_CONTRACTORS = [
-  { name: 'Lockheed Martin', ticker: 'LMT', aliases: ['lockheed', 'lmt'] },
-  { name: 'Boeing', ticker: 'BA', aliases: ['boeing', 'ba'] },
-  { name: 'Raytheon Technologies', ticker: 'RTX', aliases: ['raytheon', 'rtx'] },
-  { name: 'General Dynamics', ticker: 'GD', aliases: ['general dynamics', 'gd'] },
-  { name: 'Northrop Grumman', ticker: 'NOG', aliases: ['northrop', 'nog'] },
-  { name: 'L3Harris Technologies', ticker: 'LHX', aliases: ['l3harris', 'lhx', 'l3'] },
-  { name: 'Huntington Ingalls', ticker: 'HII', aliases: ['huntington', 'hii'] },
-  { name: 'Leidos', ticker: 'LDOS', aliases: ['leidos', 'ldos'] },
-  { name: 'Spirit AeroSystems', ticker: 'SPR', aliases: ['spirit', 'spr'] },
-  { name: 'Meggitt', ticker: 'MGGT', aliases: ['meggitt'] },
-  { name: 'Textron', ticker: 'TXT', aliases: ['textron', 'txt'] },
-  { name: 'Heico', ticker: 'HEI', aliases: ['heico'] },
-  { name: 'TransDigm', ticker: 'TDG', aliases: ['transdigm', 'tdg'] },
-  { name: 'KBR', ticker: 'KBR', aliases: ['kbr'] },
-  { name: 'Orbital ATK', ticker: 'OPS', aliases: ['orbital', 'atk'] },
+const TOP_15_DEFENSE_CONTRACTORS = [
+  'Lockheed Martin',
+  'RTX',
+  'Raytheon',
+  'Boeing Defense',
+  'Northrop Grumman',
+  'General Dynamics',
+  'L3Harris Technologies',
+  'BAE Systems',
+  'Leidos',
+  'Booz Allen Hamilton',
+  'SAIC',
+  'Huntington Ingalls Industries',
+  'Textron',
+  'CACI International',
+  'ManTech International',
 ];
 
-async function analyzeDefenseExposure(
+async function fetchFMPGeographicData(ticker: string): Promise<string> {
+  try {
+    if (!FMP_API_KEY) return '';
+
+    // Try multiple FMP endpoints for geographic data
+    const endpoints = [
+      `https://financialmodelingprep.com/stable/geographic-revenue?symbol=${ticker}&apikey=${FMP_API_KEY}`,
+      `https://financialmodelingprep.com/api/v4/geographic-revenue?symbol=${ticker}&apikey=${FMP_API_KEY}`,
+      `https://financialmodelingprep.com/api/v3/geographic-revenue?symbol=${ticker}&apikey=${FMP_API_KEY}`,
+    ];
+
+    for (const endpoint of endpoints) {
+      try {
+        const response = await fetch(endpoint);
+
+        // Skip if status is not ok
+        if (!response.ok) {
+          console.log(`FMP endpoint ${endpoint.split('?')[0]} - Status: ${response.status}`);
+          continue;
+        }
+
+        const data = await response.json();
+
+        // Check if response has error message
+        if (data?.Error || data?.ErrorMessage) {
+          console.log(`FMP endpoint returned error:`, data.Error || data.ErrorMessage);
+          continue;
+        }
+
+        // Check if we got valid geographic data
+        if (Array.isArray(data) && data.length > 0) {
+          let formatted = 'FMP GEOGRAPHIC REVENUE DATA (Financial Modeling Prep):\n';
+          data.forEach((item: any) => {
+            const country = item.country || item.region || item.countryName;
+            const revenue = item.revenue || item.value || item.revenueBillion;
+            const year = item.fiscalYear || item.year || 'Latest';
+            if (country && revenue) {
+              formatted += `- ${country}: $${revenue}${typeof revenue === 'number' && revenue < 100 ? 'B' : ''} (FY${year})\n`;
+            }
+          });
+          if (formatted.split('\n').length > 2) {
+            console.log('FMP geographic data found');
+            return formatted;
+          }
+        }
+      } catch (err) {
+        console.log(`FMP endpoint error: ${err}`);
+        continue;
+      }
+    }
+
+    console.log('No geographic revenue data available from FMP for', ticker);
+    return '';
+  } catch (error) {
+    console.error('FMP geographic data fetch error:', error);
+    return '';
+  }
+}
+
+async function fetchSECData(companyName: string): Promise<{ text: string; filingDate: string }> {
+  try {
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    const startDate = oneYearAgo.toISOString().split('T')[0];
+    const endDate = new Date().toISOString().split('T')[0];
+
+    // First, search for the filing
+    const searchUrl = `https://efts.sec.gov/LATEST/search-index?q=${encodeURIComponent(
+      companyName
+    )}&dateRange=custom&startdt=${startDate}&enddt=${endDate}&forms=10-K`;
+
+    const searchResponse = await fetch(searchUrl);
+    if (!searchResponse.ok) throw new Error('SEC search failed');
+
+    const searchHtml = await searchResponse.text();
+    const filingMatch = searchHtml.match(/Filing Date[^>]*>([^<]+)/);
+    const filingDate = filingMatch ? filingMatch[1].trim() : new Date().toISOString().split('T')[0];
+
+    // Extract the CIK from search results to construct direct filing URL
+    // Try to get the actual filing document instead of just metadata
+    // SEC EDGAR filing URL pattern: /cgi-bin/browse-edgar?action=getcompany&CIK=...
+    const cikMatch = searchHtml.match(/\/cgi-bin\/browse-edgar[^"]*CIK=(\d+)/);
+    if (!cikMatch) {
+      console.log('Could not extract CIK from SEC search results');
+      return { text: '', filingDate };
+    }
+
+    const cik = cikMatch[1];
+    // Fetch the company's recent filings
+    const companyUrl = `https://data.sec.gov/submissions/CIK${cik.padStart(10, '0')}.json`;
+
+    const companyResponse = await fetch(companyUrl);
+    if (companyResponse.ok) {
+      const companyData = await companyResponse.json();
+      // Get the most recent 10-K filing
+      const filings = companyData.filings?.recent?.form;
+      if (filings) {
+        const tenKIndex = filings.indexOf('10-K');
+        if (tenKIndex >= 0) {
+          const filingDetails = {
+            accession: companyData.filings.recent.accessionNumber[tenKIndex],
+            filingDate: companyData.filings.recent.filingDate[tenKIndex],
+          };
+
+          if (filingDetails.accession) {
+            // Construct the URL to the actual filing document
+            const accessionPath = filingDetails.accession.replace(/-/g, '');
+            const filePath = `https://www.sec.gov/cgi-bin/viewer?action=view&cik=${cik}&accession_number=${filingDetails.accession}&xbrl_type=v`;
+
+            try {
+              const filingResponse = await fetch(filePath);
+              if (filingResponse.ok) {
+                const filingText = await filingResponse.text();
+                // Extract relevant sections: Business, Risk Factors, Geographic data
+                const businessMatch = filingText.match(/Item\s+1[.\s]*Business([\s\S]{0,15000}?)(?=Item\s+\d|$)/i);
+                const riskMatch = filingText.match(/Item\s+1A[.\s]*Risk\s+Factors([\s\S]{0,10000}?)(?=Item\s+\d|$)/i);
+
+                let extracted = '';
+                if (businessMatch) extracted += 'BUSINESS SECTION:\n' + businessMatch[1].substring(0, 8000) + '\n\n';
+                if (riskMatch) extracted += 'RISK FACTORS:\n' + riskMatch[1].substring(0, 5000) + '\n';
+
+                return {
+                  text: extracted || filingText.substring(0, 15000),
+                  filingDate: filingDetails.filingDate || filingDate,
+                };
+              }
+            } catch (err) {
+              console.log('Could not fetch actual filing text:', err);
+            }
+          }
+        }
+      }
+    }
+
+    // Fallback to search metadata if direct filing fetch fails
+    return {
+      text: searchHtml.substring(0, 5000),
+      filingDate,
+    };
+  } catch (error) {
+    console.error('SEC data fetch error:', error);
+    return { text: '', filingDate: '' };
+  }
+}
+
+async function analyzeCountryInvestment(
   companyName: string,
+  selectedCountries: string[],
   secText: string,
-  spendingData: string
-): Promise<{
-  totalExposure: string;
-  contractors: any[];
-  analysis: string;
-  trend?: string;
-}> {
+  fmpGeographicData: string
+): Promise<any[]> {
   try {
     const client = new Anthropic({
       apiKey: ANTHROPIC_API_KEY,
     });
 
-    // Build search patterns for defense contractors
-    const contractorPatterns = US_DEFENSE_CONTRACTORS.map(c => c.aliases.join('|')).join('|');
+    const prompt = `You are a neutral financial analyst. From the following financial data for ${companyName}, extract ONLY the revenue and capital investment figures for these countries: ${selectedCountries.join(', ')}
 
-    const prompt = `Analyze the following company data for investments, partnerships, and supply chain relationships with US defense contractors.
+IMPORTANT: Prioritize data from FMP Geographic Revenue (most reliable). If not found there, check SEC 10-K filing excerpts.
 
-Company: ${companyName}
+1. Revenue earned from these countries: ${selectedCountries.join(', ')}
+   - State exact dollar figures if available
+   - Note the fiscal year
+   - Cite data source (FMP or SEC)
 
-Available data:
-SEC 10-K excerpts: ${secText.substring(0, 2000)}
-Government contracts/partnerships: ${spendingData}
+2. Capital assets or investments located in these countries: ${selectedCountries.join(', ')}
+   - State exact dollar figures if available
+   - Include manufacturing plants, facilities, joint ventures, subsidiaries
+   - Note the fiscal year
 
-Known US Defense Contractors to search for:
-${US_DEFENSE_CONTRACTORS.map(c => `- ${c.name} (${c.ticker})`).join('\n')}
+${fmpGeographicData ? `FMP GEOGRAPHIC REVENUE DATA (Primary Source):\n${fmpGeographicData}\n` : ''}
+${secText ? `SEC 10-K Filing Excerpts (Supplementary):\n${secText}` : ''}
 
-For EACH defense contractor mentioned:
-1. State the company name and relationship type (supplier, partner, investor, joint venture, etc)
-2. If investment amount is mentioned: cite the amount and year
-3. If no specific amount: describe the nature of relationship
-4. Rate exposure as HIGH/MODERATE/LOW based on strategic importance
+For EACH country:
+- If revenue figure is found: "{Country}: Revenue $X million/billion in FY20XX. Source: [FMP or SEC]"
+- If revenue not found: "{Country}: Revenue not separately disclosed"
+- If capital figure is found: "{Country}: Capital invested $X million/billion in FY20XX. Source: [FMP or SEC]"
+- If capital not found: "{Country}: Capital invested not separately disclosed"
 
-If no defense contractor relationships are found, state that clearly.
-
-Format each contractor on one line: [Contractor]: [Relationship] [Amount if any]
-
-Then provide a 2-3 sentence overall analysis of defense sector exposure.`;
+DO NOT estimate or infer figures. Only cite exact figures from the data.
+Format as one paragraph per country.`;
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
@@ -84,204 +224,94 @@ Then provide a 2-3 sentence overall analysis of defense sector exposure.`;
 
     const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
 
-    // Parse Claude's response to extract contractor info
-    const contractors: any[] = [];
-    const lines = responseText.split('\n');
-
-    for (const line of lines) {
-      for (const contractor of US_DEFENSE_CONTRACTORS) {
-        if (line.toLowerCase().includes(contractor.name.toLowerCase())) {
-          const match = line.match(/([^:]+):\s*(.+)/);
-          if (match) {
-            contractors.push({
-              contractor: contractor.name,
-              relationship: match[2].trim(),
-              exposureLevel: line.toLowerCase().includes('high')
-                ? 'HIGH'
-                : line.toLowerCase().includes('moderate')
-                  ? 'MODERATE'
-                  : 'LOW',
-            });
-          }
-        }
-      }
-    }
-
-    // Extract analysis paragraph
-    const analysisMatch = responseText.match(/(?:analysis|overall)[\s\S]*?([^\n.]+\.[^\n.]+\.[^\n.]*\.)/i);
-    const analysis = analysisMatch ? analysisMatch[1].trim() : 'See detailed findings above.';
-
-    return {
-      totalExposure:
-        contractors.length > 0
-          ? `${contractors.length} contractor(s) identified`
-          : 'No direct defense contractor exposure identified',
-      contractors,
-      analysis,
-    };
+    // Parse response for each country
+    return selectedCountries.map(country => ({
+      country,
+      analysis: responseText.match(new RegExp(`${country}[^.]*\\.`, 'i'))?.[0] || `${country}: Data not found in filing`,
+    }));
   } catch (error) {
-    console.error('Defense exposure analysis error:', error);
-    return {
-      totalExposure: 'Analysis unavailable',
-      contractors: [],
-      analysis: 'Unable to analyze defense contractor exposure at this time.',
-    };
+    console.error('Country investment analysis error:', error);
+    return selectedCountries.map(country => ({
+      country,
+      analysis: `${country}: Analysis unavailable`,
+    }));
   }
 }
 
-interface ScreenResult {
-  country: string;
-  analysis: string;
-  exposureLevel: 'HIGH' | 'MODERATE' | 'LOW' | 'NONE';
-}
-
-async function fetchSECData(companyName: string): Promise<{ text: string; filingDate: string }> {
+async function analyzeDefenseContractorRelationships(
+  companyName: string,
+  secText: string
+): Promise<string> {
   try {
-    const oneYearAgo = new Date();
-    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-    const startDate = oneYearAgo.toISOString().split('T')[0];
-    const endDate = new Date().toISOString().split('T')[0];
+    const client = new Anthropic({
+      apiKey: ANTHROPIC_API_KEY,
+    });
 
-    const url = `https://efts.sec.gov/LATEST/search-index?q=${encodeURIComponent(
-      companyName
-    )}&dateRange=custom&startdt=${startDate}&enddt=${endDate}&forms=10-K`;
+    const prompt = `From the following SEC filings for ${companyName}, identify any business relationships, investments, equity stakes, customer relationships, or partnerships with any of these defense contractors:
+${TOP_15_DEFENSE_CONTRACTORS.join(', ')}
 
-    const response = await fetch(url);
-    if (!response.ok) throw new Error('SEC fetch failed');
+SEC filing excerpts:
+${secText}
 
-    const html = await response.text();
+State exact figures where available.
+Cite source for every finding.
+If none found, state clearly: "No material relationship identified with top US defense contractors in SEC filings reviewed."
+Do not infer or estimate.`;
 
-    // Extract basic filing information from HTML
-    // This is a simplified extraction - in production you'd parse more carefully
-    const filingMatch = html.match(/Filing Date[^>]*>([^<]+)/);
-    const filingDate = filingMatch ? filingMatch[1].trim() : new Date().toISOString().split('T')[0];
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 512,
+      temperature: 0,
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+    });
 
-    // Return a reasonable excerpt from the HTML
-    const excerpt = html.substring(0, 2000); // Simplified - would extract risk factors/geographic sections in production
-
-    return {
-      text: excerpt || 'SEC 10-K filing data extracted',
-      filingDate,
-    };
+    return message.content[0].type === 'text' ? message.content[0].text : 'Analysis unavailable';
   } catch (error) {
-    console.error('SEC data fetch error:', error);
-    return { text: '', filingDate: '' };
+    console.error('Defense contractor analysis error:', error);
+    return 'Analysis unavailable';
   }
 }
 
-async function fetchUSASpendingData(companyName: string): Promise<string> {
+async function fetchUSASpendingDefenseContracts(companyName: string): Promise<any[]> {
   try {
     const response = await fetch('https://api.usaspending.gov/api/v2/search/spending_by_award/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         filters: {
-          keyword: companyName,
+          recipient_search_text: [companyName],
           award_type_codes: ['A', 'B', 'C', 'D'],
+          agencies: [
+            {
+              type: 'awarding',
+              tier: 'toptier',
+              name: 'Department of Defense',
+            },
+          ],
         },
-        limit: 10,
+        limit: 5,
       }),
     });
 
     if (!response.ok) throw new Error('USASpending fetch failed');
 
     const data = await response.json();
-
-    // Extract defense-related contracts
     const contracts = data.results?.results || [];
-    if (contracts.length === 0) {
-      return 'No government contracts found';
-    }
 
-    // Format contract data
-    return contracts
-      .slice(0, 5)
-      .map(
-        (contract: any) =>
-          `${contract.award_description || 'Contract'}: $${contract.total_obligation || 0}`
-      )
-      .join('; ');
+    return contracts.map((contract: any) => ({
+      description: contract.award_description || 'Defense Contract',
+      amount: contract.total_obligation || 0,
+      agency: 'Department of Defense',
+      date: contract.award_date || 'Unknown',
+    }));
   } catch (error) {
     console.error('USASpending data fetch error:', error);
-    return 'Government contracts data unavailable';
-  }
-}
-
-async function fetchFMPGeographicData(ticker: string): Promise<{ formatted: string; raw: any }> {
-  try {
-    if (!FMP_API_KEY) {
-      return {
-        formatted: 'Geographic revenue data unavailable - FMP API key not configured',
-        raw: null,
-      };
-    }
-
-    // Try multiple endpoints to get geographic data
-    const endpoints = [
-      `https://financialmodelingprep.com/stable/revenue-geographic-segmentation?symbol=${ticker}&apikey=${FMP_API_KEY}`,
-      `https://financialmodelingprep.com/stable/earning-call-transcript?symbol=${ticker}&apikey=${FMP_API_KEY}`,
-    ];
-
-    let data = null;
-    for (const endpoint of endpoints) {
-      try {
-        const response = await fetch(endpoint);
-        if (response.ok) {
-          data = await response.json();
-          if (data && (Array.isArray(data) ? data.length > 0 : Object.keys(data).length > 0)) {
-            break;
-          }
-        }
-      } catch (e) {
-        continue;
-      }
-    }
-
-    if (!data) {
-      return {
-        formatted: 'Geographic revenue breakdown not available in current FMP data',
-        raw: null,
-      };
-    }
-
-    // Parse geographic segments
-    let segments: any[] = [];
-    if (Array.isArray(data)) {
-      segments = data[0]?.geographicalSegments || data[0]?.segments || [];
-    } else {
-      segments = data.geographicalSegments || data.segments || [];
-    }
-
-    if (segments.length === 0) {
-      return {
-        formatted: 'No geographic revenue breakdown available in FMP data',
-        raw: null,
-      };
-    }
-
-    const formatted = segments
-      .map((seg: any) => {
-        const country = seg.country || seg.region || seg.geography || 'Unknown';
-        const revenue = seg.revenue || seg.value || 0;
-        const percentage = seg.percentage || seg.percent || 0;
-
-        if (percentage) {
-          return `${country}: ${percentage}% of revenue (${revenue})`;
-        }
-        return `${country}: ${revenue}`;
-      })
-      .join('; ');
-
-    return {
-      formatted,
-      raw: segments,
-    };
-  } catch (error) {
-    console.error('FMP geographic data fetch error:', error);
-    return {
-      formatted: 'Geographic revenue data unavailable',
-      raw: null,
-    };
+    return [];
   }
 }
 
@@ -303,121 +333,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch data from all sources
-    const [secData, spendingData, fmpDataResult] = await Promise.all([
+    // Fetch SEC data and FMP geographic data in parallel
+    const [secData, fmpGeographicData] = await Promise.all([
       fetchSECData(companyName),
-      fetchUSASpendingData(companyName),
       fetchFMPGeographicData(ticker),
     ]);
 
-    const fmpData = fmpDataResult.formatted;
+    // SECTION 1: Country Investment Analysis
+    const countryAnalysis = await analyzeCountryInvestment(companyName, selectedCountries, secData.text, fmpGeographicData);
 
-    // Analyze defense exposure (after getting SEC and spending data)
-    const defenseExposure = await analyzeDefenseExposure(companyName, secData.text, spendingData);
+    // SECTION 2A: Defense Contractor Relationships
+    const defenseContractorAnalysis = await analyzeDefenseContractorRelationships(companyName, secData.text);
 
-    // Prepare Claude prompt with emphasis on geographic revenue data
-    const prompt = `You are a neutral financial analyst specializing in geopolitical risk assessment. You provide factual, source-cited analysis only. You do not express political opinions or make moral judgments. You report only what is documented in official filings and government databases.
+    // SECTION 2B: Government Defense Contracts
+    const defenseContracts = await fetchUSASpendingDefenseContracts(companyName);
 
-Analyze ${companyName} (${ticker}) for geopolitical exposure to these countries: ${selectedCountries.join(', ')}.
-
-IMPORTANT: Use the Geographic Revenue data as your PRIMARY source for country exposure.
-Any country listed in the geographic revenue breakdown has material exposure.
-
-Data available:
-Geographic revenue breakdown by country: ${fmpData}
-SEC 10-K excerpts: ${secData.text || 'No SEC data available'}
-Defense contracts: ${spendingData}
-
-For each of these selected countries: ${selectedCountries.join(', ')}
-
-1. First, check the Geographic Revenue data above for any entry containing this country name
-2. If found in geographic data: state the revenue percentage/amount and describe the operations
-3. Then check SEC/defense contracts for additional details (military, government ties, etc)
-4. Cite sources precisely: "Geographic Revenue Data shows X%", "10-K mentions Y", "No government contracts found"
-5. If NO exposure found in ANY source: explicitly state "No documented exposure in available sources"
-
-Format: One paragraph per country, max 3 sentences. Be factual and cite specific percentages from the data.
-End with: Sources: [list actual sources used]
-
-Then provide one sentence summarizing overall exposure.`;
-
-    // Call Claude API
-    const client = new Anthropic({
-      apiKey: ANTHROPIC_API_KEY,
-    });
-
-    const message = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 2048,
-      temperature: 0,
-      messages: [
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-    });
-
-    const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
-
-    // Parse Claude's response to extract country-by-country analysis
-    const results: ScreenResult[] = [];
-    const sources: string[] = [];
-
-    // Track which sources were actually used
-    if (secData.text) sources.push('sec');
-    if (spendingData && spendingData !== 'Government contracts data unavailable') sources.push('usaspending');
-    if (fmpData && fmpData !== 'Geographic revenue data unavailable') sources.push('fmp');
-
-    for (const country of selectedCountries) {
-      // Extract analysis for each country from Claude's response
-      const countryRegex = new RegExp(`${country}[:\s]*([^]*?)(?=${selectedCountries.join('|')}|Sources:|$)`, 'i');
-      const match = responseText.match(countryRegex);
-      const analysis = match ? match[1].trim().substring(0, 300) : `No geopolitical exposure found for ${country}.`;
-
-      // Determine exposure level based on keywords in analysis
-      let exposureLevel: 'HIGH' | 'MODERATE' | 'LOW' | 'NONE' = 'NONE';
-      const lowerAnalysis = analysis.toLowerCase();
-
-      if (lowerAnalysis.includes('significant') || lowerAnalysis.includes('substantial') || lowerAnalysis.includes('major')) {
-        exposureLevel = 'HIGH';
-      } else if (lowerAnalysis.includes('some') || lowerAnalysis.includes('moderate') || lowerAnalysis.includes('minor')) {
-        exposureLevel = 'MODERATE';
-      } else if (
-        lowerAnalysis.includes('minimal') ||
-        lowerAnalysis.includes('limited') ||
-        lowerAnalysis.includes('small')
-      ) {
-        exposureLevel = 'LOW';
-      } else if (lowerAnalysis.includes('no') || lowerAnalysis.includes('none')) {
-        exposureLevel = 'NONE';
-      }
-
-      results.push({
-        country,
-        analysis,
-        exposureLevel,
-      });
-    }
-
-    // Extract summary (last paragraph)
-    const summaryMatch = responseText.match(/(?:Summary|Overall)[:\s]*([^]*?)(?:Sources:|$)/i);
-    const summary = summaryMatch
-      ? summaryMatch[1].trim().substring(0, 500)
-      : 'See country-level analysis above.';
+    const totalDefenseContractValue = defenseContracts.reduce((sum, contract) => sum + (contract.amount || 0), 0);
 
     return NextResponse.json({
       ticker,
       selectedCountries,
-      results,
-      summary,
-      sources,
-      filingDate: secData.filingDate,
-      defenseExposure: defenseExposure || {
-        totalExposure: 'Analysis unavailable',
-        contractors: [],
-        analysis: 'Defense contractor analysis could not be completed.',
+      section1: {
+        title: 'Country Investment Analysis',
+        countries: countryAnalysis,
       },
+      section2: {
+        title: 'Defense Exposure Analysis',
+        check2a: {
+          title: 'Defense Contractor Relationships',
+          analysis: defenseContractorAnalysis,
+        },
+        check2b: {
+          title: 'US Government Defense Contracts',
+          contracts: defenseContracts,
+          totalValue: totalDefenseContractValue,
+          count: defenseContracts.length,
+        },
+      },
+      filingDate: secData.filingDate,
     });
   } catch (error) {
     console.error('Geopolitical screen error:', error);
