@@ -304,14 +304,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch data from all sources
-    const [secData, spendingData, fmpDataResult, defenseExposure] = await Promise.all([
+    const [secData, spendingData, fmpDataResult] = await Promise.all([
       fetchSECData(companyName),
       fetchUSASpendingData(companyName),
       fetchFMPGeographicData(ticker),
-      analyzeDefenseExposure(companyName, (await fetchSECData(companyName)).text, await fetchUSASpendingData(companyName)),
     ]);
 
     const fmpData = fmpDataResult.formatted;
+
+    // Analyze defense exposure (after getting SEC and spending data)
+    const defenseExposure = await analyzeDefenseExposure(companyName, secData.text, spendingData);
 
     // Prepare Claude prompt with emphasis on geographic revenue data
     const prompt = `You are a neutral financial analyst specializing in geopolitical risk assessment. You provide factual, source-cited analysis only. You do not express political opinions or make moral judgments. You report only what is documented in official filings and government databases.
