@@ -499,61 +499,27 @@ function AnalyzerContent({ onClose }: { onClose: () => void }) {
   };
 
   const renderAnalysisWithSections = (text: string, verdict?: string, ratios?: any) => {
-    // Generate detailed layman-friendly summary based on verdict and ratios
+    // Generate short 1-2 sentence summary based on which gates pass/fail
     let summary = '';
-    const marketCapBillions = ((ratios?.company?.marketCap || 0) / 1e9).toFixed(1);
-    const sector = text.match(/sector[:\s]+([^,.]+)/i)?.[1] || 'technology';
+    const gate1Pass = ratios?.impureIncomeRatio <= 0.05;
+    const gate2Pass = ratios?.debtToMarketCap <= 0.33;
 
-    // Extract specific business concerns from analysis
-    const hasInterestConcerns = text.toLowerCase().includes('interest');
-    const hasBusinessConcerns = text.toLowerCase().includes('non-halal') || text.toLowerCase().includes('prohibited');
-    const interestDetails = text.match(/interest[^.]*\.[^.]*\./i)?.[0] || '';
-
-    if (verdict === 'Halal') {
-      summary = `This company is fully compliant with Islamic financial principles and recommended for Muslim investors. Operating in the ${sector} sector, it generates over 95% of its revenue from halal business activities. With a market value of $${marketCapBillions}B and conservative debt at ${(ratios?.debtToMarketCap * 100).toFixed(1)}% of market cap (33% is the maximum allowed), the company demonstrates financial responsibility. Any interest-bearing debt is minimal and well-controlled, showing the company prioritizes Islamic financing principles. Islamic scholars would readily approve this investment, as the company's structure and operations align with AAOIFI standards. Risk level: Low - This is a safe choice for Shariah-compliant portfolios.`;
-    } else if (verdict === 'Questionable') {
-      const debtConcern = ratios?.debtToMarketCap > 0.33;
-      const revenueConcern = ratios?.impureIncomeRatio > 0.05;
-      let concernDetail = '';
-
-      if (debtConcern && revenueConcern) {
-        concernDetail = `The company has both elevated debt levels (${(ratios?.debtToMarketCap * 100).toFixed(1)}% vs 33% limit) and non-compliant revenue (${(ratios?.impureIncomeRatio * 100).toFixed(2)}% vs 5% threshold). Islamic scholars would likely express concerns about both the reliance on interest-based financing and the revenue sources.`;
-      } else if (debtConcern) {
-        concernDetail = `The company's debt level (${(ratios?.debtToMarketCap * 100).toFixed(1)}%) approaches or exceeds the 33% threshold. This high reliance on interest-based borrowing (riba) concerns Islamic scholars, though some interpretations may permit it if revenues remain halal.`;
-      } else {
-        concernDetail = `The company's non-halal revenue (${(ratios?.impureIncomeRatio * 100).toFixed(2)}%) is close to or slightly above the 5% limit. While financial metrics are acceptable, the business activities borderline violate Islamic principles. Conservative scholars would advise caution.`;
-      }
-
-      summary = `This company presents a borderline compliance case requiring careful consideration. ${concernDetail} With $${marketCapBillions}B in market value, this is a significant company whose compliance issues should not be ignored. Risk level: Medium - Conservative investors should avoid; moderate investors may consider after detailed review.`;
+    if (gate1Pass && gate2Pass) {
+      summary = `This company passes both AAOIFI gates and is Halal-compliant.`;
+    } else if (!gate1Pass && !gate2Pass) {
+      summary = `Gate 1 fails: ${(ratios?.impureIncomeRatio * 100).toFixed(1)}% non-halal revenue (5% limit). Gate 2 fails: ${(ratios?.debtToMarketCap * 100).toFixed(1)}% debt (33% limit).`;
+    } else if (!gate1Pass) {
+      summary = `Gate 1 fails: ${(ratios?.impureIncomeRatio * 100).toFixed(1)}% of revenue is from non-Islamic sources, exceeding the 5% limit.`;
     } else {
-      const failureReasons = [];
-      if (ratios?.debtToMarketCap > 0.33) {
-        failureReasons.push(`excessive interest-bearing debt at ${(ratios?.debtToMarketCap * 100).toFixed(1)}% of market value (limit is 33%)`);
-      }
-      if (ratios?.impureIncomeRatio > 0.05) {
-        failureReasons.push(`substantial non-halal revenue at ${(ratios?.impureIncomeRatio * 100).toFixed(2)}% of total income (limit is 5%)`);
-      }
-      const reasons = failureReasons.length > 0 ? failureReasons.join(', and ') : 'fundamental compliance violations';
-
-      let scholarPerspective = '';
-      if (ratios?.debtToMarketCap > 0.33 && ratios?.impureIncomeRatio > 0.05) {
-        scholarPerspective = 'Islamic scholars unanimously reject this investment due to both excessive interest debt and substantial haram revenue sources.';
-      } else if (ratios?.debtToMarketCap > 0.33) {
-        scholarPerspective = 'Islamic scholars consider the high reliance on interest-based debt (riba) a fundamental violation of Islamic finance principles.';
-      } else {
-        scholarPerspective = 'Islamic scholars reject this company because a significant portion of its revenue derives from activities explicitly prohibited in Islam.';
-      }
-
-      summary = `This company fails Shariah compliance standards and is unsuitable for Islamic investment. The primary issues are: ${reasons}. The ${sector} sector operations involve non-halal income streams that are incompatible with Islamic principles. ${scholarPerspective} With $${marketCapBillions}B at stake, Muslim investors must completely avoid this company. Risk level: Critical - Do not invest under any circumstances.`;
+      summary = `Gate 2 fails: ${(ratios?.debtToMarketCap * 100).toFixed(1)}% interest-bearing debt exceeds the 33% limit.`;
     }
 
-    // Determine Gate 1 status (business activity) - based on impure income
-    const gate1Pass = ratios?.impureIncomeRatio <= 0.05;
+    // Gate status and styling (gate1Pass and gate2Pass already defined above)
     const gate1Status = gate1Pass ? 'PASS' : 'FAIL';
     const gate1Color = gate1Pass ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200';
 
-    // Determine Gate 2 status (financial ratios)
-    const gate2Pass = ratios?.debtToMarketCap <= 0.33 && ratios?.impureIncomeRatio <= 0.05;
+    // Gate 2 only checks debt (both gates already need to pass for Halal)
+    const gate2PassDebt = ratios?.debtToMarketCap <= 0.33;
     const gate2Status = gate2Pass ? 'PASS' : 'FAIL';
     const gate2Color = gate2Pass ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200';
 
