@@ -194,6 +194,21 @@ async function tryDirectBrowseEdgar(companyName: string, ticker: string, country
   }
 }
 
+// Country-specific search terms for more comprehensive document extraction
+const countrySearchTerms: Record<string, string[]> = {
+  'Israel': ['israel', 'herzliya', 'tel aviv', 'jerusalem', 'r&d center', 'tech hub', 'research center', 'mobileye', 'realface', 'emotient', 'hebrew university', 'technion'],
+  'China': ['china', 'beijing', 'shanghai', 'shenzhen', 'manufacturing', 'supply chain', 'uyghur'],
+  'Russia': ['russia', 'moscow', 'sanctions', 'exposure', 'ukraine'],
+  'Iran': ['iran', 'tehran', 'sanctions'],
+  'Ukraine': ['ukraine', 'kyiv', 'war', 'conflict', 'russian'],
+  'Myanmar': ['myanmar', 'burma', 'rohingya'],
+  'DRC (Congo)': ['congo', 'drc', 'minerals', 'conflict minerals', 'congo'],
+  'Nigeria': ['nigeria', 'lagos'],
+  'Sudan': ['sudan', 'khartoum'],
+  'Ethiopia': ['ethiopia', 'addis ababa'],
+  'North Korea': ['north korea', 'pyongyang', 'dprk'],
+};
+
 async function fetchDocumentContent(filingUrl: string, ticker: string, countryName: string): Promise<string> {
   try {
     console.log(`[SEC] Fetching from: ${filingUrl}`);
@@ -291,21 +306,77 @@ async function fetchDocumentContent(filingUrl: string, ticker: string, countryNa
     content = content.replace(/&amp;/g, '&');
     content = content.replace(/\s+/g, ' ');
 
-    // Extract sentences containing country name
-    const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 20);
+    // Split into sentences for analysis (lower threshold to catch shorter mentions)
+    const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 10);
     console.log(`[SEC] Total sentences in document: ${sentences.length}`);
 
-    const relevant = sentences.filter(s => new RegExp(`\\b${countryName}\\b`, 'i').test(s)).slice(0, 5);
-    console.log(`[SEC] Sentences mentioning "${countryName}": ${relevant.length}`);
+    // Get search terms for this country (country name + major cities/terms)
+    const searchTerms = countrySearchTerms[countryName] || [countryName.toLowerCase()];
 
-    if (relevant.length === 0) {
-      console.log(`[SEC] No mentions of ${countryName} found in 10-K`);
-      return '';
+    // Find sentences matching any of the search terms
+    const relevant = sentences.filter(s => {
+      const lowerSentence = s.toLowerCase();
+      return searchTerms.some(term => lowerSentence.includes(term));
+    });
+
+    console.log(`[SEC] Sentences mentioning "${countryName}" or related terms: ${relevant.length}`);
+
+    // If we found direct mentions, return those
+    if (relevant.length > 0) {
+      const result = relevant.slice(0, 20).map(s => s.trim()).join(' ');
+      console.log(`[SEC] Returning ${result.length} chars of direct mention data`);
+      return result;
     }
 
-    const result = relevant.map(s => s.trim().substring(0, 300)).join(' ');
-    console.log(`[SEC] Returning ${result.length} chars of data`);
-    return result;
+    // If no direct mentions found, look for geographic/segment revenue and operational information
+    // This helps capture information about geographic segments, EMEA, and related content
+    const segmentKeywords = ['geographic', 'segment', 'emea', 'americas', 'revenue', 'net sales', 'international', 'international net sales', 'region', 'area'];
+    const riskKeywords = ['risk', 'political', 'government', 'regulation', 'compliance', 'conflict', 'sanction', 'exposure'];
+    const operationalKeywords = ['research', 'development', 'office', 'facility', 'center', 'hub', 'acquired', 'acquisition', 'subsidiary'];
+
+    // Priority 1: Look for segment/revenue information
+    const segmentSentences = sentences.filter(s => {
+      const lowerSentence = s.toLowerCase();
+      return segmentKeywords.some(keyword => lowerSentence.includes(keyword));
+    });
+
+    let result = '';
+    if (segmentSentences.length > 0) {
+      console.log(`[SEC] Found ${segmentSentences.length} segment/revenue sentences`);
+      result = segmentSentences.slice(0, 30).map(s => s.trim()).join(' ');
+    }
+
+    // Priority 2: Add risk-related information
+    const riskSentences = sentences.filter(s => {
+      const lowerSentence = s.toLowerCase();
+      return riskKeywords.some(keyword => lowerSentence.includes(keyword));
+    });
+
+    if (riskSentences.length > 0) {
+      console.log(`[SEC] Found ${riskSentences.length} risk-related sentences`);
+      if (result) result += ' ';
+      result += riskSentences.slice(0, 20).map(s => s.trim()).join(' ');
+    }
+
+    // Priority 3: Add operational information
+    const operationalSentences = sentences.filter(s => {
+      const lowerSentence = s.toLowerCase();
+      return operationalKeywords.some(keyword => lowerSentence.includes(keyword));
+    });
+
+    if (operationalSentences.length > 0) {
+      console.log(`[SEC] Found ${operationalSentences.length} operational sentences`);
+      if (result) result += ' ';
+      result += operationalSentences.slice(0, 20).map(s => s.trim()).join(' ');
+    }
+
+    if (result.length > 0) {
+      console.log(`[SEC] Returning ${result.length} chars of contextual data`);
+      return result;
+    }
+
+    console.log(`[SEC] No contextual information found for ${countryName} in 10-K`);
+    return '';
   } catch (err) {
     console.error('[SEC] Document fetch error:', err);
     return '';
