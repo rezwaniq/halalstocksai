@@ -104,6 +104,10 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
     setLoadingPhase('fetching');
 
     try {
+      // Create an AbortController with a 5-minute timeout for multi-country analysis
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes
+
       const response = await fetch('/api/geopolitical-exposure', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -112,20 +116,47 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
           companyName,
           selectedCountries,
         }),
+        signal: controller.signal,
       });
 
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || 'Analysis failed');
+        try {
+          const errData = await response.json();
+          throw new Error(errData.error || 'Analysis failed');
+        } catch {
+          throw new Error(`Analysis failed with status ${response.status}`);
+        }
       }
 
       setLoadingPhase('analyzing');
-      const data: ApiResponse = await response.json();
+      const responseText = await response.text();
+
+      if (!responseText) {
+        throw new Error('Empty response from server');
+      }
+
+      let data: ApiResponse;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseErr) {
+        console.error('JSON parse error. Response length:', responseText.length, 'First 200 chars:', responseText.substring(0, 200));
+        throw new Error('Failed to parse response from server. The analysis may have timed out.');
+      }
 
       setLoadingPhase('building');
       setResults(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      if (err instanceof Error) {
+        if (err.name === 'AbortError') {
+          setError('Request timed out. Analysis with multiple countries can take 3-5 minutes. Please try again.');
+        } else {
+          setError(err.message);
+        }
+      } else {
+        setError('An error occurred');
+      }
     } finally {
       setLoading(false);
     }
