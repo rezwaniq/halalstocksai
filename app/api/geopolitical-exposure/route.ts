@@ -78,9 +78,9 @@ async function fetchSECEdgarFilings(companyName: string, countryName: string): P
 }
 
 async function fetchUSASpending(companyName: string, countryName: string): Promise<string> {
-  const defenseCoutries = ['Israel', 'Russia', 'Ukraine', 'China', 'Iran', 'North Korea'];
+  const defenseCountries = ['Israel', 'Russia', 'Ukraine', 'China', 'Iran', 'North Korea'];
 
-  if (!defenseCoutries.includes(countryName)) {
+  if (!defenseCountries.includes(countryName)) {
     return '';
   }
 
