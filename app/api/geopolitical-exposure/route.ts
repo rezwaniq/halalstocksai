@@ -59,19 +59,74 @@ async function fetchSECEdgarFilings(companyName: string, countryName: string): P
     fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
     const startDate = fiveYearsAgo.toISOString().split('T')[0];
 
-    const searchUrl = `https://efts.sec.gov/LATEST/search-index?q="${companyName}" "${countryName}"&forms=10-K&dateRange=custom&startdt=${startDate}&enddt=${todayDate}`;
+    // Use full-text search API
+    const searchUrl = `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=${encodeURIComponent(companyName)}&type=10-K&dateb=${todayDate}&owner=exclude&count=5&output=json`;
 
     const response = await fetch(searchUrl, {
       headers: {
         'User-Agent': 'mytestproj123 contact@mytestproj123.com',
-        'Accept': 'application/json',
       },
     });
 
     if (!response.ok) return '';
 
-    const data = await response.json();
-    return JSON.stringify(data);
+    const data = await response.json() as any;
+
+    if (!data.filings || !data.filings.filing || data.filings.filing.length === 0) {
+      return '';
+    }
+
+    // Get most recent 10-K filing
+    const recentFiling = data.filings.filing[0];
+    const cik = data.cik_str;
+    const accessionNumber = recentFiling.accession_number?.replace(/-/g, '') || '';
+
+    if (!cik || !accessionNumber) return '';
+
+    // Fetch the actual 10-K document text
+    const docUrl = `https://www.sec.gov/Archives/edgar/containers/${cik}/000${accessionNumber}/-index.html`;
+
+    const docResponse = await fetch(docUrl, {
+      headers: {
+        'User-Agent': 'mytestproj123 contact@mytestproj123.com',
+      },
+    });
+
+    if (!docResponse.ok) return '';
+
+    const docHtml = await docResponse.text();
+
+    // Extract main 10-K file (usually .htm or .txt)
+    const fileMatch = docHtml.match(/>([a-z0-9\-]+\.htm)<\/a>.*?10-K/i) ||
+                      docHtml.match(/href="([^"]+\.htm[l]?)"/);
+
+    if (!fileMatch) return `Document found for ${companyName} but content extraction pending`;
+
+    const mainFile = fileMatch[1];
+    const contentUrl = `https://www.sec.gov/Archives/edgar/containers/${cik}/000${accessionNumber}/${mainFile}`;
+
+    const contentResponse = await fetch(contentUrl, {
+      headers: {
+        'User-Agent': 'mytestproj123 contact@mytestproj123.com',
+      },
+    });
+
+    if (!contentResponse.ok) {
+      return `10-K filing located but unable to retrieve full text`;
+    }
+
+    let content = await contentResponse.text();
+
+    // Remove HTML tags for text extraction
+    content = content.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ');
+
+    // Extract sentences containing the country name
+    const sentences = content.match(/[^.!?]*[.!?]/g) || [];
+    const relevant = sentences.filter(s => new RegExp(countryName, 'i').test(s)).slice(0, 5);
+
+    return relevant.length > 0
+      ? relevant.join(' ')
+      : `${companyName} 10-K filing retrieved but no specific mentions of ${countryName} found in standard sections`;
   } catch (err) {
     return '';
   }
