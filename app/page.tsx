@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import StockTicker from './components/StockTicker';
 import PurificationCalculator from './components/PurificationCalculator';
-import GeopoliticalScreen from './components/GeopoliticalScreen';
+import GeopoliticalExposure from './components/GeopoliticalExposure';
 
 interface AnalysisResult {
   ticker: string;
@@ -832,8 +832,8 @@ function AnalyzerContent({ onClose }: { onClose: () => void }) {
               />
             </div>
 
-            {/* GEOPOLITICAL EXPOSURE SCREEN */}
-            <GeopoliticalScreen
+            {/* GEOPOLITICAL EXPOSURE INTELLIGENCE */}
+            <GeopoliticalExposure
               ticker={results.ticker}
               companyName={results.company.name}
             />
