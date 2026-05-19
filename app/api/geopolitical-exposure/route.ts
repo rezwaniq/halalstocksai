@@ -56,51 +56,37 @@ async function fetchSECEdgarFilings(companyName: string, countryName: string): P
     const today = new Date();
     const todayDate = today.toISOString().split('T')[0];
 
-    // First, search for company CIK - try to find exact match or most relevant
-    const searchUrl = `https://www.sec.gov/cgi-bin/browse-edgar?company=${encodeURIComponent(companyName)}&action=getcompany`;
+    // Use SEC REST API to get company data (includes CIK)
+    const companyApiUrl = `https://www.sec.gov/files/company_tickers.json`;
 
-    const searchResponse = await fetch(searchUrl, {
-      headers: {
-        'User-Agent': 'mytestproj123 contact@mytestproj123.com',
-      },
-    });
+    const companiesResponse = await fetch(companyApiUrl);
+    if (!companiesResponse.ok) {
+      // Fallback: try direct browse-edgar with CIK parameter
+      return await tryDirectBrowseEdgar(companyName, countryName, todayDate);
+    }
 
-    if (!searchResponse.ok) return '';
-
-    let searchHtml = await searchResponse.text();
-
-    // Extract all CIKs and company names
-    const cikMatches = searchHtml.match(/CIK=(\d+)[^<]*<\/a><\/td>\s*<td[^>]*>([^<]+)</g) || [];
-    if (cikMatches.length === 0) return '';
-
-    // Find the best match (prefer exact company name match)
+    const companiesData = await companiesResponse.json() as Record<string, any>;
+    let bestMatch = null;
     let bestCik = '';
-    for (const match of cikMatches) {
-      const cikRegex = /CIK=(\d+)/;
-      const nameRegex = /td>\s*([^<]+)</;
-      const cikResult = cikRegex.exec(match);
-      const nameResult = nameRegex.exec(match);
 
-      if (cikResult && nameResult) {
-        const extractedName = nameResult[1].trim();
-        // Prefer exact or near-exact match
-        if (extractedName.toUpperCase().includes(companyName.toUpperCase())) {
-          bestCik = cikResult[1];
-          if (extractedName.toUpperCase().startsWith(companyName.toUpperCase())) {
-            break; // Perfect match, stop searching
-          }
+    // Search through companies for matching name
+    for (const [, company] of Object.entries(companiesData)) {
+      const comp = company as any;
+      if (comp.title?.toUpperCase().includes(companyName.toUpperCase())) {
+        bestMatch = comp;
+        bestCik = String(comp.cik_str).padStart(10, '0');
+        // Prefer exact prefix match
+        if (comp.title.toUpperCase().startsWith(companyName.toUpperCase())) {
+          break;
         }
       }
     }
 
     if (!bestCik) {
-      // Fallback to first CIK found
-      const cikMatch = searchHtml.match(/CIK=(\d+)/);
-      if (!cikMatch) return '';
-      bestCik = cikMatch[1];
+      return await tryDirectBrowseEdgar(companyName, countryName, todayDate);
     }
 
-    // Now fetch 10-K filings for this CIK using ATOM format
+    // Now fetch 10-K filings using ATOM format
     const atomUrl = `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${bestCik}&type=10-K&dateb=${todayDate}&owner=exclude&count=1&output=atom`;
 
     const atomResponse = await fetch(atomUrl, {
@@ -115,23 +101,59 @@ async function fetchSECEdgarFilings(companyName: string, countryName: string): P
 
     // Check if there are actually any filings
     if (!atomXml.includes('<entry>')) {
-      return `Company found but no 10-K filings available`;
+      return `10-K filings not found for ${companyName}`;
     }
 
-    // Extract filing URL from ATOM - look for document link more carefully
-    const filingMatch = atomXml.match(/<link\s+href="([^"]*\/Archives\/edgar[^"]*\.(htm|html|txt))"\s+rel="alternate"\s+type="text\/html"/i);
-    if (!filingMatch) {
-      // Fallback pattern
-      const altMatch = atomXml.match(/href="([^"]*\/Archives\/edgar[^"]*\.(htm|html))"/);
-      if (!altMatch) return '';
-      const filingUrl = `https://www.sec.gov${altMatch[1]}`;
-      return await fetchDocumentContent(filingUrl, countryName);
-    }
+    // Extract filing URL from ATOM
+    const filingMatch = atomXml.match(/href="([^"]*\/Archives\/edgar[^"]*\.(htm|html))"/i);
+    if (!filingMatch) return '';
 
     const filingUrl = `https://www.sec.gov${filingMatch[1]}`;
     return await fetchDocumentContent(filingUrl, countryName);
   } catch (err) {
     console.error('SEC fetching error:', err);
+    return '';
+  }
+}
+
+async function tryDirectBrowseEdgar(companyName: string, countryName: string, todayDate: string): Promise<string> {
+  try {
+    // Fallback: use browse-edgar directly and extract first CIK found
+    const searchUrl = `https://www.sec.gov/cgi-bin/browse-edgar?company=${encodeURIComponent(companyName)}&action=getcompany`;
+
+    const response = await fetch(searchUrl, {
+      headers: {
+        'User-Agent': 'mytestproj123 contact@mytestproj123.com',
+      },
+    });
+
+    if (!response.ok) return '';
+
+    const html = await response.text();
+    const cikMatch = html.match(/CIK=(\d{7,})/);
+    if (!cikMatch) return '';
+
+    const cik = cikMatch[1];
+    const atomUrl = `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${cik}&type=10-K&dateb=${todayDate}&owner=exclude&count=1&output=atom`;
+
+    const atomResponse = await fetch(atomUrl, {
+      headers: {
+        'User-Agent': 'mytestproj123 contact@mytestproj123.com',
+      },
+    });
+
+    if (!atomResponse.ok) return '';
+
+    const atomXml = await atomResponse.text();
+    if (!atomXml.includes('<entry>')) return '';
+
+    const filingMatch = atomXml.match(/href="([^"]*\/Archives\/edgar[^"]*\.(htm|html))"/i);
+    if (!filingMatch) return '';
+
+    const filingUrl = `https://www.sec.gov${filingMatch[1]}`;
+    return await fetchDocumentContent(filingUrl, countryName);
+  } catch (err) {
+    console.error('Fallback browse-edgar error:', err);
     return '';
   }
 }
