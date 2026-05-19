@@ -196,8 +196,42 @@ async function tryDirectBrowseEdgar(companyName: string, countryName: string, to
 
 async function fetchDocumentContent(filingUrl: string, countryName: string): Promise<string> {
   try {
-    console.log(`[SEC] Fetching document from: ${filingUrl}`);
+    console.log(`[SEC] Fetching from: ${filingUrl}`);
 
+    let content = '';
+
+    // If this is an index page, fetch it to find the actual 10-K document
+    if (filingUrl.includes('-index.htm')) {
+      console.log('[SEC] This is an index page, fetching to find main document...');
+      const indexResponse = await fetch(filingUrl, {
+        headers: {
+          'User-Agent': 'mytestproj123 contact@mytestproj123.com',
+        },
+      });
+
+      if (!indexResponse.ok) {
+        console.log(`[SEC] Index fetch failed: ${indexResponse.status}`);
+        return '';
+      }
+
+      const indexHtml = await indexResponse.text();
+
+      // Look for the main 10-K document link (usually has .htm extension and largest file)
+      const docMatch = indexHtml.match(/href="([^"]+\.htm[l]?)"[^>]*>\s*10-K/i) ||
+                       indexHtml.match(/href="([a-z0-9\-]+\.htm[l]?)"/i);
+
+      if (!docMatch) {
+        console.log('[SEC] Could not find 10-K document in index');
+        return '';
+      }
+
+      const docFilename = docMatch[1];
+      const basePath = filingUrl.substring(0, filingUrl.lastIndexOf('/'));
+      filingUrl = `${basePath}/${docFilename}`;
+      console.log(`[SEC] Found main document: ${filingUrl}`);
+    }
+
+    // Fetch the actual document
     const docResponse = await fetch(filingUrl, {
       headers: {
         'User-Agent': 'mytestproj123 contact@mytestproj123.com',
@@ -209,7 +243,7 @@ async function fetchDocumentContent(filingUrl: string, countryName: string): Pro
       return '';
     }
 
-    let content = await docResponse.text();
+    content = await docResponse.text();
     console.log(`[SEC] Document fetched, length: ${content.length}`);
 
     // Clean HTML/XML but preserve sentence structure
