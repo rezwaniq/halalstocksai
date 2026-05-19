@@ -40,13 +40,23 @@ function addDelay(ms: number) {
 
 async function fetchFMPRevenue(ticker: string, countryName: string): Promise<string> {
   try {
+    // Note: FMP revenue-geographic-segmentation endpoint is deprecated as of Aug 2025
+    // Try alternative endpoints if needed, otherwise return empty
     const response = await fetch(
       `https://financialmodelingprep.com/api/v4/revenue-geographic-segmentation/${ticker}?apikey=${process.env.NEXT_PUBLIC_FMP_API_KEY}`
     );
-    if (!response.ok) return '';
+    if (!response.ok) {
+      console.log('FMP API not available (endpoint deprecated)');
+      return '';
+    }
     const data = await response.json();
+    if (data.Error || data['Error Message']) {
+      console.log('FMP API error:', data['Error Message']);
+      return '';
+    }
     return JSON.stringify(data);
   } catch (err) {
+    console.log('FMP fetch error:', err);
     return '';
   }
 }
@@ -170,15 +180,21 @@ async function tryDirectBrowseEdgar(companyName: string, countryName: string, to
 
 async function fetchDocumentContent(filingUrl: string, countryName: string): Promise<string> {
   try {
+    console.log(`[SEC] Fetching document from: ${filingUrl}`);
+
     const docResponse = await fetch(filingUrl, {
       headers: {
         'User-Agent': 'mytestproj123 contact@mytestproj123.com',
       },
     });
 
-    if (!docResponse.ok) return '';
+    if (!docResponse.ok) {
+      console.log(`[SEC] Document fetch failed: ${docResponse.status}`);
+      return '';
+    }
 
     let content = await docResponse.text();
+    console.log(`[SEC] Document fetched, length: ${content.length}`);
 
     // Clean HTML/XML but preserve sentence structure
     content = content.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
@@ -192,15 +208,21 @@ async function fetchDocumentContent(filingUrl: string, countryName: string): Pro
 
     // Extract sentences containing country name
     const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 20);
+    console.log(`[SEC] Total sentences in document: ${sentences.length}`);
+
     const relevant = sentences.filter(s => new RegExp(`\\b${countryName}\\b`, 'i').test(s)).slice(0, 5);
+    console.log(`[SEC] Sentences mentioning "${countryName}": ${relevant.length}`);
 
     if (relevant.length === 0) {
-      return `10-K filing reviewed: No specific ${countryName} mentions found`;
+      console.log(`[SEC] No mentions of ${countryName} found in 10-K`);
+      return '';
     }
 
-    return relevant.map(s => s.trim().substring(0, 300)).join(' ');
+    const result = relevant.map(s => s.trim().substring(0, 300)).join(' ');
+    console.log(`[SEC] Returning ${result.length} chars of data`);
+    return result;
   } catch (err) {
-    console.error('Document fetch error:', err);
+    console.error('[SEC] Document fetch error:', err);
     return '';
   }
 }
