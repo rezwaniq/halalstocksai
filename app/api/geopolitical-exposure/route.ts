@@ -233,7 +233,9 @@ async function fetchDocumentContent(filingUrl: string, ticker: string, countryNa
             const regex = new RegExp(`href="([^"]*${pattern.replace('*', '[0-9]*')})"`);
             const match = indexHtml.match(regex);
             if (match) {
-              foundUrl = `${basePath}/${match[1]}`;
+              // Extract just the filename from the match
+              const filename = match[1].split('/').pop() || match[1];
+              foundUrl = `${basePath}/${filename}`;
               console.log(`[SEC] Found document matching pattern ${pattern}: ${foundUrl}`);
               break;
             }
