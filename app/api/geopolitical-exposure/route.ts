@@ -77,8 +77,15 @@ async function fetchSECEdgarFilings(companyName: string, countryName: string): P
     const today = new Date();
     const todayDate = today.toISOString().split('T')[0];
 
-    // Check for known CIK first
-    let bestCik = knownCIKs[companyName.toUpperCase()];
+    // Check for known CIK first - try both full name and first word
+    let companyKey = companyName.toUpperCase();
+    let bestCik = knownCIKs[companyKey];
+
+    // If not found, try just the first word (e.g. "Apple" from "Apple Inc.")
+    if (!bestCik) {
+      const firstWord = companyName.split(' ')[0].toUpperCase();
+      bestCik = knownCIKs[firstWord];
+    }
 
     if (!bestCik) {
       // Fallback: try to find via browse-edgar
@@ -166,10 +173,20 @@ async function tryDirectBrowseEdgar(companyName: string, countryName: string, to
     const atomXml = await atomResponse.text();
     if (!atomXml.includes('<entry>')) return '';
 
-    const filingMatch = atomXml.match(/href="([^"]*\/Archives\/edgar[^"]*\.(htm|html))"/i);
-    if (!filingMatch) return '';
+    // Extract filing URL - handle both full and relative URLs
+    let filingUrl = '';
+    let match = atomXml.match(/href="(https?:\/\/[^"]*\/Archives\/edgar[^"]*\.(htm|html))"/i);
+    if (match) {
+      filingUrl = match[1];
+    } else {
+      match = atomXml.match(/href="(\/Archives\/edgar[^"]*\.(htm|html))"/i);
+      if (match) {
+        filingUrl = `https://www.sec.gov${match[1]}`;
+      }
+    }
 
-    const filingUrl = `https://www.sec.gov${filingMatch[1]}`;
+    if (!filingUrl) return '';
+
     return await fetchDocumentContent(filingUrl, countryName);
   } catch (err) {
     console.error('Fallback browse-edgar error:', err);
