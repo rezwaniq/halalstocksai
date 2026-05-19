@@ -72,7 +72,7 @@ const knownCIKs: Record<string, string> = {
   'NVIDIA': '0001045810',
 };
 
-async function fetchSECEdgarFilings(companyName: string, countryName: string): Promise<string> {
+async function fetchSECEdgarFilings(companyName: string, ticker: string, countryName: string): Promise<string> {
   try {
     const today = new Date();
     const todayDate = today.toISOString().split('T')[0];
@@ -89,7 +89,7 @@ async function fetchSECEdgarFilings(companyName: string, countryName: string): P
 
     if (!bestCik) {
       // Fallback: try to find via browse-edgar
-      return await tryDirectBrowseEdgar(companyName, countryName, todayDate);
+      return await tryDirectBrowseEdgar(companyName, ticker, countryName, todayDate);
     }
 
     // Now fetch 10-K filings using ATOM format
@@ -135,14 +135,14 @@ async function fetchSECEdgarFilings(companyName: string, countryName: string): P
     }
 
     console.log('[SEC] Found filing URL:', filingUrl);
-    return await fetchDocumentContent(filingUrl, countryName);
+    return await fetchDocumentContent(filingUrl, ticker, countryName);
   } catch (err) {
     console.error('SEC fetching error:', err);
     return '';
   }
 }
 
-async function tryDirectBrowseEdgar(companyName: string, countryName: string, todayDate: string): Promise<string> {
+async function tryDirectBrowseEdgar(companyName: string, ticker: string, countryName: string, todayDate: string): Promise<string> {
   try {
     // Fallback: use browse-edgar directly and extract first CIK found
     const searchUrl = `https://www.sec.gov/cgi-bin/browse-edgar?company=${encodeURIComponent(companyName)}&action=getcompany`;
@@ -187,14 +187,14 @@ async function tryDirectBrowseEdgar(companyName: string, countryName: string, to
 
     if (!filingUrl) return '';
 
-    return await fetchDocumentContent(filingUrl, countryName);
+    return await fetchDocumentContent(filingUrl, ticker, countryName);
   } catch (err) {
     console.error('Fallback browse-edgar error:', err);
     return '';
   }
 }
 
-async function fetchDocumentContent(filingUrl: string, countryName: string): Promise<string> {
+async function fetchDocumentContent(filingUrl: string, ticker: string, countryName: string): Promise<string> {
   try {
     console.log(`[SEC] Fetching from: ${filingUrl}`);
 
@@ -203,32 +203,65 @@ async function fetchDocumentContent(filingUrl: string, countryName: string): Pro
     // If this is an index page, fetch it to find the actual 10-K document
     if (filingUrl.includes('-index.htm')) {
       console.log('[SEC] This is an index page, fetching to find main document...');
-      const indexResponse = await fetch(filingUrl, {
-        headers: {
-          'User-Agent': 'mytestproj123 contact@mytestproj123.com',
-        },
-      });
 
-      if (!indexResponse.ok) {
-        console.log(`[SEC] Index fetch failed: ${indexResponse.status}`);
-        return '';
-      }
-
-      const indexHtml = await indexResponse.text();
-
-      // Look for the main 10-K document link (usually has .htm extension and largest file)
-      const docMatch = indexHtml.match(/href="([^"]+\.htm[l]?)"[^>]*>\s*10-K/i) ||
-                       indexHtml.match(/href="([a-z0-9\-]+\.htm[l]?)"/i);
-
-      if (!docMatch) {
-        console.log('[SEC] Could not find 10-K document in index');
-        return '';
-      }
-
-      const docFilename = docMatch[1];
+      // Try to construct the likely filename based on ticker
       const basePath = filingUrl.substring(0, filingUrl.lastIndexOf('/'));
-      filingUrl = `${basePath}/${docFilename}`;
-      console.log(`[SEC] Found main document: ${filingUrl}`);
+
+      // Try common filename patterns for the 10-K document
+      const filenamePatterns = [
+        `${ticker.toLowerCase()}-10k.htm`,
+        `${ticker.toLowerCase()}-10k.html`,
+        `${ticker.toLowerCase()}.htm`,
+        `${ticker.toLowerCase()}.html`,
+        // Try longer form with date patterns
+        `${ticker.toLowerCase()}-2[0-9]*.htm`,
+      ];
+
+      let foundUrl = '';
+
+      for (const pattern of filenamePatterns) {
+        if (pattern.includes('*')) {
+          // For patterns with wildcards, try fetching the index to search
+          const indexResponse = await fetch(filingUrl, {
+            headers: {
+              'User-Agent': 'mytestproj123 contact@mytestproj123.com',
+            },
+          });
+
+          if (indexResponse.ok) {
+            const indexHtml = await indexResponse.text();
+            const regex = new RegExp(`href="([^"]*${pattern.replace('*', '[0-9]*')})"`);
+            const match = indexHtml.match(regex);
+            if (match) {
+              foundUrl = `${basePath}/${match[1]}`;
+              console.log(`[SEC] Found document matching pattern ${pattern}: ${foundUrl}`);
+              break;
+            }
+          }
+        } else {
+          // For fixed patterns, try directly
+          const testUrl = `${basePath}/${pattern}`;
+          const testResponse = await fetch(testUrl, {
+            method: 'HEAD',
+            headers: {
+              'User-Agent': 'mytestproj123 contact@mytestproj123.com',
+            },
+          });
+
+          if (testResponse.ok || testResponse.status === 200) {
+            foundUrl = testUrl;
+            console.log(`[SEC] Found document: ${pattern}`);
+            break;
+          }
+        }
+      }
+
+      if (foundUrl) {
+        filingUrl = foundUrl;
+      } else {
+        console.log('[SEC] Could not find 10-K document with known patterns');
+        return '';
+      }
     }
 
     // Fetch the actual document
@@ -458,7 +491,7 @@ export async function POST(request: NextRequest) {
         const fmpData = await fetchFMPRevenue(ticker, countryName);
         await addDelay(100);
 
-        const secData = await fetchSECEdgarFilings(companyName, countryName);
+        const secData = await fetchSECEdgarFilings(companyName, ticker, countryName);
         await addDelay(100);
 
         const defenseData = await fetchUSASpending(companyName, countryName);
