@@ -55,73 +55,68 @@ async function fetchSECEdgarFilings(companyName: string, countryName: string): P
   try {
     const today = new Date();
     const todayDate = today.toISOString().split('T')[0];
-    const fiveYearsAgo = new Date(today);
-    fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
-    const startDate = fiveYearsAgo.toISOString().split('T')[0];
 
-    // Try SEC full-text search endpoint
-    const searchUrl = `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=${encodeURIComponent(companyName)}&type=10-K&dateb=${todayDate}&owner=exclude&count=1&output=json`;
+    // First, search for company CIK using company name search
+    const searchUrl = `https://www.sec.gov/cgi-bin/browse-edgar?company=${encodeURIComponent(companyName)}&action=getcompany`;
 
-    const response = await fetch(searchUrl, {
+    const searchResponse = await fetch(searchUrl, {
       headers: {
         'User-Agent': 'mytestproj123 contact@mytestproj123.com',
       },
     });
 
-    if (!response.ok) return '';
+    if (!searchResponse.ok) return '';
 
-    const data = await response.json() as any;
+    let searchHtml = await searchResponse.text();
 
-    if (!data.cik_str || !data.filings?.filing?.[0]) {
-      return '';
-    }
+    // Extract CIK from HTML (format: /cgi-bin/browse-edgar?action=getcompany&CIK=0000320193)
+    const cikMatch = searchHtml.match(/CIK=(\d+)/);
+    if (!cikMatch) return '';
 
-    const cik = String(data.cik_str).padStart(10, '0');
-    const filing = data.filings.filing[0];
-    const accession = filing.accession_number?.replace(/-/g, '');
+    const cik = cikMatch[1];
 
-    if (!accession) return '';
+    // Now fetch 10-K filings for this CIK using ATOM format
+    const atomUrl = `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${cik}&type=10-K&dateb=${todayDate}&owner=exclude&count=1&output=atom`;
 
-    // Construct filing path
-    const filingPath = `https://www.sec.gov/cgi-bin/viewer?action=view&cik=${cik}&accession_number=${accession}&xbrl_type=v`;
-
-    const filingResponse = await fetch(filingPath, {
+    const atomResponse = await fetch(atomUrl, {
       headers: {
         'User-Agent': 'mytestproj123 contact@mytestproj123.com',
       },
     });
 
-    if (!filingResponse.ok) {
-      // Fallback: try to get raw text from EDGAR archives
-      const archivePath = `https://www.sec.gov/cgi-bin/viewer?action=view&cik=${cik}&accession_number=${accession}`;
-      const archiveResponse = await fetch(archivePath, {
-        headers: {
-          'User-Agent': 'mytestproj123 contact@mytestproj123.com',
-        },
-      });
+    if (!atomResponse.ok) return '';
 
-      if (!archiveResponse.ok) return '';
+    let atomXml = await atomResponse.text();
 
-      let text = await archiveResponse.text();
-      text = text.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').slice(0, 500000);
+    // Extract filing URL from ATOM (look for href with /Archives/edgar)
+    const filingMatch = atomXml.match(/href="([^"]*\/Archives\/edgar[^"]*\.htm[l]?)"/);
+    if (!filingMatch) return '';
 
-      const countryPattern = new RegExp(`[^.]*\\b${countryName}\\b[^.]*\\.`, 'gi');
-      const matches = text.match(countryPattern) || [];
+    const filingUrl = `https://www.sec.gov${filingMatch[1]}`;
 
-      return matches.slice(0, 5).join(' ') || `10-K available but ${countryName} not mentioned`;
+    // Fetch the actual 10-K document
+    const docResponse = await fetch(filingUrl, {
+      headers: {
+        'User-Agent': 'mytestproj123 contact@mytestproj123.com',
+      },
+    });
+
+    if (!docResponse.ok) return '';
+
+    let content = await docResponse.text();
+
+    // Clean HTML/XML
+    content = content.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ');
+
+    // Extract sentences containing country name
+    const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 20);
+    const relevant = sentences.filter(s => new RegExp(`\\b${countryName}\\b`, 'i').test(s)).slice(0, 5);
+
+    if (relevant.length === 0) {
+      return `10-K filing reviewed: No explicit ${countryName} mentions found in main sections`;
     }
 
-    let content = await filingResponse.text();
-    content = content.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').slice(0, 500000);
-
-    const countryPattern = new RegExp(`[^.]*\\b${countryName}\\b[^.]*\\.`, 'gi');
-    const matches = content.match(countryPattern) || [];
-
-    if (matches.length === 0) {
-      return `${companyName} 10-K (${filing.filing_date}) - Document contains no specific ${countryName} references`;
-    }
-
-    return matches.slice(0, 5).join(' ');
+    return relevant.map(s => s.trim()).join(' ');
   } catch (err) {
     console.error('SEC fetching error:', err);
     return '';
