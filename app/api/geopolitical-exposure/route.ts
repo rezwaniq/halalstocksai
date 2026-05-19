@@ -59,8 +59,8 @@ async function fetchSECEdgarFilings(companyName: string, countryName: string): P
     fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
     const startDate = fiveYearsAgo.toISOString().split('T')[0];
 
-    // Use full-text search API
-    const searchUrl = `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=${encodeURIComponent(companyName)}&type=10-K&dateb=${todayDate}&owner=exclude&count=5&output=json`;
+    // Try SEC full-text search endpoint
+    const searchUrl = `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=${encodeURIComponent(companyName)}&type=10-K&dateb=${todayDate}&owner=exclude&count=1&output=json`;
 
     const response = await fetch(searchUrl, {
       headers: {
@@ -72,62 +72,58 @@ async function fetchSECEdgarFilings(companyName: string, countryName: string): P
 
     const data = await response.json() as any;
 
-    if (!data.filings || !data.filings.filing || data.filings.filing.length === 0) {
+    if (!data.cik_str || !data.filings?.filing?.[0]) {
       return '';
     }
 
-    // Get most recent 10-K filing
-    const recentFiling = data.filings.filing[0];
-    const cik = data.cik_str;
-    const accessionNumber = recentFiling.accession_number?.replace(/-/g, '') || '';
+    const cik = String(data.cik_str).padStart(10, '0');
+    const filing = data.filings.filing[0];
+    const accession = filing.accession_number?.replace(/-/g, '');
 
-    if (!cik || !accessionNumber) return '';
+    if (!accession) return '';
 
-    // Fetch the actual 10-K document text
-    const docUrl = `https://www.sec.gov/Archives/edgar/containers/${cik}/000${accessionNumber}/-index.html`;
+    // Construct filing path
+    const filingPath = `https://www.sec.gov/cgi-bin/viewer?action=view&cik=${cik}&accession_number=${accession}&xbrl_type=v`;
 
-    const docResponse = await fetch(docUrl, {
+    const filingResponse = await fetch(filingPath, {
       headers: {
         'User-Agent': 'mytestproj123 contact@mytestproj123.com',
       },
     });
 
-    if (!docResponse.ok) return '';
+    if (!filingResponse.ok) {
+      // Fallback: try to get raw text from EDGAR archives
+      const archivePath = `https://www.sec.gov/cgi-bin/viewer?action=view&cik=${cik}&accession_number=${accession}`;
+      const archiveResponse = await fetch(archivePath, {
+        headers: {
+          'User-Agent': 'mytestproj123 contact@mytestproj123.com',
+        },
+      });
 
-    const docHtml = await docResponse.text();
+      if (!archiveResponse.ok) return '';
 
-    // Extract main 10-K file (usually .htm or .txt)
-    const fileMatch = docHtml.match(/>([a-z0-9\-]+\.htm)<\/a>.*?10-K/i) ||
-                      docHtml.match(/href="([^"]+\.htm[l]?)"/);
+      let text = await archiveResponse.text();
+      text = text.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').slice(0, 500000);
 
-    if (!fileMatch) return `Document found for ${companyName} but content extraction pending`;
+      const countryPattern = new RegExp(`[^.]*\\b${countryName}\\b[^.]*\\.`, 'gi');
+      const matches = text.match(countryPattern) || [];
 
-    const mainFile = fileMatch[1];
-    const contentUrl = `https://www.sec.gov/Archives/edgar/containers/${cik}/000${accessionNumber}/${mainFile}`;
-
-    const contentResponse = await fetch(contentUrl, {
-      headers: {
-        'User-Agent': 'mytestproj123 contact@mytestproj123.com',
-      },
-    });
-
-    if (!contentResponse.ok) {
-      return `10-K filing located but unable to retrieve full text`;
+      return matches.slice(0, 5).join(' ') || `10-K available but ${countryName} not mentioned`;
     }
 
-    let content = await contentResponse.text();
+    let content = await filingResponse.text();
+    content = content.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').slice(0, 500000);
 
-    // Remove HTML tags for text extraction
-    content = content.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ');
+    const countryPattern = new RegExp(`[^.]*\\b${countryName}\\b[^.]*\\.`, 'gi');
+    const matches = content.match(countryPattern) || [];
 
-    // Extract sentences containing the country name
-    const sentences = content.match(/[^.!?]*[.!?]/g) || [];
-    const relevant = sentences.filter(s => new RegExp(countryName, 'i').test(s)).slice(0, 5);
+    if (matches.length === 0) {
+      return `${companyName} 10-K (${filing.filing_date}) - Document contains no specific ${countryName} references`;
+    }
 
-    return relevant.length > 0
-      ? relevant.join(' ')
-      : `${companyName} 10-K filing retrieved but no specific mentions of ${countryName} found in standard sections`;
+    return matches.slice(0, 5).join(' ');
   } catch (err) {
+    console.error('SEC fetching error:', err);
     return '';
   }
 }
