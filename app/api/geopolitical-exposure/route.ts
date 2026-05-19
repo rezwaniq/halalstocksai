@@ -66,14 +66,12 @@ async function fetchSECEdgarFilings(companyName: string, countryName: string): P
     }
 
     const companiesData = await companiesResponse.json() as Record<string, any>;
-    let bestMatch = null;
     let bestCik = '';
 
     // Search through companies for matching name
     for (const [, company] of Object.entries(companiesData)) {
       const comp = company as any;
       if (comp.title?.toUpperCase().includes(companyName.toUpperCase())) {
-        bestMatch = comp;
         bestCik = String(comp.cik_str).padStart(10, '0');
         // Prefer exact prefix match
         if (comp.title.toUpperCase().startsWith(companyName.toUpperCase())) {
