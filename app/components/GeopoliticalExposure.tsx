@@ -132,14 +132,13 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
   };
 
   const getDataQualityBadge = (quality: 'FULL' | 'PARTIAL' | 'MINIMAL') => {
-    switch (quality) {
-      case 'FULL':
-        return <span className="inline-block px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">● Full data</span>;
-      case 'PARTIAL':
-        return <span className="inline-block px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-semibold">● Partial data</span>;
-      case 'MINIMAL':
-        return <span className="inline-block px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-semibold">● Limited data</span>;
-    }
+    const badgeConfig = {
+      FULL: { bg: 'bg-green-100', text: 'text-green-800', label: '● Full data' },
+      PARTIAL: { bg: 'bg-amber-100', text: 'text-amber-800', label: '● Partial data' },
+      MINIMAL: { bg: 'bg-gray-100', text: 'text-gray-800', label: '● Limited data' },
+    };
+    const config = badgeConfig[quality];
+    return <span className={`inline-block px-3 py-1 ${config.bg} ${config.text} rounded-full text-xs font-semibold`}>{config.label}</span>;
   };
 
   const SkeletonCard = () => (
@@ -276,137 +275,125 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
                   if (!analysis) return null;
 
                   return (
-                    <div key={country} className="border border-gray-200 rounded-lg overflow-hidden">
+                    <div key={country} className="bg-white border border-gray-300 rounded-lg overflow-hidden">
                       {/* Card Header */}
-                      <div className="bg-gray-50 border-b border-gray-200 px-6 py-4">
-                        <div className="flex items-center justify-between">
+                      <div className="border-b-4 border-gray-400 px-6 py-4 bg-gray-50">
+                        <div className="text-center mb-3">
+                          <p className="text-gray-700 tracking-wider">═══════════════════════════════════════</p>
+                        </div>
+                        <div className="text-center">
                           <h4 className="text-lg font-bold text-gray-900">
-                            <span className="text-2xl mr-2">{COUNTRY_EMOJIS[country]}</span>
-                            {country} EXPOSURE — {results.companyName} ({results.ticker})
+                            {COUNTRY_EMOJIS[country]} {country} EXPOSURE — {results.companyName} ({results.ticker})
                           </h4>
-                          <div>{getDataQualityBadge(analysis.data_quality)}</div>
+                        </div>
+                        <div className="text-center mt-3">
+                          <p className="text-gray-700 tracking-wider">═══════════════════════════════════════</p>
                         </div>
                       </div>
 
-                      {/* Card Body */}
-                      <div className="p-6 space-y-4">
-                        {/* Revenue Section */}
-                        <div>
-                          <h5 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                            <span>📊</span> Revenue
-                          </h5>
-                          <div className="text-sm text-gray-700 space-y-1">
-                            {analysis.revenue.disclosed ? (
-                              <>
-                                <p className="flex items-center gap-2">
-                                  <span className="text-green-600">●</span>
-                                  {analysis.revenue.figure} in {analysis.revenue.period}
-                                </p>
-                              </>
-                            ) : (
-                              <>
-                                <p className="flex items-center gap-2">
-                                  <span className="text-gray-400">●</span>
-                                  Not separately disclosed
-                                </p>
-                                {analysis.revenue.broader_segment && (
-                                  <p className="text-gray-600 italic">({country} revenue included in {analysis.revenue.broader_segment})</p>
-                                )}
-                              </>
-                            )}
-                            <p className="text-xs text-gray-600 mt-2">Source: {analysis.revenue.source}</p>
+                      {/* Card Body - Exact Format from Spec */}
+                      <div className="p-6 bg-white">
+                        <div className="text-sm text-gray-800 space-y-4 font-mono">
+                          {/* Revenue Section */}
+                          <div>
+                            <p className="font-semibold mb-2">📊 Revenue:</p>
+                            <div className="ml-4 space-y-1 text-gray-700">
+                              {analysis.revenue.disclosed ? (
+                                <>
+                                  <p>{analysis.revenue.figure} in {analysis.revenue.period}</p>
+                                  <p>Source: {analysis.revenue.source}</p>
+                                </>
+                              ) : (
+                                <>
+                                  <p>Not separately disclosed</p>
+                                  {analysis.revenue.broader_segment && (
+                                    <p>({country} revenue included in {analysis.revenue.broader_segment})</p>
+                                  )}
+                                  <p>Source: {analysis.revenue.source}</p>
+                                </>
+                              )}
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="border-t border-gray-200"></div>
+                          <p className="text-gray-400 text-center">─────────────────────────────────────</p>
 
-                        {/* Physical Presence Section */}
-                        <div>
-                          <h5 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                            <span>🏢</span> Physical Presence
-                          </h5>
-                          <div className="text-sm text-gray-700 space-y-1">
-                            {analysis.physical_presence.confirmed ? (
-                              <>
-                                <p className="flex items-center gap-2">
-                                  <span className="text-green-600">●</span>
-                                  Confirmed
-                                </p>
-                                <ul className="ml-6 space-y-1">
+                          {/* Physical Presence Section */}
+                          <div>
+                            <p className="font-semibold mb-2">🏢 Physical Presence:</p>
+                            <div className="ml-4 space-y-1 text-gray-700">
+                              {analysis.physical_presence.confirmed ? (
+                                <>
+                                  <p>Confirmed</p>
                                   {analysis.physical_presence.details.map((detail, idx) => (
-                                    <li key={idx}>• {detail}</li>
+                                    <p key={idx}>• {detail}</p>
                                   ))}
-                                </ul>
-                              </>
-                            ) : (
-                              <p className="flex items-center gap-2">
-                                <span className="text-gray-400">●</span>
-                                None identified in SEC filings
-                              </p>
-                            )}
-                            <p className="text-xs text-gray-600 mt-2">Source: {analysis.physical_presence.source}</p>
+                                  <p>Source: {analysis.physical_presence.source}</p>
+                                </>
+                              ) : (
+                                <>
+                                  <p>None identified in SEC filings</p>
+                                  <p>Source: {analysis.physical_presence.source}</p>
+                                </>
+                              )}
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="border-t border-gray-200"></div>
+                          <p className="text-gray-400 text-center">─────────────────────────────────────</p>
 
-                        {/* Capital Investment Section */}
-                        <div>
-                          <h5 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                            <span>💰</span> Capital Investment
-                          </h5>
-                          <div className="text-sm text-gray-700 space-y-1">
-                            {analysis.capital_investment.disclosed ? (
-                              <>
-                                <p className="flex items-center gap-2">
-                                  <span className="text-green-600">●</span>
-                                  {analysis.capital_investment.figure}
-                                </p>
-                                <p className="text-gray-600">{analysis.capital_investment.details}</p>
-                              </>
-                            ) : (
-                              <>
-                                <p className="flex items-center gap-2">
-                                  <span className="text-gray-400">●</span>
-                                  Not separately disclosed in SEC filings
-                                </p>
-                                {analysis.capital_investment.details && (
-                                  <p className="text-gray-600 italic">{analysis.capital_investment.details}</p>
-                                )}
-                              </>
-                            )}
-                            <p className="text-xs text-gray-600 mt-2">Source: {analysis.capital_investment.source}</p>
+                          {/* Capital Investment Section */}
+                          <div>
+                            <p className="font-semibold mb-2">💰 Capital Investment:</p>
+                            <div className="ml-4 space-y-1 text-gray-700">
+                              {analysis.capital_investment.disclosed ? (
+                                <>
+                                  <p>{analysis.capital_investment.figure}</p>
+                                  <p>{analysis.capital_investment.details}</p>
+                                  <p>Source: {analysis.capital_investment.source}</p>
+                                </>
+                              ) : (
+                                <>
+                                  <p>Not separately disclosed in SEC filings</p>
+                                  {analysis.capital_investment.details && (
+                                    <p>{analysis.capital_investment.details}</p>
+                                  )}
+                                </>
+                              )}
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="border-t border-gray-200"></div>
+                          <p className="text-gray-400 text-center">─────────────────────────────────────</p>
 
-                        {/* Notable Section */}
-                        <div>
-                          <h5 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                            <span>⚠️</span> Notable
-                          </h5>
-                          <div className="text-sm text-gray-700 space-y-1">
-                            {analysis.notable.exists ? (
-                              <>
-                                <ul className="space-y-1">
+                          {/* Notable Section */}
+                          <div>
+                            <p className="font-semibold mb-2">⚠️ Notable:</p>
+                            <div className="ml-4 space-y-1 text-gray-700">
+                              {analysis.notable.exists ? (
+                                <>
                                   {analysis.notable.points.map((point, idx) => (
-                                    <li key={idx}>• {point}</li>
+                                    <p key={idx}>• {point}</p>
                                   ))}
-                                </ul>
-                              </>
-                            ) : (
-                              <p>No notable items identified</p>
-                            )}
-                            <p className="text-xs text-gray-600 mt-2">Source: {analysis.notable.source}</p>
+                                  <p>Source: {analysis.notable.source}</p>
+                                </>
+                              ) : (
+                                <p>No notable items identified</p>
+                              )}
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="border-t border-gray-200"></div>
+                          <p className="text-gray-400 text-center">─────────────────────────────────────</p>
 
-                        {/* Data Updated */}
-                        <div className="text-xs text-gray-600 pt-2">
-                          <p>Data last updated: {analysis.last_updated}</p>
+                          {/* Data Updated & Quality */}
+                          <div className="text-gray-700 space-y-2">
+                            <p>Data last updated: {analysis.last_updated}</p>
+                            <div className="flex items-center gap-2">
+                              <span>Data quality:</span>
+                              {getDataQualityBadge(analysis.data_quality)}
+                            </div>
+                          </div>
+
+                          <div className="text-center mt-4">
+                            <p className="text-gray-700 tracking-wider">═══════════════════════════════════════</p>
+                          </div>
                         </div>
                       </div>
                     </div>
