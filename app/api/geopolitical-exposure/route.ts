@@ -92,8 +92,8 @@ async function fetchSECEdgarFilings(companyName: string, ticker: string, country
       return await tryDirectBrowseEdgar(companyName, ticker, countryName, todayDate);
     }
 
-    // Now fetch 10-K filings using ATOM format
-    const atomUrl = `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${bestCik}&type=10-K&dateb=${todayDate}&owner=exclude&count=1&output=atom`;
+    // Now fetch up to 5 years of 10-K filings using ATOM format
+    const atomUrl = `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${bestCik}&type=10-K&dateb=${todayDate}&owner=exclude&count=5&output=atom`;
 
     const atomResponse = await fetch(atomUrl, {
       headers: {
@@ -114,28 +114,75 @@ async function fetchSECEdgarFilings(companyName: string, ticker: string, country
       return '';
     }
 
-    // Extract filing URL from ATOM - try multiple patterns
-    let filingUrl = '';
+    // Extract all filing entries from ATOM
+    const entries = atomXml.match(/<entry>([\s\S]*?)<\/entry>/g) || [];
+    console.log('[SEC] Found', entries.length, '10-K filings');
 
-    // First try to get the full URL directly
-    let match = atomXml.match(/href="(https?:\/\/[^"]*\/Archives\/edgar[^"]*\.htm[l]?)"/i);
-    if (match) {
-      filingUrl = match[1];
-    } else {
-      // Try to get relative URL and prepend domain
-      match = atomXml.match(/href="(\/Archives\/edgar[^"]*\.htm[l]?)"/i);
-      if (match) {
-        filingUrl = `https://www.sec.gov${match[1]}`;
-      }
-    }
-
-    if (!filingUrl) {
-      console.error('[SEC] Could not find filing URL in ATOM');
+    if (entries.length === 0) {
       return '';
     }
 
-    console.log('[SEC] Found filing URL:', filingUrl);
-    return await fetchDocumentContent(filingUrl, ticker, countryName);
+    const allFilingData: string[] = [];
+
+    // Process each entry
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i];
+
+      // Extract filing URL from this entry
+      let filingUrl = '';
+      let filingDate = '';
+
+      // Try to get the full URL directly
+      let match = entry.match(/href="(https?:\/\/[^"]*\/Archives\/edgar[^"]*\.htm[l]?)"/i);
+      if (match) {
+        filingUrl = match[1];
+      } else {
+        // Try to get relative URL and prepend domain
+        match = entry.match(/href="(\/Archives\/edgar[^"]*\.htm[l]?)"/i);
+        if (match) {
+          filingUrl = `https://www.sec.gov${match[1]}`;
+        }
+      }
+
+      // Extract filing date (format: <updated>YYYY-MM-DD...)
+      const dateMatch = entry.match(/<updated>(\d{4}-\d{2}-\d{2})/);
+      if (dateMatch) {
+        filingDate = dateMatch[1];
+      }
+
+      if (!filingUrl) {
+        console.log(`[SEC] Skipping entry ${i + 1}: could not extract filing URL`);
+        continue;
+      }
+
+      console.log(`[SEC] Processing filing ${i + 1}/${entries.length}: ${filingUrl.substring(filingUrl.lastIndexOf('/') + 1)} (${filingDate})`);
+
+      // Fetch document content with rate limiting
+      const docContent = await fetchDocumentContent(filingUrl, ticker, countryName);
+
+      if (docContent) {
+        // Tag the content with the filing year
+        const year = filingDate.split('-')[0];
+        allFilingData.push(`[10-K FY${year} filed ${filingDate}]: ${docContent}`);
+      }
+
+      // Rate limiting between fetches - 500ms between each to respect SEC EDGAR limits
+      if (i < entries.length - 1) {
+        await addDelay(500);
+      }
+    }
+
+    if (allFilingData.length === 0) {
+      console.log('[SEC] No relevant data found in any 10-K filing');
+      return '';
+    }
+
+    const combinedData = allFilingData.join(' ');
+    console.log('[SEC] Combined data from', allFilingData.length, 'filings, total length:', combinedData.length);
+
+    // Cap the combined data to avoid exceeding token limits (target ~15k chars)
+    const maxLength = 15000;
+    return combinedData.length > maxLength ? combinedData.substring(0, maxLength) : combinedData;
   } catch (err) {
     console.error('SEC fetching error:', err);
     return '';
@@ -460,10 +507,12 @@ async function analyzeWithClaude(
   const userPrompt = `Analyze ${companyName} (${ticker}) for exposure to ${countryName}.
 
 Data provided:
-FMP geographic revenue data: ${fmpData}
-SEC EDGAR 10-K excerpts: ${secData}
-Defense contracts: ${defenseData}
-Conflict minerals data: ${conflictData}
+FMP geographic revenue data: ${fmpData ? fmpData : '(no data available)'}
+SEC EDGAR 10-K excerpts (multiple years): ${secData ? secData : '(no data available)'}
+Defense contracts: ${defenseData ? defenseData : '(not applicable or no data)'}
+Conflict minerals data: ${conflictData ? conflictData : '(not applicable or no data)'}
+
+Important: If provided data is incomplete, supplement your analysis with your general knowledge about ${companyName}'s known operations, offices, R&D centers, and acquisitions in ${countryName}. Clearly label all general-knowledge facts with "[Source: General knowledge / public record]" in the source field.
 
 Return a JSON object with exactly these four fields:
 
@@ -504,26 +553,30 @@ Return a JSON object with exactly these four fields:
 
 Data quality definitions:
 FULL = dollar figures found for revenue AND capital investment
-PARTIAL = some figures found, some not disclosed
+PARTIAL = some figures found, some not disclosed (possibly supplemented with narrative from general knowledge)
 MINIMAL = only text mentions found, no dollar figures
 
 Return only valid JSON. No markdown, no explanation.`;
 
-  const systemPrompt = `You are a neutral financial research analyst specializing in geopolitical risk assessment. Your role is to extract and present factual information only from the data provided to you.
+  const systemPrompt = `You are a neutral financial research analyst specializing in geopolitical risk assessment. Your role is to extract and present factual information from provided data AND supplement with general knowledge when appropriate.
+
+You have two types of knowledge to draw from:
+
+1. **Provided Data Sources** (SEC filings, FMP, USASpending): Always cite the specific document (e.g., "Apple 10-K FY2023 filed 2023-11-02" or "USASpending.gov").
+
+2. **General Knowledge** (your training data about publicly known company operations): You MAY use this to fill gaps, but you MUST clearly label every such fact with "[Source: General knowledge / public record]" in the source field.
 
 Rules you must follow:
-- Never fabricate or estimate any figure
-- Never express political opinions
-- Never make moral judgments
-- Report only what is explicitly stated in the source documents provided
-- If a figure or fact is not in the provided data, say so explicitly
-- Cite the exact source for every fact
-- Use neutral, factual language only
-- If data is unavailable or not separately disclosed, say so clearly`;
+- Never fabricate or estimate any FINANCIAL FIGURE. All dollar amounts must come from provided data sources.
+- Never express political opinions or make moral judgments.
+- Narrative facts (office locations, known acquisitions, R&D centers, known subsidiaries) MAY come from general knowledge if explicitly labeled.
+- Cite the exact source for every fact in the "source" field.
+- Use neutral, factual language only.
+- When data is unavailable from provided sources, explicitly note this and supplement from general knowledge if appropriate.`;
 
   const message = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
+    max_tokens: 2048,
     system: systemPrompt,
     messages: [
       {
