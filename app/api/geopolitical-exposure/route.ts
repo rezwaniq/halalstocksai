@@ -109,26 +109,25 @@ async function fetchSECEdgarFilings(companyName: string, countryName: string): P
 
     // Extract filing URL from ATOM - try multiple patterns
     let filingUrl = '';
-    const patterns = [
-      /href="([^"]*\/Archives\/edgar[^"]*\.htm[l]?)"/i,
-      /href="(\/Archives\/edgar[^"]*\.htm[l]?)"/i,
-      /href='([^']*\/Archives\/edgar[^']*\.htm[l]?)'/i,
-    ];
 
-    for (const pattern of patterns) {
-      const match = atomXml.match(pattern);
+    // First try to get the full URL directly
+    let match = atomXml.match(/href="(https?:\/\/[^"]*\/Archives\/edgar[^"]*\.htm[l]?)"/i);
+    if (match) {
+      filingUrl = match[1];
+    } else {
+      // Try to get relative URL and prepend domain
+      match = atomXml.match(/href="(\/Archives\/edgar[^"]*\.htm[l]?)"/i);
       if (match) {
-        filingUrl = match[1].startsWith('http') ? match[1] : `https://www.sec.gov${match[1]}`;
-        console.log('Found filing URL:', filingUrl);
-        break;
+        filingUrl = `https://www.sec.gov${match[1]}`;
       }
     }
 
     if (!filingUrl) {
-      console.error('Could not find filing URL in ATOM');
+      console.error('[SEC] Could not find filing URL in ATOM');
       return '';
     }
 
+    console.log('[SEC] Found filing URL:', filingUrl);
     return await fetchDocumentContent(filingUrl, countryName);
   } catch (err) {
     console.error('SEC fetching error:', err);
