@@ -56,7 +56,7 @@ async function fetchSECEdgarFilings(companyName: string, countryName: string): P
     const today = new Date();
     const todayDate = today.toISOString().split('T')[0];
 
-    // First, search for company CIK using company name search
+    // First, search for company CIK - try to find exact match or most relevant
     const searchUrl = `https://www.sec.gov/cgi-bin/browse-edgar?company=${encodeURIComponent(companyName)}&action=getcompany`;
 
     const searchResponse = await fetch(searchUrl, {
@@ -69,14 +69,39 @@ async function fetchSECEdgarFilings(companyName: string, countryName: string): P
 
     let searchHtml = await searchResponse.text();
 
-    // Extract CIK from HTML (format: /cgi-bin/browse-edgar?action=getcompany&CIK=0000320193)
-    const cikMatch = searchHtml.match(/CIK=(\d+)/);
-    if (!cikMatch) return '';
+    // Extract all CIKs and company names
+    const cikMatches = searchHtml.match(/CIK=(\d+)[^<]*<\/a><\/td>\s*<td[^>]*>([^<]+)</g) || [];
+    if (cikMatches.length === 0) return '';
 
-    const cik = cikMatch[1];
+    // Find the best match (prefer exact company name match)
+    let bestCik = '';
+    for (const match of cikMatches) {
+      const cikRegex = /CIK=(\d+)/;
+      const nameRegex = /td>\s*([^<]+)</;
+      const cikResult = cikRegex.exec(match);
+      const nameResult = nameRegex.exec(match);
+
+      if (cikResult && nameResult) {
+        const extractedName = nameResult[1].trim();
+        // Prefer exact or near-exact match
+        if (extractedName.toUpperCase().includes(companyName.toUpperCase())) {
+          bestCik = cikResult[1];
+          if (extractedName.toUpperCase().startsWith(companyName.toUpperCase())) {
+            break; // Perfect match, stop searching
+          }
+        }
+      }
+    }
+
+    if (!bestCik) {
+      // Fallback to first CIK found
+      const cikMatch = searchHtml.match(/CIK=(\d+)/);
+      if (!cikMatch) return '';
+      bestCik = cikMatch[1];
+    }
 
     // Now fetch 10-K filings for this CIK using ATOM format
-    const atomUrl = `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${cik}&type=10-K&dateb=${todayDate}&owner=exclude&count=1&output=atom`;
+    const atomUrl = `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${bestCik}&type=10-K&dateb=${todayDate}&owner=exclude&count=1&output=atom`;
 
     const atomResponse = await fetch(atomUrl, {
       headers: {
@@ -88,13 +113,31 @@ async function fetchSECEdgarFilings(companyName: string, countryName: string): P
 
     let atomXml = await atomResponse.text();
 
-    // Extract filing URL from ATOM (look for href with /Archives/edgar)
-    const filingMatch = atomXml.match(/href="([^"]*\/Archives\/edgar[^"]*\.htm[l]?)"/);
-    if (!filingMatch) return '';
+    // Check if there are actually any filings
+    if (!atomXml.includes('<entry>')) {
+      return `Company found but no 10-K filings available`;
+    }
+
+    // Extract filing URL from ATOM - look for document link more carefully
+    const filingMatch = atomXml.match(/<link\s+href="([^"]*\/Archives\/edgar[^"]*\.(htm|html|txt))"\s+rel="alternate"\s+type="text\/html"/i);
+    if (!filingMatch) {
+      // Fallback pattern
+      const altMatch = atomXml.match(/href="([^"]*\/Archives\/edgar[^"]*\.(htm|html))"/);
+      if (!altMatch) return '';
+      const filingUrl = `https://www.sec.gov${altMatch[1]}`;
+      return await fetchDocumentContent(filingUrl, countryName);
+    }
 
     const filingUrl = `https://www.sec.gov${filingMatch[1]}`;
+    return await fetchDocumentContent(filingUrl, countryName);
+  } catch (err) {
+    console.error('SEC fetching error:', err);
+    return '';
+  }
+}
 
-    // Fetch the actual 10-K document
+async function fetchDocumentContent(filingUrl: string, countryName: string): Promise<string> {
+  try {
     const docResponse = await fetch(filingUrl, {
       headers: {
         'User-Agent': 'mytestproj123 contact@mytestproj123.com',
@@ -105,20 +148,27 @@ async function fetchSECEdgarFilings(companyName: string, countryName: string): P
 
     let content = await docResponse.text();
 
-    // Clean HTML/XML
-    content = content.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ');
+    // Clean HTML/XML but preserve sentence structure
+    content = content.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+    content = content.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+    content = content.replace(/<[^>]*>/g, ' ');
+    content = content.replace(/&nbsp;/g, ' ');
+    content = content.replace(/&lt;/g, '<');
+    content = content.replace(/&gt;/g, '>');
+    content = content.replace(/&amp;/g, '&');
+    content = content.replace(/\s+/g, ' ');
 
     // Extract sentences containing country name
     const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 20);
     const relevant = sentences.filter(s => new RegExp(`\\b${countryName}\\b`, 'i').test(s)).slice(0, 5);
 
     if (relevant.length === 0) {
-      return `10-K filing reviewed: No explicit ${countryName} mentions found in main sections`;
+      return `10-K filing reviewed: No specific ${countryName} mentions found`;
     }
 
-    return relevant.map(s => s.trim()).join(' ');
+    return relevant.map(s => s.trim().substring(0, 300)).join(' ');
   } catch (err) {
-    console.error('SEC fetching error:', err);
+    console.error('Document fetch error:', err);
     return '';
   }
 }
