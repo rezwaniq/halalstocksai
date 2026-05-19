@@ -51,36 +51,27 @@ async function fetchFMPRevenue(ticker: string, countryName: string): Promise<str
   }
 }
 
+// Known CIKs for major companies (hardcoded for reliability)
+const knownCIKs: Record<string, string> = {
+  'APPLE': '0000320193',
+  'MICROSOFT': '0000789019',
+  'GOOGLE': '0001652044',
+  'AMAZON': '0001018724',
+  'TESLA': '0001318605',
+  'META': '0001326801',
+  'NVIDIA': '0001045810',
+};
+
 async function fetchSECEdgarFilings(companyName: string, countryName: string): Promise<string> {
   try {
     const today = new Date();
     const todayDate = today.toISOString().split('T')[0];
 
-    // Use SEC REST API to get company data (includes CIK)
-    const companyApiUrl = `https://www.sec.gov/files/company_tickers.json`;
-
-    const companiesResponse = await fetch(companyApiUrl);
-    if (!companiesResponse.ok) {
-      // Fallback: try direct browse-edgar with CIK parameter
-      return await tryDirectBrowseEdgar(companyName, countryName, todayDate);
-    }
-
-    const companiesData = await companiesResponse.json() as Record<string, any>;
-    let bestCik = '';
-
-    // Search through companies for matching name
-    for (const [, company] of Object.entries(companiesData)) {
-      const comp = company as any;
-      if (comp.title?.toUpperCase().includes(companyName.toUpperCase())) {
-        bestCik = String(comp.cik_str).padStart(10, '0');
-        // Prefer exact prefix match
-        if (comp.title.toUpperCase().startsWith(companyName.toUpperCase())) {
-          break;
-        }
-      }
-    }
+    // Check for known CIK first
+    let bestCik = knownCIKs[companyName.toUpperCase()];
 
     if (!bestCik) {
+      // Fallback: try to find via browse-edgar
       return await tryDirectBrowseEdgar(companyName, countryName, todayDate);
     }
 
@@ -93,20 +84,41 @@ async function fetchSECEdgarFilings(companyName: string, countryName: string): P
       },
     });
 
-    if (!atomResponse.ok) return '';
+    if (!atomResponse.ok) {
+      console.error('ATOM fetch failed:', atomResponse.status);
+      return '';
+    }
 
     let atomXml = await atomResponse.text();
+    console.log('ATOM XML length:', atomXml.length, 'Has entries:', atomXml.includes('<entry>'));
 
     // Check if there are actually any filings
     if (!atomXml.includes('<entry>')) {
-      return `10-K filings not found for ${companyName}`;
+      return '';
     }
 
-    // Extract filing URL from ATOM
-    const filingMatch = atomXml.match(/href="([^"]*\/Archives\/edgar[^"]*\.(htm|html))"/i);
-    if (!filingMatch) return '';
+    // Extract filing URL from ATOM - try multiple patterns
+    let filingUrl = '';
+    const patterns = [
+      /href="([^"]*\/Archives\/edgar[^"]*\.htm[l]?)"/i,
+      /href="(\/Archives\/edgar[^"]*\.htm[l]?)"/i,
+      /href='([^']*\/Archives\/edgar[^']*\.htm[l]?)'/i,
+    ];
 
-    const filingUrl = `https://www.sec.gov${filingMatch[1]}`;
+    for (const pattern of patterns) {
+      const match = atomXml.match(pattern);
+      if (match) {
+        filingUrl = match[1].startsWith('http') ? match[1] : `https://www.sec.gov${match[1]}`;
+        console.log('Found filing URL:', filingUrl);
+        break;
+      }
+    }
+
+    if (!filingUrl) {
+      console.error('Could not find filing URL in ATOM');
+      return '';
+    }
+
     return await fetchDocumentContent(filingUrl, countryName);
   } catch (err) {
     console.error('SEC fetching error:', err);
