@@ -33,6 +33,11 @@ interface AnalysisResult {
     points: string[];
     source: string;
   };
+  defence_contracts: {
+    found: boolean;
+    points: string[];
+    source: string;
+  };
   last_updated: string;
   data_quality: 'FULL' | 'PARTIAL' | 'MINIMAL';
 }
@@ -41,6 +46,7 @@ interface ApiResponse {
   ticker: string;
   companyName: string;
   selectedCountries: string[];
+  includeDefenceContracts: boolean;
   results: Record<string, AnalysisResult>;
 }
 
@@ -82,6 +88,7 @@ interface GeopoliticalExposureProps {
 
 export default function GeopoliticalExposure({ ticker, companyName }: GeopoliticalExposureProps) {
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
+  const [includeDefenceContracts, setIncludeDefenceContracts] = useState(false);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string>('');
@@ -115,6 +122,7 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
           ticker,
           companyName,
           selectedCountries,
+          includeDefenceContracts,
         }),
         signal: controller.signal,
       });
@@ -247,6 +255,23 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
                   </label>
                 ))}
               </div>
+            </div>
+
+            {/* US Defence Contracts */}
+            <div>
+              <h4 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Group 3 — US Defence Contracts</h4>
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={includeDefenceContracts}
+                  onChange={() => setIncludeDefenceContracts(prev => !prev)}
+                  className="w-4 h-4 accent-blue-500 rounded cursor-pointer"
+                />
+                <span className="text-gray-700 group-hover:text-gray-900 transition">
+                  US Defence Contracts
+                  <span className="text-gray-500 text-sm ml-2">— screen for DoD contracts awarded to this company</span>
+                </span>
+              </label>
             </div>
           </div>
 
@@ -410,6 +435,28 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
                               )}
                             </div>
                           </div>
+
+                          {/* US Defence Contracts Section — only when Group 3 was selected */}
+                          {results.includeDefenceContracts && (
+                            <>
+                              <p className="text-gray-400 text-center">─────────────────────────────────────</p>
+                              <div>
+                                <p className="font-semibold mb-2">🛡️ US Defence Contracts:</p>
+                                <div className="ml-4 space-y-1 text-gray-700">
+                                  {analysis.defence_contracts?.found ? (
+                                    <>
+                                      {analysis.defence_contracts.points.map((point, idx) => (
+                                        <p key={idx}>• {point}</p>
+                                      ))}
+                                      <p>Source: {analysis.defence_contracts.source}</p>
+                                    </>
+                                  ) : (
+                                    <p>No US Defence Department contracts identified</p>
+                                  )}
+                                </div>
+                              </div>
+                            </>
+                          )}
 
                           <p className="text-gray-400 text-center">─────────────────────────────────────</p>
 
