@@ -33,6 +33,11 @@ interface AnalysisResult {
     points: string[];
     source: string;
   };
+  defence_contracts: {
+    found: boolean;
+    points: string[];
+    source: string;
+  };
   last_updated: string;
   data_quality: 'FULL' | 'PARTIAL' | 'MINIMAL';
 }
@@ -41,6 +46,7 @@ interface ApiResponse {
   ticker: string;
   companyName: string;
   selectedCountries: string[];
+  includeDefenceContracts: boolean;
   results: Record<string, AnalysisResult>;
 }
 
@@ -82,6 +88,7 @@ interface GeopoliticalExposureProps {
 
 export default function GeopoliticalExposure({ ticker, companyName }: GeopoliticalExposureProps) {
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
+  const [includeDefenceContracts, setIncludeDefenceContracts] = useState(false);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string>('');
@@ -115,6 +122,7 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
           ticker,
           companyName,
           selectedCountries,
+          includeDefenceContracts,
         }),
         signal: controller.signal,
       });
@@ -247,6 +255,23 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
                   </label>
                 ))}
               </div>
+            </div>
+
+            {/* US Defence Contracts */}
+            <div>
+              <h4 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Group 3 — US Defence Contracts</h4>
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={includeDefenceContracts}
+                  onChange={() => setIncludeDefenceContracts(prev => !prev)}
+                  className="w-4 h-4 accent-blue-500 rounded cursor-pointer"
+                />
+                <span className="text-gray-700 group-hover:text-gray-900 transition">
+                  US Defence Contracts
+                  <span className="text-gray-500 text-sm ml-2">— screen for DoD contracts awarded to this company</span>
+                </span>
+              </label>
             </div>
           </div>
 
@@ -431,6 +456,53 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
                   );
                 })}
               </div>
+
+              {/* US Defence Contracts — standalone section, only when Group 3 was selected */}
+              {results.includeDefenceContracts && (
+                <div className="bg-white border border-gray-300 rounded-lg overflow-hidden">
+                  <div className="border-b-4 border-gray-400 px-6 py-4 bg-gray-50">
+                    <div className="text-center mb-3">
+                      <p className="text-gray-700 tracking-wider">═══════════════════════════════════════</p>
+                    </div>
+                    <div className="text-center">
+                      <h4 className="text-lg font-bold text-gray-900">
+                        🛡️ US DEFENCE CONTRACTS — {results.companyName} ({results.ticker})
+                      </h4>
+                    </div>
+                    <div className="text-center mt-3">
+                      <p className="text-gray-700 tracking-wider">═══════════════════════════════════════</p>
+                    </div>
+                  </div>
+                  <div className="p-6 bg-white">
+                    <div className="text-sm text-gray-800 font-mono">
+                      {(() => {
+                        const allPoints: { point: string; source: string }[] = [];
+                        results.selectedCountries.forEach(country => {
+                          const analysis = results.results[country];
+                          if (analysis?.defence_contracts?.found) {
+                            analysis.defence_contracts.points.forEach(point => {
+                              allPoints.push({ point, source: analysis.defence_contracts.source });
+                            });
+                          }
+                        });
+                        return allPoints.length > 0 ? (
+                          <div className="space-y-1 text-gray-700">
+                            {allPoints.map((item, idx) => (
+                              <p key={idx}>• {item.point}</p>
+                            ))}
+                            <p className="mt-2">Source: {allPoints[0].source}</p>
+                          </div>
+                        ) : (
+                          <p className="text-gray-700">No US Defence Department contracts identified</p>
+                        );
+                      })()}
+                      <div className="text-center mt-4">
+                        <p className="text-gray-700 tracking-wider">═══════════════════════════════════════</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Disclaimer */}
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-xs text-gray-600">

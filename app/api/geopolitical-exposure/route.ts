@@ -33,6 +33,11 @@ interface AnalysisResult {
     points: string[];
     source: string;
   };
+  defence_contracts: {
+    found: boolean;
+    points: string[];
+    source: string;
+  };
   last_updated: string;
   data_quality: 'FULL' | 'PARTIAL' | 'MINIMAL';
 }
@@ -505,19 +510,20 @@ async function analyzeWithClaude(
   fmpData: string,
   secData: string,
   defenseData: string,
-  conflictData: string
+  conflictData: string,
+  includeDefenceContracts: boolean
 ): Promise<AnalysisResult> {
   const userPrompt = `Analyze ${companyName} (${ticker}) for exposure to ${countryName}.
 
 Data provided:
 FMP geographic revenue data: ${fmpData ? fmpData : '(no data available)'}
 SEC EDGAR 10-K excerpts (multiple years): ${secData ? secData : '(no data available)'}
-Defense contracts: ${defenseData ? defenseData : '(not applicable or no data)'}
+${includeDefenceContracts ? `Defense contracts: ${defenseData ? defenseData : '(not applicable or no data)'}` : 'Defense contracts: (not requested — exclude from analysis)'}
 Conflict minerals data: ${conflictData ? conflictData : '(not applicable or no data)'}
 
 Important: If provided data is incomplete, supplement your analysis with your general knowledge about ${companyName}'s known operations, offices, R&D centers, and acquisitions in ${countryName}. Clearly label all general-knowledge facts with "[Source: General knowledge / public record]" in the source field.
 
-Return a JSON object with exactly these four fields:
+Return a JSON object with exactly these fields:
 
 {
   "revenue": {
@@ -550,9 +556,23 @@ Return a JSON object with exactly these four fields:
     ],
     "source": "exact source name and date"
   },
+  "defence_contracts": {
+    "found": true/false,
+    "points": [
+      "bullet point 1",
+      "bullet point 2"
+    ],
+    "source": "exact source name and date"
+  },
   "last_updated": "FY year and filing date",
   "data_quality": "FULL/PARTIAL/MINIMAL"
 }
+
+CRITICAL RULES FOR FIELD SEPARATION:
+- The "notable" field must NEVER contain defence, arms, weapons, military, or US government contract information.
+- ALL defence/arms/weapons/military/US government contract information MUST go exclusively into "defence_contracts".
+- If defence contracts data was not requested (marked "not requested" above), set "defence_contracts" to { "found": false, "points": [], "source": "Not requested" }.
+- If defence contracts were requested but no data found, set "defence_contracts" to { "found": false, "points": [], "source": "USASpending.gov / General knowledge" }.
 
 Data quality definitions:
 FULL = dollar figures found for revenue AND capital investment
@@ -604,7 +624,7 @@ Rules you must follow:
 
 export async function POST(request: NextRequest) {
   try {
-    const { ticker, companyName, selectedCountries } = await request.json();
+    const { ticker, companyName, selectedCountries, includeDefenceContracts } = await request.json();
 
     if (!ticker || !companyName || !selectedCountries || selectedCountries.length === 0) {
       return NextResponse.json(
@@ -618,9 +638,9 @@ export async function POST(request: NextRequest) {
     const analyzeCountry = async (countryName: string): Promise<[string, AnalysisResult]> => {
       const fmpData = await fetchFMPRevenue(ticker, countryName);
       const secData = await fetchSECEdgarFilings(companyName, ticker, countryName);
-      const defenseData = await fetchUSASpending(companyName, countryName);
+      const defenseData = includeDefenceContracts ? await fetchUSASpending(companyName, countryName) : '';
       const conflictData = countryName === 'DRC (Congo)' ? await fetchConflictMinerals(companyName) : '';
-      const analysis = await analyzeWithClaude(companyName, ticker, countryName, fmpData, secData, defenseData, conflictData);
+      const analysis = await analyzeWithClaude(companyName, ticker, countryName, fmpData, secData, defenseData, conflictData, !!includeDefenceContracts);
       return [countryName, analysis];
     };
 
@@ -640,6 +660,7 @@ export async function POST(request: NextRequest) {
           physical_presence: { confirmed: false, details: [], source: 'Error' },
           capital_investment: { disclosed: false, figure: null, details: 'Error', source: 'Error' },
           notable: { exists: false, points: [], source: 'Error' },
+          defence_contracts: { found: false, points: [], source: 'Error' },
           last_updated: 'Error',
           data_quality: 'MINIMAL',
         };
@@ -650,6 +671,7 @@ export async function POST(request: NextRequest) {
       ticker,
       companyName,
       selectedCountries,
+      includeDefenceContracts: !!includeDefenceContracts,
       results,
     });
   } catch (error) {
