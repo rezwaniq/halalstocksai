@@ -474,29 +474,28 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
                     </div>
                   </div>
                   <div className="p-6 bg-white">
-                    <div className="text-sm text-gray-800 space-y-4 font-mono">
-                      {results.selectedCountries.map((country, idx) => {
-                        const analysis = results.results[country];
-                        if (!analysis) return null;
-                        return (
-                          <div key={country}>
-                            {idx > 0 && <p className="text-gray-400 text-center mb-4">─────────────────────────────────────</p>}
-                            <p className="font-semibold mb-2">{COUNTRY_EMOJIS[country]} {country}:</p>
-                            <div className="ml-4 space-y-1 text-gray-700">
-                              {analysis.defence_contracts?.found ? (
-                                <>
-                                  {analysis.defence_contracts.points.map((point, pidx) => (
-                                    <p key={pidx}>• {point}</p>
-                                  ))}
-                                  <p>Source: {analysis.defence_contracts.source}</p>
-                                </>
-                              ) : (
-                                <p>No US Defence Department contracts identified</p>
-                              )}
-                            </div>
+                    <div className="text-sm text-gray-800 font-mono">
+                      {(() => {
+                        const allPoints: { point: string; source: string }[] = [];
+                        results.selectedCountries.forEach(country => {
+                          const analysis = results.results[country];
+                          if (analysis?.defence_contracts?.found) {
+                            analysis.defence_contracts.points.forEach(point => {
+                              allPoints.push({ point, source: analysis.defence_contracts.source });
+                            });
+                          }
+                        });
+                        return allPoints.length > 0 ? (
+                          <div className="space-y-1 text-gray-700">
+                            {allPoints.map((item, idx) => (
+                              <p key={idx}>• {item.point}</p>
+                            ))}
+                            <p className="mt-2">Source: {allPoints[0].source}</p>
                           </div>
+                        ) : (
+                          <p className="text-gray-700">No US Defence Department contracts identified</p>
                         );
-                      })}
+                      })()}
                       <div className="text-center mt-4">
                         <p className="text-gray-700 tracking-wider">═══════════════════════════════════════</p>
                       </div>
