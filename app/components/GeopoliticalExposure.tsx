@@ -436,28 +436,6 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
                             </div>
                           </div>
 
-                          {/* US Defence Contracts Section — only when Group 3 was selected */}
-                          {results.includeDefenceContracts && (
-                            <>
-                              <p className="text-gray-400 text-center">─────────────────────────────────────</p>
-                              <div>
-                                <p className="font-semibold mb-2">🛡️ US Defence Contracts:</p>
-                                <div className="ml-4 space-y-1 text-gray-700">
-                                  {analysis.defence_contracts?.found ? (
-                                    <>
-                                      {analysis.defence_contracts.points.map((point, idx) => (
-                                        <p key={idx}>• {point}</p>
-                                      ))}
-                                      <p>Source: {analysis.defence_contracts.source}</p>
-                                    </>
-                                  ) : (
-                                    <p>No US Defence Department contracts identified</p>
-                                  )}
-                                </div>
-                              </div>
-                            </>
-                          )}
-
                           <p className="text-gray-400 text-center">─────────────────────────────────────</p>
 
                           {/* Data Updated & Quality */}
@@ -478,6 +456,54 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
                   );
                 })}
               </div>
+
+              {/* US Defence Contracts — standalone section, only when Group 3 was selected */}
+              {results.includeDefenceContracts && (
+                <div className="bg-white border border-gray-300 rounded-lg overflow-hidden">
+                  <div className="border-b-4 border-gray-400 px-6 py-4 bg-gray-50">
+                    <div className="text-center mb-3">
+                      <p className="text-gray-700 tracking-wider">═══════════════════════════════════════</p>
+                    </div>
+                    <div className="text-center">
+                      <h4 className="text-lg font-bold text-gray-900">
+                        🛡️ US DEFENCE CONTRACTS — {results.companyName} ({results.ticker})
+                      </h4>
+                    </div>
+                    <div className="text-center mt-3">
+                      <p className="text-gray-700 tracking-wider">═══════════════════════════════════════</p>
+                    </div>
+                  </div>
+                  <div className="p-6 bg-white">
+                    <div className="text-sm text-gray-800 space-y-4 font-mono">
+                      {results.selectedCountries.map((country, idx) => {
+                        const analysis = results.results[country];
+                        if (!analysis) return null;
+                        return (
+                          <div key={country}>
+                            {idx > 0 && <p className="text-gray-400 text-center mb-4">─────────────────────────────────────</p>}
+                            <p className="font-semibold mb-2">{COUNTRY_EMOJIS[country]} {country}:</p>
+                            <div className="ml-4 space-y-1 text-gray-700">
+                              {analysis.defence_contracts?.found ? (
+                                <>
+                                  {analysis.defence_contracts.points.map((point, pidx) => (
+                                    <p key={pidx}>• {point}</p>
+                                  ))}
+                                  <p>Source: {analysis.defence_contracts.source}</p>
+                                </>
+                              ) : (
+                                <p>No US Defence Department contracts identified</p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      <div className="text-center mt-4">
+                        <p className="text-gray-700 tracking-wider">═══════════════════════════════════════</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Disclaimer */}
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-xs text-gray-600">
