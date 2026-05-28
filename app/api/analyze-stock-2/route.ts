@@ -76,7 +76,6 @@ async function fetchProductSegments(ticker: string): Promise<{ name: string; rev
     );
     const data = await res.json();
 
-    // FMP returns: [{ symbol, fiscalYear, period, date, data: { segmentName: revenue, ... } }]
     const latest = Array.isArray(data) ? data[0] : null;
     if (!latest?.data || typeof latest.data !== 'object') return null;
 
@@ -111,31 +110,42 @@ async function classifySegmentsWithClaude(
 
   const systemPrompt = `You are a Shariah compliance analyst specializing in AAOIFI Standard No. 21 revenue screening.
 
-CRITICAL AAOIFI SEGMENT CLASSIFICATION RULES — follow these exactly:
+CORE PRINCIPLE:
+The AAOIFI business activity screen asks: "Is the PRIMARY business activity of this segment prohibited?"
+If the primary activity is permissible, the segment is COMPLIANT regardless of whether some incidental prohibited products exist within it.
+Only flag a segment as NON-COMPLIANT if the prohibited activity IS the primary revenue driver.
 
-RULE 1 — RETAIL MARKETPLACE RULE:
-A general retail marketplace or e-commerce platform (e.g. Amazon Online Stores, Walmart.com, eBay) is classified as COMPLIANT at the segment level even if it sells some prohibited items among predominantly permissible products. Do NOT classify the entire Online Stores segment as questionable because some prohibited items exist in the product catalog. The 5% impure income threshold applies to the business model, not individual SKUs within a marketplace.
+SEGMENT CLASSIFICATION RULES:
 
-RULE 2 — THIRD PARTY MARKETPLACE FEES:
-Third-party seller services (commissions, fulfillment fees, shipping fees earned from facilitating marketplace sales) are classified as COMPLIANT. The marketplace operator is not the seller of prohibited goods — the third-party sellers are.
+RULE 1 — GENERAL RETAIL / E-COMMERCE / PHYSICAL STORES:
+Online Stores, Physical Stores, General Merchandise, Grocery Retail, Third-Party Seller Services, Marketplace → COMPLIANT.
+PRIMARY activity = general retail. General retail is a permissible trade.
+The existence of some prohibited products in a large retail catalog does NOT make the segment haram under AAOIFI Standard No. 21.
+This applies to Walmart, Amazon, Target, Costco, and all general retailers.
 
-RULE 3 — PHYSICAL RETAIL STORES:
-General grocery and retail stores (Whole Foods, Amazon Fresh, supermarkets, department stores) are classified as COMPLIANT at segment level. Do NOT classify the entire Physical Stores segment as questionable.
+RULE 2 — CLOUD COMPUTING / TECHNOLOGY SERVICES:
+AWS, Azure, Google Cloud, enterprise software, SaaS, and all technology services → COMPLIANT.
+PRIMARY activity = technology. Permissible.
 
-RULE 4 — CLOUD COMPUTING:
-Cloud infrastructure services (AWS, Azure, Google Cloud) are classified as COMPLIANT. Pure technology services with no inherently prohibited elements.
+RULE 3 — MARKETPLACE COMMISSIONS / FULFILLMENT / LOGISTICS:
+Third-party seller fees, fulfillment services, shipping, warehousing, logistics → COMPLIANT.
+PRIMARY activity = commerce facilitation. Permissible.
 
-RULE 5 — ADVERTISING SERVICES:
-Advertising revenue is QUESTIONABLE because it may include promotion of prohibited products (alcohol, tobacco, adult content, gambling). Classify as questionable, not compliant.
+RULE 4 — ADVERTISING SERVICES:
+Advertising revenue → QUESTIONABLE.
+May promote prohibited products. Scholarly debate exists on whether facilitating promotion of haram goods is itself haram.
 
-RULE 6 — SUBSCRIPTION SERVICES:
-Subscription services that bundle entertainment content (streaming video, music, audiobooks) with permissible services are QUESTIONABLE because the entertainment portion may include prohibited content.
+RULE 5 — SUBSCRIPTION SERVICES BUNDLING ENTERTAINMENT:
+Subscription services that bundle streaming video, music, audiobooks, or other entertainment content → QUESTIONABLE.
+Entertainment content may include prohibited material.
 
-RULE 7 — INTEREST INCOME:
-Any segment named "Interest Income" or describing riba-based income is NON-COMPLIANT without exception. This is absolute.
+RULE 6 — CONVENTIONAL BANKING / LENDING / INSURANCE:
+Interest-based lending, conventional insurance, credit card interest, riba-based financial services → NON-COMPLIANT.
+PRIMARY activity = riba/interest. Absolutely prohibited.
 
-RULE 8 — GENERAL PRINCIPLE:
-Ask: is the PRIMARY business activity of this segment permissible? If yes → COMPLIANT. Only classify as questionable if there is genuine ambiguity about the primary activity.`;
+RULE 7 — INTEREST INCOME (NON-OPERATING):
+Any segment named "Interest Income" or describing non-operating riba-based income → NON-COMPLIANT without exception.
+This is the most important non-compliant figure for most technology and retail companies.`;
 
   const userPrompt = `Company: ${companyName} (${ticker})
 Sector: ${sector} | Industry: ${industry}
@@ -143,15 +153,13 @@ Sector: ${sector} | Industry: ${industry}
 Revenue Segments (including non-operating income where applicable):
 ${segmentsText}
 
-Classify each segment as exactly one of: "compliant", "questionable", or "non-compliant".
-
-Apply your system prompt rules strictly. Key mappings:
-- Online Stores / e-commerce retail → compliant (Rule 1)
-- Third-party seller services / marketplace fees → compliant (Rule 2)
-- Physical stores / grocery retail → compliant (Rule 3)
-- Cloud computing (AWS, Azure etc.) → compliant (Rule 4)
-- Advertising services → questionable (Rule 5)
-- Subscription services with media streaming → questionable (Rule 6)
+Classify each segment using the rules strictly. Key mappings:
+- Online Stores / Physical Stores / General Merchandise / Grocery / Warehouse Club → compliant (Rule 1)
+- Third-party seller services / fulfillment / logistics → compliant (Rule 3)
+- Cloud computing (AWS, Azure, Google Cloud) → compliant (Rule 2)
+- Advertising services → questionable (Rule 4)
+- Subscription services with entertainment streaming → questionable (Rule 5)
+- Banking / lending / insurance / riba-based services → non-compliant (Rule 6)
 - Interest Income → non-compliant (Rule 7, mandatory, no exceptions)
 
 Respond with ONLY a valid JSON array. No markdown, no explanation outside JSON:
@@ -175,7 +183,6 @@ Respond with ONLY a valid JSON array. No markdown, no explanation outside JSON:
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (jsonMatch) classifications = JSON.parse(jsonMatch[0]);
   } catch {
-    // fallback: treat all as questionable
     return rawSegments.map((s) => ({
       name: s.name,
       revenue: s.revenue,
@@ -219,44 +226,7 @@ function buildRevenueBreakdown(segments: RevenueSegment[]): Omit<RevenueBreakdow
   };
 }
 
-// FIX 3: Post-process classified segments to extract the doubtful digital media portion
-// of any general "Online Stores" segment using eMarketer methodology:
-// Books/Music/Video = 11.5% of Online Stores revenue; digital media (music/video) = 50% of that = 5.75%.
-function applyOnlineStoresSubsegmentation(segments: RevenueSegment[], totalRevenue: number): RevenueSegment[] {
-  const result: RevenueSegment[] = [];
-
-  for (const seg of segments) {
-    const isOnlineStores = /online store/i.test(seg.name) && seg.classification === 'compliant';
-    if (!isOnlineStores) {
-      result.push(seg);
-      continue;
-    }
-
-    const doubtfulRevenue = seg.revenue * 0.0575; // 11.5% × 50%
-    const compliantRevenue = seg.revenue - doubtfulRevenue;
-
-    result.push({
-      name: seg.name,
-      revenue: compliantRevenue,
-      percentage: (compliantRevenue / totalRevenue) * 100,
-      classification: 'compliant',
-      reason: seg.reason,
-    });
-    result.push({
-      name: `${seg.name} — Digital Media (Music & Video)`,
-      revenue: doubtfulRevenue,
-      percentage: (doubtfulRevenue / totalRevenue) * 100,
-      classification: 'questionable',
-      reason: 'eMarketer: ~5.75% of Online Stores revenue is music/video streaming — doubtful under AAOIFI entertainment content rules.',
-    });
-  }
-
-  return result;
-}
-
-// AAOIFI Standard No. 21: uses total assets as denominator (industry standard practice).
-// Excludes finance/capital lease obligations — only bonds, notes, and revolving credit are
-// interest-bearing in the AAOIFI sense.
+// AAOIFI Standard No. 21: total assets as denominator; excludes capital lease obligations.
 function calculateFinancialRatios(balance: Record<string, number>): FinancialRatios {
   const totalAssets = balance.totalAssets || 1;
 
@@ -285,7 +255,9 @@ function calculateFinancialRatios(balance: Record<string, number>): FinancialRat
   };
 }
 
-// AAOIFI Standard No. 21 — Two-Gate System
+// AAOIFI Two-Gate System.
+// Gate 1: non-compliant revenue < 5% (questionable does NOT trigger a Gate 1 fail).
+// Questionable revenue >= 5% upgrades verdict to Questionable but does not fail Gate 1.
 function determineVerdict(
   revenueBreakdown: Omit<RevenueBreakdown, 'dataSource'>,
   financialRatios: FinancialRatios,
@@ -323,13 +295,10 @@ function determineVerdict(
   if (prohibitedPrimary) {
     verdict = 'Non-compliant';
   } else if (!gate1.passes) {
-    // Non-compliant revenue >= 5%
     verdict = 'Non-compliant';
   } else if (!gate2.debtRatioPasses) {
-    // Interest-bearing debt exceeds 33% — AAOIFI Gate 2 hard fail
     verdict = 'Non-compliant';
   } else if (gate1.questionableRevenue >= 5 || !gate2.depositsRatioPasses) {
-    // Questionable revenue >= 5%, or deposits ratio fails — upgrades to Questionable
     verdict = 'Questionable';
   } else {
     verdict = 'Halal';
@@ -345,37 +314,21 @@ function buildExplanation(
   gate2: Gate2Result,
   verdict: string
 ): string {
-  const lines: string[] = [];
-
   if (verdict === 'Halal') {
-    lines.push(`${companyName} passes both AAOIFI gates and is Halal-compliant.`);
+    return `${companyName} passes both AAOIFI gates and is Halal-compliant.`;
   } else if (verdict === 'Questionable') {
     if (gate1.questionableRevenue >= 5) {
-      lines.push(
-        `${companyName} is questionable because ${gate1.questionableRevenue.toFixed(2)}% of revenue falls in a gray area under AAOIFI standards (threshold: 5%).`
-      );
-    } else {
-      lines.push(
-        `${companyName} is questionable because its interest-bearing deposits ratio (${(financialRatios.interestBearingDeposits.ratio * 100).toFixed(2)}%) exceeds the 33% AAOIFI threshold.`
-      );
+      return `${companyName} is questionable because ${gate1.questionableRevenue.toFixed(2)}% of revenue falls in a gray area under AAOIFI standards (threshold: 5%).`;
     }
+    return `${companyName} is questionable because its interest-bearing deposits ratio (${(financialRatios.interestBearingDeposits.ratio * 100).toFixed(2)}%) exceeds the 33% AAOIFI threshold.`;
   } else {
     if (gate1.nonCompliantRevenue >= 5) {
-      lines.push(
-        `${companyName} is non-compliant: non-halal revenue is ${gate1.nonCompliantRevenue.toFixed(2)}%, exceeding the 5% AAOIFI Gate 1 threshold.`
-      );
+      return `${companyName} is non-compliant: non-halal revenue is ${gate1.nonCompliantRevenue.toFixed(2)}%, exceeding the 5% AAOIFI Gate 1 threshold.`;
     } else if (!gate2.debtRatioPasses) {
-      lines.push(
-        `${companyName} is non-compliant: interest-bearing debt ratio is ${(financialRatios.interestBearingDebt.ratio * 100).toFixed(2)}%, exceeding the 33% AAOIFI Gate 2 threshold.`
-      );
-    } else {
-      lines.push(`${companyName} is non-compliant due to a prohibited primary business activity.`);
+      return `${companyName} is non-compliant: interest-bearing debt ratio is ${(financialRatios.interestBearingDebt.ratio * 100).toFixed(2)}%, exceeding the 33% AAOIFI Gate 2 threshold.`;
     }
+    return `${companyName} is non-compliant due to a prohibited primary business activity.`;
   }
-
-  lines.push('');
-  lines.push(`CONCLUSION: ${lines[0]}`);
-  return lines.join('\n');
 }
 
 export async function POST(request: NextRequest) {
@@ -399,19 +352,15 @@ export async function POST(request: NextRequest) {
     const industry = profile.industry || 'Unknown';
     const totalRevenue = income.revenue || 0;
 
-    // FIX 2: Extract non-operating interest income (riba) from income statement.
-    // This is always non-compliant under AAOIFI — must be added as a synthetic segment.
+    // Interest income is always non-compliant (riba). Inject as synthetic segment.
     const interestIncome = (income.interestIncome || 0) > 0 ? (income.interestIncome || 0) : 0;
 
-    // Fetch real product revenue segments
     const rawSegments = await fetchProductSegments(sym);
 
     let revenueBreakdown: Omit<RevenueBreakdown, 'dataSource'>;
     let dataSource: string;
 
     if (rawSegments && rawSegments.length > 0 && totalRevenue > 0) {
-      // FIX 2: Inject interest income as synthetic non-compliant segment if > 0.
-      // Use totalRevenue + interestIncome as denominator so percentages sum to 100%.
       const augmentedSegments = interestIncome > 0
         ? [...rawSegments, { name: 'Interest Income', revenue: interestIncome }]
         : rawSegments;
@@ -421,14 +370,9 @@ export async function POST(request: NextRequest) {
         sym, companyName, sector, industry, augmentedSegments, augmentedTotal
       );
 
-      // FIX 3: Online Stores sub-segmentation (eMarketer methodology).
-      // Books/Music/Video = 11.5% of Online Stores; 50% of that is digital media = 5.75% doubtful.
-      const postProcessed = applyOnlineStoresSubsegmentation(classified, augmentedTotal);
-
-      revenueBreakdown = buildRevenueBreakdown(postProcessed);
-      dataSource = 'FMP Revenue Segments (AAOIFI-classified)';
+      revenueBreakdown = buildRevenueBreakdown(classified);
+      dataSource = 'FMP Revenue Segments (AAOIFI-classified, primary-activity method)';
     } else {
-      // Fallback: single segment = entire company revenue, classified by Claude
       const fallbackSegments = interestIncome > 0
         ? [{ name: companyName, revenue: totalRevenue }, { name: 'Interest Income', revenue: interestIncome }]
         : [{ name: companyName, revenue: totalRevenue }];
@@ -437,7 +381,7 @@ export async function POST(request: NextRequest) {
         sym, companyName, sector, industry, fallbackSegments, augmentedTotal
       );
       revenueBreakdown = buildRevenueBreakdown(classified);
-      dataSource = 'AAOIFI classification (segment data unavailable)';
+      dataSource = 'AAOIFI classification — primary-activity method (segment data unavailable)';
     }
 
     const financialRatios = calculateFinancialRatios(balance);
@@ -456,7 +400,7 @@ export async function POST(request: NextRequest) {
       date: new Date().toISOString().split('T')[0],
     });
   } catch (error) {
-    console.error('Error analyzing stock:', error);
+    console.error('Error analyzing stock (app2):', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json({ error: message }, { status: 400 });
   }

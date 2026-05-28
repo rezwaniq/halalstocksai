@@ -96,7 +96,7 @@ async function fetchSECEdgarFilings(companyName: string, ticker: string, country
     }
 
     // Now fetch up to 5 years of 10-K filings using ATOM format
-    const atomUrl = `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${bestCik}&type=10-K&dateb=${todayDate}&owner=exclude&count=5&output=atom`;
+    const atomUrl = `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${bestCik}&type=10-K&dateb=${todayDate}&owner=exclude&count=2&output=atom`;
 
     const atomResponse = await fetch(atomUrl, {
       headers: {
@@ -615,36 +615,26 @@ export async function POST(request: NextRequest) {
 
     const results: Record<string, AnalysisResult> = {};
 
-    for (const countryName of selectedCountries) {
-      try {
-        const fmpData = await fetchFMPRevenue(ticker, countryName);
-        await addDelay(100);
+    const analyzeCountry = async (countryName: string): Promise<[string, AnalysisResult]> => {
+      const fmpData = await fetchFMPRevenue(ticker, countryName);
+      const secData = await fetchSECEdgarFilings(companyName, ticker, countryName);
+      const defenseData = await fetchUSASpending(companyName, countryName);
+      const conflictData = countryName === 'DRC (Congo)' ? await fetchConflictMinerals(companyName) : '';
+      const analysis = await analyzeWithClaude(companyName, ticker, countryName, fmpData, secData, defenseData, conflictData);
+      return [countryName, analysis];
+    };
 
-        const secData = await fetchSECEdgarFilings(companyName, ticker, countryName);
-        await addDelay(100);
+    const settled = await Promise.allSettled(selectedCountries.map(analyzeCountry));
 
-        const defenseData = await fetchUSASpending(companyName, countryName);
-        await addDelay(100);
-
-        let conflictData = '';
-        if (countryName === 'DRC (Congo)') {
-          conflictData = await fetchConflictMinerals(companyName);
-          await addDelay(100);
-        }
-
-        const analysis = await analyzeWithClaude(
-          companyName,
-          ticker,
-          countryName,
-          fmpData,
-          secData,
-          defenseData,
-          conflictData
-        );
-
+    for (const outcome of settled) {
+      if (outcome.status === 'fulfilled') {
+        const [countryName, analysis] = outcome.value;
         results[countryName] = analysis;
-      } catch (err) {
-        console.error(`Error analyzing ${countryName}:`, err);
+      } else {
+        // Extract country name from the rejected promise — find which one failed
+        const idx = settled.indexOf(outcome);
+        const countryName = selectedCountries[idx];
+        console.error(`Error analyzing ${countryName}:`, outcome.reason);
         results[countryName] = {
           revenue: { disclosed: false, figure: null, period: null, context: 'Error', broader_segment: null, source: 'Error' },
           physical_presence: { confirmed: false, details: [], source: 'Error' },
