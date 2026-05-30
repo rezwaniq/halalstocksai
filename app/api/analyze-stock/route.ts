@@ -457,7 +457,10 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error analyzing stock:', error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
+    let message = error instanceof Error ? error.message : 'Unknown error';
+    if (message.includes('credit balance') || message.includes('credit_balance')) {
+      message = 'Service temporarily unavailable — API quota reached. Please try again later.';
+    }
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }
