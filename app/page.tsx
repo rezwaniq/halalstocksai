@@ -10,6 +10,15 @@ import {
 import StockTicker from './components/StockTicker';
 import PurificationCalculator from './components/PurificationCalculator';
 import GeopoliticalExposure from './components/GeopoliticalExposure';
+import SignupModal from './components/SignupModal';
+import AccountMenu from './components/AccountMenu';
+
+interface UsageSummary {
+  analyzeStock: { remaining: number; resetAt: string };
+  geopoliticalExposure: { remaining: number; resetAt: string };
+}
+
+type AuthState = 'loading' | 'unauthenticated' | 'approved';
 
 interface RevenueSegment {
   name: string;
@@ -75,9 +84,69 @@ interface SearchResult {
 
 export default function Home() {
   const [showAnalyzer, setShowAnalyzer] = useState(false);
+  const [showSignup, setShowSignup] = useState(false);
+  const [authState, setAuthState] = useState<AuthState>('loading');
+  const [usage, setUsage] = useState<UsageSummary | null>(null);
+  const [userEmail, setUserEmail] = useState('');
+
+  useEffect(() => {
+    fetch('/api/auth/session')
+      .then(r => r.json())
+      .then(data => {
+        if (data.status === 'approved') {
+          setAuthState('approved');
+          setUsage(data.usage);
+          setUserEmail(data.email);
+        } else {
+          setAuthState('unauthenticated');
+        }
+      })
+      .catch(() => setAuthState('unauthenticated'));
+  }, []);
+
+  const handleLaunchAnalyzer = () => {
+    if (authState === 'approved') {
+      setShowAnalyzer(true);
+    } else {
+      setShowSignup(true);
+    }
+  };
+
+  const handleApproved = () => {
+    setShowSignup(false);
+    fetch('/api/auth/session')
+      .then(r => r.json())
+      .then(data => {
+        if (data.status === 'approved') {
+          setAuthState('approved');
+          setUsage(data.usage);
+          setUserEmail(data.email);
+          setShowAnalyzer(true);
+        }
+      });
+  };
+
+  const handleSignOut = async () => {
+    await fetch('/api/auth/session', { method: 'DELETE' });
+    setAuthState('unauthenticated');
+    setUsage(null);
+    setUserEmail('');
+    setShowAnalyzer(false);
+  };
+
+  const refreshUsage = () => {
+    fetch('/api/auth/session')
+      .then(r => r.json())
+      .then(data => {
+        if (data.status === 'approved') setUsage(data.usage);
+      });
+  };
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
+      {showSignup && (
+        <SignupModal onApproved={handleApproved} onClose={() => setShowSignup(false)} />
+      )}
       {/* Subtle gradient background */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <div className="absolute -top-1/4 left-1/2 -translate-x-1/2 w-[1000px] h-[600px]" style={{
@@ -95,9 +164,7 @@ export default function Home() {
         <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100">
           <div className="max-w-7xl mx-auto px-6 py-3 flex justify-between items-center">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-full overflow-hidden border border-gray-100 shadow-sm flex-shrink-0">
-                <Image src="/logo-latest.png" alt="HalalStocks AI" width={36} height={36} priority className="rounded-full object-cover w-full h-full" />
-              </div>
+              <Image src="/logo.png" alt="HalalStocks AI" width={36} height={36} priority className="flex-shrink-0" />
               <span className="font-bold text-xl text-gray-900" style={{ fontFamily: 'var(--font-poppins)' }}>
                 HalalStocks<span className="text-blue-600"> AI</span>
               </span>
@@ -107,15 +174,24 @@ export default function Home() {
               <a href="#how-it-works" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition">How it works</a>
               <a href="#features" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition">Features</a>
               <a href="#standards" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition">Standards</a>
-              <a href="/app2" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition">App v2</a>
             </div>
 
-            <button
-              onClick={() => setShowAnalyzer(true)}
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold text-sm text-white transition shadow-md shadow-blue-500/20"
-            >
-              Launch Analyzer
-            </button>
+            <div className="flex items-center gap-3">
+              {authState === 'approved' && (
+                <button
+                  onClick={handleLaunchAnalyzer}
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold text-sm text-white transition shadow-md shadow-blue-500/20"
+                >
+                  Launch App
+                </button>
+              )}
+              <AccountMenu
+                authState={authState}
+                userEmail={userEmail}
+                onSignIn={() => setShowSignup(true)}
+                onSignOut={handleSignOut}
+              />
+            </div>
           </div>
         </nav>
 
@@ -144,10 +220,10 @@ export default function Home() {
 
               <div className="flex flex-col sm:flex-row gap-3 items-center justify-center mb-10">
                 <button
-                  onClick={() => setShowAnalyzer(true)}
+                  onClick={handleLaunchAnalyzer}
                   className="group flex items-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-600/30 transition hover:scale-[1.02] text-base"
                 >
-                  Start Screening Free
+                  {authState === 'approved' ? 'Launch Analyzer' : 'Request Early Access'}
                   <ChevronRight size={18} className="group-hover:translate-x-0.5 transition" />
                 </button>
                 <a
@@ -159,7 +235,7 @@ export default function Home() {
               </div>
 
               <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-gray-500">
-                {['No signup required', 'Real financial data', 'AAOIFI methodology', 'Instant AI analysis'].map((t, i) => (
+                {['Early access trial', 'Real financial data', 'AAOIFI methodology', 'Instant AI analysis'].map((t, i) => (
                   <span key={i} className="flex items-center gap-1.5">
                     <Check size={13} className="text-green-500 flex-shrink-0" />
                     {t}
@@ -319,10 +395,10 @@ export default function Home() {
                   ))}
                 </div>
                 <button
-                  onClick={() => setShowAnalyzer(true)}
+                  onClick={handleLaunchAnalyzer}
                   className="group inline-flex items-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition shadow-lg shadow-blue-600/40 text-base"
                 >
-                  Start Screening Free
+                  {authState === 'approved' ? 'Launch Analyzer' : 'Request Early Access'}
                   <ChevronRight size={18} className="group-hover:translate-x-1 transition" />
                 </button>
               </div>
@@ -333,9 +409,7 @@ export default function Home() {
               <div className="max-w-6xl mx-auto px-6">
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-100">
-                      <Image src="/logo-latest.png" alt="HalalStocks AI" width={32} height={32} className="object-cover" />
-                    </div>
+                    <Image src="/logo.png" alt="HalalStocks AI" width={32} height={32} />
                     <span className="font-bold text-gray-900" style={{ fontFamily: 'var(--font-poppins)' }}>
                       HalalStocks<span className="text-blue-600"> AI</span>
                     </span>
@@ -353,14 +427,26 @@ export default function Home() {
             </footer>
           </>
         ) : (
-          <AnalyzerContent onClose={() => setShowAnalyzer(false)} />
+          <AnalyzerContent
+            onClose={() => setShowAnalyzer(false)}
+            usage={usage}
+            onUsageChange={refreshUsage}
+          />
         )}
       </div>
     </div>
   );
 }
 
-function AnalyzerContent({ onClose }: { onClose: () => void }) {
+function AnalyzerContent({
+  onClose,
+  usage,
+  onUsageChange,
+}: {
+  onClose: () => void;
+  usage: UsageSummary | null;
+  onUsageChange: () => void;
+}) {
   const [search, setSearch] = useState('');
   const [ticker, setTicker] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -440,10 +526,17 @@ function AnalyzerContent({ onClose }: { onClose: () => void }) {
       });
       if (!res.ok) {
         const errData = await res.json();
+        if (res.status === 429) {
+          throw new Error("You've used all 3 daily analyses. Your limit resets every 24 hours.");
+        }
+        if (res.status === 401) {
+          throw new Error('Session expired. Please refresh the page and sign in again.');
+        }
         throw new Error(errData.error || 'Analysis failed');
       }
       const data: AnalysisResult = await res.json();
       setResults(data);
+      onUsageChange();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -487,12 +580,26 @@ function AnalyzerContent({ onClose }: { onClose: () => void }) {
             Halal Stock Analyzer
           </h1>
         </div>
-        <button
-          onClick={onClose}
-          className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition"
-        >
-          <X size={18} strokeWidth={2} />
-        </button>
+        <div className="flex items-center gap-3">
+          {usage && (
+            <div className="hidden sm:flex items-center gap-3 text-xs text-gray-500">
+              <span className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5">
+                <BarChart3 size={12} className="text-blue-500" />
+                <span>Analyze: <strong className="text-gray-700">{usage.analyzeStock.remaining}/3</strong></span>
+              </span>
+              <span className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5">
+                <Globe size={12} className="text-blue-500" />
+                <span>Geo: <strong className="text-gray-700">{usage.geopoliticalExposure.remaining}/3</strong></span>
+              </span>
+            </div>
+          )}
+          <button
+            onClick={onClose}
+            className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition"
+          >
+            <X size={18} strokeWidth={2} />
+          </button>
+        </div>
       </div>
 
       {/* Search Form */}

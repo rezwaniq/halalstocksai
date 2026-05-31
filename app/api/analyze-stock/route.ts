@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import Anthropic from '@anthropic-ai/sdk';
+import { checkAndIncrementUsage } from '@/lib/users';
 
 const FMP_API_KEY = process.env.NEXT_PUBLIC_FMP_API_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const SESSION_COOKIE = 'hsa_session';
 
 interface RevenueSegment {
   name: string;
@@ -380,6 +383,22 @@ function buildExplanation(
 
 export async function POST(request: NextRequest) {
   try {
+    const cookieStore = await cookies();
+    const sessionToken = cookieStore.get(SESSION_COOKIE)?.value;
+    if (!sessionToken) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+    const usageResult = checkAndIncrementUsage(sessionToken, 'analyze-stock');
+    if (!usageResult) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+    if (!usageResult.allowed) {
+      return NextResponse.json(
+        { error: 'Daily limit reached', remaining: 0, resetAt: usageResult.resetAt },
+        { status: 429 },
+      );
+    }
+
     if (!FMP_API_KEY || !ANTHROPIC_API_KEY) {
       return NextResponse.json({ error: 'Missing API keys' }, { status: 500 });
     }

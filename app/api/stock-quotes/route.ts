@@ -3,7 +3,7 @@ import axios from 'axios';
 
 const FMP_API_KEY = process.env.NEXT_PUBLIC_FMP_API_KEY;
 
-const POPULAR_STOCKS = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'JPM', 'V', 'JNJ', 'WMT', 'DIS'];
+const POPULAR_STOCKS = ['NVDA', '2222.SR', 'AMZN', 'ARM', 'JPM', 'TSLA', 'SHEL', 'GOOGL', 'EMAAR.DFM', 'WMT', 'META', 'BA', 'BABA', 'AAPL', 'QGTS.QA', 'INTC', 'V', 'NKE', 'MSFT', 'DIS', 'AMD', 'BP', 'UBER', 'JNJ'];
 
 export async function GET(request: NextRequest) {
   try {

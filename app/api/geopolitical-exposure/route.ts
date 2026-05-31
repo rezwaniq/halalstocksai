@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import Anthropic from '@anthropic-ai/sdk';
+import { checkAndIncrementUsage } from '@/lib/users';
 
 // Extended timeout for multi-year 10-K analysis (up to 5 minutes for multiple countries)
 export const maxDuration = 300;
+
+const SESSION_COOKIE = 'hsa_session';
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -624,6 +628,22 @@ Rules you must follow:
 
 export async function POST(request: NextRequest) {
   try {
+    const cookieStore = await cookies();
+    const sessionToken = cookieStore.get(SESSION_COOKIE)?.value;
+    if (!sessionToken) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+    const usageResult = checkAndIncrementUsage(sessionToken, 'geopolitical-exposure');
+    if (!usageResult) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+    if (!usageResult.allowed) {
+      return NextResponse.json(
+        { error: 'Daily limit reached', remaining: 0, resetAt: usageResult.resetAt },
+        { status: 429 },
+      );
+    }
+
     const { ticker, companyName, selectedCountries, includeDefenceContracts } = await request.json();
 
     if (!ticker || !companyName || !selectedCountries || selectedCountries.length === 0) {
