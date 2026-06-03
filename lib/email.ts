@@ -1,15 +1,18 @@
 import nodemailer from 'nodemailer';
 
 function createTransport() {
+  const port = parseInt(process.env.SMTP_PORT || '465');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: false,
+    port,
+    secure: port === 465,
+    family: 4, // force IPv4 — Railway can't reach Gmail's IPv6 addresses
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASSWORD,
     },
-  });
+  } as any);
 }
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'rez.iqb@gmail.com';
