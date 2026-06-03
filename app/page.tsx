@@ -12,6 +12,7 @@ import PurificationCalculator from './components/PurificationCalculator';
 import GeopoliticalExposure from './components/GeopoliticalExposure';
 import SignupModal from './components/SignupModal';
 import AccountMenu from './components/AccountMenu';
+import RubikCube from './components/RubikCube';
 
 interface UsageSummary {
   analyzeStock: { remaining: number; resetAt: string };
@@ -201,46 +202,56 @@ export default function Home() {
         {!showAnalyzer ? (
           <>
             {/* ─── Hero ─── */}
-            <section className="max-w-7xl mx-auto px-6 pt-20 pb-16 text-center">
-              <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-full px-4 py-1.5 mb-8 text-xs font-semibold text-blue-700">
-                <Shield size={12} />
-                AAOIFI Standard No. 21 · Two-Gate Screening
-              </div>
+            <section className="max-w-7xl mx-auto px-6 pt-16 pb-16">
+              <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
+                {/* ── Text column ── */}
+                <div className="flex-1 text-center lg:text-left">
+                  <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-full px-4 py-1.5 mb-8 text-xs font-semibold text-blue-700">
+                    <Shield size={12} />
+                    AAOIFI Standard No. 21 · Two-Gate Screening
+                  </div>
 
-              <h1 className="text-6xl md:text-7xl font-black mb-6 leading-tight tracking-tight" style={{ fontFamily: 'var(--font-poppins)' }}>
-                Grow Your Wealth<br />
-                <span className="bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 bg-clip-text text-transparent">
-                  the Halal Way.
-                </span>
-              </h1>
+                  <h1 className="text-5xl md:text-6xl lg:text-7xl font-black mb-6 leading-tight tracking-tight" style={{ fontFamily: 'var(--font-poppins)' }}>
+                    Grow Your Wealth<br />
+                    <span className="bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 bg-clip-text text-transparent">
+                      the Halal Way.
+                    </span>
+                  </h1>
 
-              <p className="text-xl text-gray-500 mb-8 max-w-2xl mx-auto leading-relaxed">
-                AI-powered Shariah compliance screening built on real financial data and the globally accepted AAOIFI methodology.
-              </p>
+                  <p className="text-xl text-gray-500 mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed">
+                    AI-powered Shariah compliance screening built on real financial data and the globally accepted AAOIFI methodology.
+                  </p>
 
-              <div className="flex flex-col sm:flex-row gap-3 items-center justify-center mb-10">
-                <button
-                  onClick={handleLaunchAnalyzer}
-                  className="group flex items-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-600/30 transition hover:scale-[1.02] text-base"
-                >
-                  {authState === 'approved' ? 'Launch Analyzer' : 'Request Early Access'}
-                  <ChevronRight size={18} className="group-hover:translate-x-0.5 transition" />
-                </button>
-                <a
-                  href="#how-it-works"
-                  className="flex items-center gap-2 px-8 py-4 border border-gray-200 hover:border-gray-300 text-gray-700 font-semibold rounded-xl transition hover:bg-gray-50 text-base"
-                >
-                  See How It Works
-                </a>
-              </div>
+                  <div className="flex flex-col sm:flex-row gap-3 items-center justify-center lg:justify-start mb-10">
+                    <button
+                      onClick={handleLaunchAnalyzer}
+                      className="group flex items-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-600/30 transition hover:scale-[1.02] text-base"
+                    >
+                      {authState === 'approved' ? 'Launch Analyzer' : 'Request Early Access'}
+                      <ChevronRight size={18} className="group-hover:translate-x-0.5 transition" />
+                    </button>
+                    <a
+                      href="#how-it-works"
+                      className="flex items-center gap-2 px-8 py-4 border border-gray-200 hover:border-gray-300 text-gray-700 font-semibold rounded-xl transition hover:bg-gray-50 text-base"
+                    >
+                      See How It Works
+                    </a>
+                  </div>
 
-              <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-gray-500">
-                {['Early access trial', 'Real financial data', 'AAOIFI methodology', 'Instant AI analysis'].map((t, i) => (
-                  <span key={i} className="flex items-center gap-1.5">
-                    <Check size={13} className="text-green-500 flex-shrink-0" />
-                    {t}
-                  </span>
-                ))}
+                  <div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-6 gap-y-2 text-sm text-gray-500">
+                    {['Early access trial', 'Real financial data', 'AAOIFI methodology', 'Instant AI analysis'].map((t, i) => (
+                      <span key={i} className="flex items-center gap-1.5">
+                        <Check size={13} className="text-green-500 flex-shrink-0" />
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* ── Rubik Cube column ── */}
+                <div className="flex-shrink-0 flex items-center justify-center">
+                  <RubikCube />
+                </div>
               </div>
             </section>
 
