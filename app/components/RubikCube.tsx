@@ -65,7 +65,8 @@ function lerp(kf: Array<{t:number;[k:string]:number}>, key:string, p:number): nu
   return a[key] + (b[key] - a[key]) * easeInOut((p - a.t) / (b.t - a.t));
 }
 
-const ORBIT_DUR = 36_000;
+const ORBIT_DUR = 36_000; // horizontal spin (Y axis)
+const TILT_DUR  = 52_000; // vertical tilt  (X axis) — different period → organic combos
 
 const TWIST_DUR = 30_000;
 const TWIST_KF = [
@@ -190,11 +191,17 @@ export default function RubikCube() {
       if (startRef.current === null) startRef.current = now;
       const elapsed = now - startRef.current;
 
-      const ot    = (elapsed % ORBIT_DUR) / ORBIT_DUR;
-      const angle = ot * 2 * Math.PI;
-      const rx    = 28 + 7   * Math.sin(angle * 0.7);
-      const ry    = (ot * 360) % 360;
-      const rz    = 3.5 * Math.cos(angle * 1.1);
+      // horizontal spin — Y axis, 36 s cycle
+      const ot = (elapsed % ORBIT_DUR) / ORBIT_DUR;
+      const ry = (ot * 360) % 360;
+
+      // vertical tilt — X axis, 52 s cycle (asynchronous → never repeats in short term)
+      const tt = (elapsed % TILT_DUR) / TILT_DUR;
+      const rx = 22 + 28 * Math.sin(tt * 2 * Math.PI); // 0° → ~50° → back, shows top & bottom
+
+      // gentle Z wobble synced to horizontal spin
+      const rz = 3.5 * Math.cos(ot * 2 * Math.PI * 1.1);
+
       if (cubeRef.current)
         cubeRef.current.style.transform = `rotateX(${rx.toFixed(3)}deg) rotateY(${ry.toFixed(3)}deg) rotateZ(${rz.toFixed(3)}deg)`;
 

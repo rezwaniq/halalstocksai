@@ -308,31 +308,24 @@ export default function Home() {
             </section>
 
             {/* ─── Geopolitical Intelligence Feature Showcase ─── */}
-            <section className="relative overflow-hidden py-28" style={{ background: 'linear-gradient(160deg, #020917 0%, #050e24 40%, #02070f 100%)' }}>
-
-              {/* background dot grid */}
-              <div className="absolute inset-0 opacity-[0.07]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(99,179,255,0.8) 1px, transparent 0)', backgroundSize: '44px 44px' }} />
-              {/* color blobs */}
-              <div className="absolute top-20 -left-32 w-80 h-80 rounded-full opacity-[0.08]" style={{ background: 'radial-gradient(circle, #ef4444, transparent 70%)', filter: 'blur(60px)' }} />
-              <div className="absolute bottom-20 -right-32 w-80 h-80 rounded-full opacity-[0.08]" style={{ background: 'radial-gradient(circle, #f97316, transparent 70%)', filter: 'blur(60px)' }} />
-
-              <div className="relative max-w-6xl mx-auto px-6">
+            <section className="bg-slate-900 py-20">
+              <div className="max-w-6xl mx-auto px-6">
 
                 {/* ── header ── */}
-                <div className="text-center mb-20">
-                  <div className="inline-flex items-center gap-2.5 rounded-full px-4 py-2 mb-7 text-xs font-bold uppercase tracking-widest" style={{ background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.25)', color: '#fca5a5' }}>
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-                    Exclusive Feature — No Competitor Offers This
+                <div className="text-center mb-16">
+                  <div className="inline-flex items-center gap-2 bg-white/10 border border-white/15 rounded-full px-4 py-1.5 mb-8 text-xs font-semibold text-blue-300">
+                    <Globe size={12} />
+                    Geopolitical Intelligence — Exclusive Feature
                   </div>
-                  <h2 className="text-5xl md:text-6xl lg:text-7xl font-black text-white mb-6 leading-[1.05] tracking-tight" style={{ fontFamily: 'var(--font-poppins)' }}>
+                  <h2 className="text-4xl md:text-5xl font-black text-white mb-5 leading-tight" style={{ fontFamily: 'var(--font-poppins)' }}>
                     Invest Beyond<br />
-                    <span style={{ background: 'linear-gradient(135deg,#f87171,#fb923c)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                    <span className="bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
                       Compliance.
                     </span>
                   </h2>
-                  <p className="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
+                  <p className="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed">
                     HalalStocks AI is the <span className="text-white font-semibold">only</span> halal screener with built-in{' '}
-                    <span className="text-orange-400 font-semibold">Geopolitical Intelligence</span> — so your investments reflect your <em>complete</em> ethical values.
+                    <span className="text-blue-300 font-semibold">Geopolitical Intelligence</span> — so your investments reflect your <em>complete</em> ethical values.
                   </p>
                 </div>
 
@@ -400,25 +393,23 @@ export default function Home() {
                 </div>
 
                 {/* ── comparison table ── */}
-                <div className="grid md:grid-cols-2 gap-5 mb-14">
+                <div className="grid md:grid-cols-2 gap-4 mb-10">
                   {/* Other screeners */}
-                  <div className="rounded-2xl p-7" style={{ background: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.07)' }}>
-                    <div className="flex items-center gap-2.5 mb-6">
-                      <div className="w-6 h-6 rounded-full bg-red-500/15 flex items-center justify-center">
-                        <X size={12} className="text-red-400" strokeWidth={2.5} />
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                    <div className="flex items-center gap-2.5 mb-5">
+                      <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center">
+                        <X size={12} className="text-gray-400" strokeWidth={2.5} />
                       </div>
-                      <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Other Halal Screeners</p>
+                      <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Other Halal Screeners</p>
                     </div>
-                    <ul className="space-y-4">
+                    <ul className="space-y-3">
                       {[
                         'Shariah revenue ratios only',
                         'Basic Halal / Haram verdict',
                         'No geopolitical context whatsoever',
                       ].map(item => (
-                        <li key={item} className="flex items-start gap-3 text-gray-600 text-sm">
-                          <span className="w-4 h-4 rounded-full border border-gray-700 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <X size={8} className="text-gray-600" strokeWidth={2.5} />
-                          </span>
+                        <li key={item} className="flex items-center gap-3 text-gray-500 text-sm">
+                          <X size={13} className="text-gray-600 flex-shrink-0" strokeWidth={2} />
                           {item}
                         </li>
                       ))}
@@ -426,14 +417,14 @@ export default function Home() {
                   </div>
 
                   {/* HalalStocks AI */}
-                  <div className="rounded-2xl p-7" style={{ background: 'rgba(37,99,235,.07)', border: '1px solid rgba(37,99,235,.25)' }}>
-                    <div className="flex items-center gap-2.5 mb-6">
-                      <div className="w-6 h-6 rounded-full bg-blue-500/15 flex items-center justify-center">
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                    <div className="flex items-center gap-2.5 mb-5">
+                      <div className="w-6 h-6 rounded-full bg-blue-600/30 flex items-center justify-center">
                         <Zap size={12} className="text-blue-400" strokeWidth={2.5} />
                       </div>
-                      <p className="text-blue-400 text-xs font-bold uppercase tracking-widest">HalalStocks AI</p>
+                      <p className="text-blue-300 text-xs font-bold uppercase tracking-widest">HalalStocks AI</p>
                     </div>
-                    <ul className="space-y-4">
+                    <ul className="space-y-3">
                       {[
                         'AAOIFI two-gate Shariah screening',
                         'Conflict zones exposure screening',
@@ -441,10 +432,8 @@ export default function Home() {
                         'US Defence contract screening',
                         'AI-powered ethical verdict + purification calc',
                       ].map(item => (
-                        <li key={item} className="flex items-start gap-3 text-white text-sm">
-                          <span className="w-4 h-4 rounded-full bg-green-500/15 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <Check size={8} className="text-green-400" strokeWidth={3} />
-                          </span>
+                        <li key={item} className="flex items-center gap-3 text-white text-sm">
+                          <Check size={13} className="text-green-400 flex-shrink-0" strokeWidth={2.5} />
                           {item}
                         </li>
                       ))}
@@ -452,20 +441,14 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* ── CTA strip ── */}
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-6 rounded-2xl px-8 py-6" style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)' }}>
-                  <div>
-                    <p className="text-white font-black text-lg" style={{ fontFamily: 'var(--font-poppins)' }}>
-                      The only screener with Geopolitical Intelligence.
-                    </p>
-                    <p className="text-gray-500 text-sm mt-0.5">Make every investment decision with complete ethical clarity.</p>
-                  </div>
+                {/* ── CTA ── */}
+                <div className="text-center">
                   <button
                     onClick={handleLaunchAnalyzer}
-                    className="group flex-shrink-0 flex items-center gap-2 px-7 py-3.5 bg-white hover:bg-gray-100 text-gray-900 font-bold rounded-xl transition text-sm"
+                    className="group inline-flex items-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition shadow-lg shadow-blue-600/40 text-base"
                   >
                     {authState === 'approved' ? 'Launch Analyzer' : 'Try Geopolitical Screening'}
-                    <ArrowRight size={15} className="group-hover:translate-x-0.5 transition" />
+                    <ChevronRight size={18} className="group-hover:translate-x-1 transition" />
                   </button>
                 </div>
 
