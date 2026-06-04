@@ -1,8 +1,11 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'rez.iqb@gmail.com';
 const FROM = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY);
+}
 
 export async function sendAdminApprovalRequestResend(
   userEmail: string,
@@ -11,7 +14,7 @@ export async function sendAdminApprovalRequestResend(
   const appUrl = process.env.APP_URL || 'http://localhost:3000';
   const approvalUrl = `${appUrl}/api/auth/approve-resend?token=${approvalToken}`;
 
-  const { error } = await resend.emails.send({
+  const { error } = await getResend().emails.send({
     from: FROM,
     to: ADMIN_EMAIL,
     subject: `New Trial Request: ${userEmail} — HalalStocks AI`,
@@ -34,7 +37,7 @@ export async function sendAdminApprovalRequestResend(
 export async function sendApprovalConfirmationResend(userEmail: string): Promise<void> {
   const appUrl = process.env.APP_URL || 'http://localhost:3000';
 
-  const { error } = await resend.emails.send({
+  const { error } = await getResend().emails.send({
     from: FROM,
     to: userEmail,
     subject: 'Your HalalStocks AI Trial Access is Approved!',
