@@ -16,61 +16,6 @@ html {
   scroll-behavior: smooth;
 }
 
-@keyframes rubik-spin {
-  /* ── Slow orbital drift into position ── */
-  0% {
-    transform: rotateX(28deg) rotateY(0deg) rotateZ(0deg);
-    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
-  }
-  11% {
-    transform: rotateX(26deg) rotateY(44deg) rotateZ(0deg);
-    animation-timing-function: cubic-bezier(0.7, 0, 0.15, 1); /* sharp snap */
-  }
-  /* ── Twist 1: Y+90 (U-move feel) ── */
-  16% {
-    transform: rotateX(34deg) rotateY(134deg) rotateZ(0deg);
-    animation-timing-function: cubic-bezier(0.25, 0, 0.75, 1);
-  }
-  /* Hold — let the viewer read the face */
-  24% {
-    transform: rotateX(34deg) rotateY(134deg) rotateZ(0deg);
-    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
-  }
-  /* ── Drift to next twist ── */
-  36% {
-    transform: rotateX(28deg) rotateY(192deg) rotateZ(3deg);
-    animation-timing-function: cubic-bezier(0.7, 0, 0.15, 1); /* sharp snap */
-  }
-  /* ── Twist 2: X+24 (R-move feel) ── */
-  40% {
-    transform: rotateX(52deg) rotateY(206deg) rotateZ(0deg);
-    animation-timing-function: cubic-bezier(0.25, 0, 0.75, 1);
-  }
-  /* Hold */
-  48% {
-    transform: rotateX(52deg) rotateY(206deg) rotateZ(0deg);
-    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
-  }
-  /* ── Drift to next twist ── */
-  60% {
-    transform: rotateX(26deg) rotateY(278deg) rotateZ(-2deg);
-    animation-timing-function: cubic-bezier(0.7, 0, 0.15, 1); /* sharp snap */
-  }
-  /* ── Twist 3: Z−14 + Y+40 (F-move feel) ── */
-  64% {
-    transform: rotateX(20deg) rotateY(318deg) rotateZ(-14deg);
-    animation-timing-function: cubic-bezier(0.25, 0, 0.75, 1);
-  }
-  /* Hold */
-  72% {
-    transform: rotateX(20deg) rotateY(318deg) rotateZ(-14deg);
-    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
-  }
-  /* ── Drift back to origin ── */
-  100% {
-    transform: rotateX(28deg) rotateY(360deg) rotateZ(0deg);
-  }
-}
 
 body {
   background: var(--background);
