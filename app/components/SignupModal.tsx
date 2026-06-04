@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { X, Mail, Clock, CheckCircle } from 'lucide-react';
 
-type ModalState = 'idle' | 'loading' | 'pending' | 'approved' | 'error';
+type ModalState = 'idle' | 'loading' | 'loading-resend' | 'pending' | 'approved' | 'error';
 
 interface Props {
   onApproved: () => void;
@@ -15,14 +15,13 @@ export default function SignupModal({ onApproved, onClose }: Props) {
   const [state, setState] = useState<ModalState>('idle');
   const [errorMsg, setErrorMsg] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submit = async (endpoint: string, loadingState: ModalState) => {
     if (!email.trim()) return;
-    setState('loading');
+    setState(loadingState);
     setErrorMsg('');
 
     try {
-      const res = await fetch('/api/auth/signup', {
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim().toLowerCase() }),
@@ -45,6 +44,16 @@ export default function SignupModal({ onApproved, onClose }: Props) {
       setErrorMsg('Network error. Please try again.');
       setState('error');
     }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    submit('/api/auth/signup', 'loading');
+  };
+
+  const handleResendSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    submit('/api/auth/signup-resend', 'loading-resend');
   };
 
   return (
@@ -92,7 +101,7 @@ export default function SignupModal({ onApproved, onClose }: Props) {
 
               <button
                 type="submit"
-                disabled={state === 'loading'}
+                disabled={state === 'loading' || state === 'loading-resend'}
                 className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold py-3 rounded-xl transition shadow-md shadow-blue-600/20 text-sm"
               >
                 {state === 'loading' ? (
@@ -109,9 +118,31 @@ export default function SignupModal({ onApproved, onClose }: Props) {
               </button>
             </form>
 
-            <p className="text-xs text-gray-400 text-center mt-4">
-              Don&apos;t have access yet? Submit your email above to request it.
-            </p>
+            <div className="mt-4 flex items-center gap-2">
+              <div className="flex-1 h-px bg-gray-200" />
+              <span className="text-xs text-gray-400">or</span>
+              <div className="flex-1 h-px bg-gray-200" />
+            </div>
+
+            <form onSubmit={handleResendSubmit} className="mt-3">
+              <button
+                type="submit"
+                disabled={state === 'loading' || state === 'loading-resend'}
+                className="w-full flex items-center justify-center gap-2 bg-white hover:bg-gray-50 disabled:opacity-60 text-gray-700 font-semibold py-3 rounded-xl border border-gray-300 transition text-sm"
+              >
+                {state === 'loading-resend' ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Sending...
+                  </>
+                ) : (
+                  'Request Access via Transactional Email'
+                )}
+              </button>
+            </form>
           </>
         )}
       </div>
