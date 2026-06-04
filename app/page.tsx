@@ -306,63 +306,104 @@ export default function Home() {
               </div>
             </section>
 
-            {/* ─── Ethical Intelligence Differentiator ─── */}
-            <section className="max-w-6xl mx-auto px-6 py-6 pb-16">
-              <div className="rounded-3xl overflow-hidden" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #0c1e4a 50%, #0f172a 100%)' }}>
-                <div className="flex flex-col lg:flex-row gap-0">
+            {/* ─── Geopolitical Intelligence Feature Showcase ─── */}
+            <section className="bg-slate-950 py-24">
+              <div className="max-w-6xl mx-auto px-6">
 
-                  {/* Left: messaging */}
-                  <div className="flex-1 p-10 lg:p-12">
-                    <div className="inline-flex items-center gap-2 bg-blue-500/20 border border-blue-400/25 rounded-full px-3 py-1.5 mb-6 text-xs font-semibold text-blue-300">
-                      <Globe size={11} />
-                      Beyond Standard Screening
-                    </div>
-                    <h2 className="text-3xl md:text-4xl font-black text-white mb-4 leading-tight" style={{ fontFamily: 'var(--font-poppins)' }}>
-                      Not just compliant.<br />
-                      <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                        Consciously invested.
-                      </span>
-                    </h2>
-                    <p className="text-gray-300 text-base leading-relaxed mb-8 max-w-lg">
-                      Most halal screeners stop at financial ratios. HalalStocks AI goes further — our <strong className="text-white">Geopolitical Intelligence</strong> layer empowers you to align every investment with your ethical principles, not just Shariah thresholds.
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
-                      {[
-                        { label: 'Conflict Zones', sub: 'DRC, Myanmar, Ukraine, Sudan…', color: '#f87171' },
-                        { label: 'Sanctions & Risk', sub: 'Iran, Russia, China, N. Korea…', color: '#fb923c' },
-                        { label: 'DoD Contracts', sub: 'US Defence contract screening', color: '#fbbf24' },
-                      ].map(({ label, sub, color }) => (
-                        <div key={label} className="bg-white/5 border border-white/10 rounded-xl p-4">
-                          <div className="w-2 h-2 rounded-full mb-2" style={{ background: color }} />
-                          <p className="text-white font-bold text-sm">{label}</p>
-                          <p className="text-gray-400 text-xs mt-0.5 leading-relaxed">{sub}</p>
-                        </div>
-                      ))}
-                    </div>
-                    <p className="text-gray-500 text-xs italic">
-                      No competitor offers this combination of Shariah screening + geopolitical risk intelligence in one tool.
-                    </p>
+                {/* header */}
+                <div className="text-center mb-16">
+                  <div className="inline-flex items-center gap-2 bg-red-500/10 border border-red-500/20 text-red-400 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-widest mb-6">
+                    🌍 Exclusive Feature — No Competitor Offers This
                   </div>
-
-                  {/* Right: visual call-out */}
-                  <div className="lg:w-72 bg-white/3 border-l border-white/8 flex flex-col justify-center p-10 gap-5">
-                    {[
-                      { icon: '🛡️', title: 'Shariah Screening', desc: 'AAOIFI two-gate methodology' },
-                      { icon: '🌍', title: 'Geo Intelligence', desc: 'Conflict, sanctions & DoD' },
-                      { icon: '🧮', title: 'Purification Calc', desc: 'Income purification amounts' },
-                      { icon: '⚖️', title: 'Ethical Verdict', desc: 'One clear decision per stock' },
-                    ].map(({ icon, title, desc }) => (
-                      <div key={title} className="flex items-start gap-3">
-                        <span className="text-xl mt-0.5 flex-shrink-0">{icon}</span>
-                        <div>
-                          <p className="text-white font-bold text-sm">{title}</p>
-                          <p className="text-gray-400 text-xs mt-0.5">{desc}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
+                  <h2 className="text-5xl md:text-6xl font-black text-white mb-6 leading-tight" style={{ fontFamily: 'var(--font-poppins)' }}>
+                    Invest Beyond Compliance.<br />
+                    <span className="text-red-400">Invest with Conscience.</span>
+                  </h2>
+                  <p className="text-gray-300 text-xl max-w-3xl mx-auto leading-relaxed">
+                    Standard halal screeners only check Shariah ratios. HalalStocks AI uniquely layers{' '}
+                    <strong className="text-white">Geopolitical Intelligence</strong> on top — so your portfolio aligns with your complete ethical values, not just financial thresholds.
+                  </p>
                 </div>
+
+                {/* three pillars */}
+                <div className="grid md:grid-cols-3 gap-6 mb-12">
+                  {([
+                    {
+                      icon: '⚔️',
+                      title: 'Conflict Zones Exposure',
+                      desc: 'Identify companies with revenue or operations tied to active conflict zones. Make informed decisions about exposure to human suffering.',
+                      tags: ['DRC Congo','Myanmar','Ukraine','Sudan','Nigeria','Ethiopia'],
+                      color: '#f87171',
+                      bg: 'rgba(239,68,68,.07)',
+                      border: 'rgba(239,68,68,.22)',
+                    },
+                    {
+                      icon: '🚫',
+                      title: 'Sanctions & High-Risk Regions',
+                      desc: 'Screen for exposure to heavily sanctioned states or regions that conflict with ethical investment principles and global human rights standards.',
+                      tags: ['Iran','Russia','China','North Korea','Israel'],
+                      color: '#fb923c',
+                      bg: 'rgba(251,146,60,.07)',
+                      border: 'rgba(251,146,60,.22)',
+                    },
+                    {
+                      icon: '🎖️',
+                      title: 'Department of Defence Contracts',
+                      desc: 'Reveal companies holding US DoD contracts. For Muslim investors applying additional ethical criteria beyond standard Shariah screening.',
+                      tags: ['Lockheed Martin','RTX','Boeing','Northrop','L3Harris'],
+                      color: '#fbbf24',
+                      bg: 'rgba(251,191,36,.07)',
+                      border: 'rgba(251,191,36,.22)',
+                    },
+                  ] as const).map(({ icon, title, desc, tags, color, bg, border }) => (
+                    <div key={title} className="rounded-2xl p-7 flex flex-col" style={{ background: bg, border: `1px solid ${border}` }}>
+                      <div className="text-4xl mb-5">{icon}</div>
+                      <h3 className="text-xl font-black text-white mb-3 leading-tight" style={{ fontFamily: 'var(--font-poppins)' }}>{title}</h3>
+                      <p className="text-gray-400 text-sm leading-relaxed mb-5 flex-1">{desc}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {tags.map(t => (
+                          <span key={t} className="text-xs font-semibold border rounded-full px-2.5 py-1" style={{ color, borderColor: `${color}40`, background: `${color}12` }}>{t}</span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* comparison */}
+                <div className="grid md:grid-cols-2 gap-5 mb-10">
+                  <div className="bg-gray-900/80 border border-gray-700/60 rounded-2xl p-7">
+                    <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mb-5">❌ Other Halal Screeners</p>
+                    <ul className="space-y-3">
+                      {['Shariah revenue ratios only','Basic Halal / Haram verdict','No geopolitical context'].map(item => (
+                        <li key={item} className="flex items-center gap-3 text-gray-500 text-sm">
+                          <span className="text-red-500 text-base flex-shrink-0">✕</span>{item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="rounded-2xl p-7" style={{ background: 'rgba(37,99,235,.1)', border: '1px solid rgba(37,99,235,.3)' }}>
+                    <p className="text-blue-400 text-xs font-bold uppercase tracking-widest mb-5">✅ HalalStocks AI</p>
+                    <ul className="space-y-3">
+                      {['AAOIFI two-gate Shariah screening','Conflict zones exposure screening','Sanctions & high-risk region screening','US Defence contract screening','AI-powered ethical verdict + purification'].map(item => (
+                        <li key={item} className="flex items-center gap-3 text-white text-sm">
+                          <span className="text-green-400 text-base flex-shrink-0">✓</span>{item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                {/* CTA */}
+                <div className="text-center">
+                  <button
+                    onClick={handleLaunchAnalyzer}
+                    className="group inline-flex items-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition shadow-lg shadow-blue-600/30 text-base"
+                  >
+                    {authState === 'approved' ? 'Launch Analyzer' : 'Try Geopolitical Screening'}
+                    <ChevronRight size={18} className="group-hover:translate-x-0.5 transition" />
+                  </button>
+                </div>
+
               </div>
             </section>
 
