@@ -5,7 +5,8 @@ import Image from 'next/image';
 import {
   Search, Brain, Database, Flag,
   Lightbulb, Wallet, CheckCircle2, Download, X, Check,
-  Shield, ChevronRight, Globe, BarChart3
+  Shield, ChevronRight, Globe, BarChart3,
+  Crosshair, ShieldAlert, Building2, ArrowRight, Zap,
 } from 'lucide-react';
 import StockTicker from './components/StockTicker';
 import PurificationCalculator from './components/PurificationCalculator';
@@ -306,6 +307,154 @@ export default function Home() {
               </div>
             </section>
 
+            {/* ─── Geopolitical Intelligence Feature Showcase ─── */}
+            <section className="bg-slate-900 py-20">
+              <div className="max-w-6xl mx-auto px-6">
+
+                {/* ── header ── */}
+                <div className="text-center mb-16">
+                  <div className="inline-flex items-center gap-2 bg-white/10 border border-white/15 rounded-full px-4 py-1.5 mb-8 text-xs font-semibold text-blue-300">
+                    <Globe size={12} />
+                    Geopolitical Intelligence — Exclusive Feature
+                  </div>
+                  <h2 className="text-4xl md:text-5xl font-black text-white mb-5 leading-tight" style={{ fontFamily: 'var(--font-poppins)' }}>
+                    Invest Beyond<br />
+                    <span className="bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
+                      Compliance.
+                    </span>
+                  </h2>
+                  <p className="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed">
+                    HalalStocks AI is the <span className="text-white font-semibold">only</span> halal screener with built-in{' '}
+                    <span className="text-blue-300 font-semibold">Geopolitical Intelligence</span> — so your investments reflect your <em>complete</em> ethical values.
+                  </p>
+                </div>
+
+                {/* ── three feature rows ── */}
+                <div className="space-y-5 mb-16">
+                  {([
+                    {
+                      num: '01',
+                      Icon: Crosshair,
+                      title: 'Conflict Zones Exposure',
+                      desc: 'Identify companies with revenue or operations tied to active conflict zones. Know exactly where your money is deployed — and whether it funds human suffering.',
+                      tags: ['DRC Congo','Myanmar','Ukraine','Sudan','Nigeria','Ethiopia'],
+                      color: '#f87171',
+                      ringColor: 'rgba(239,68,68,.18)',
+                      glow: 'rgba(239,68,68,.06)',
+                      border: 'rgba(239,68,68,.18)',
+                    },
+                    {
+                      num: '02',
+                      Icon: ShieldAlert,
+                      title: 'Sanctions & High Risk Regions',
+                      desc: 'Screen for exposure to heavily sanctioned states or regions. Go beyond Shariah thresholds and apply global human rights standards to every holding.',
+                      tags: ['Iran','Russia','China','North Korea','Israel'],
+                      color: '#fb923c',
+                      ringColor: 'rgba(251,146,60,.18)',
+                      glow: 'rgba(251,146,60,.06)',
+                      border: 'rgba(251,146,60,.18)',
+                    },
+                    {
+                      num: '03',
+                      Icon: Building2,
+                      title: 'Department of Defence Contracts',
+                      desc: 'Reveal companies holding US DoD contracts — for investors who apply ethical criteria that extend beyond standard halal screening methodology.',
+                      tags: ['Lockheed Martin','RTX','Boeing','Northrop','L3Harris'],
+                      color: '#fbbf24',
+                      ringColor: 'rgba(251,191,36,.18)',
+                      glow: 'rgba(251,191,36,.06)',
+                      border: 'rgba(251,191,36,.18)',
+                    },
+                  ] as const).map(({ num, Icon, title, desc, tags, color, ringColor, glow, border }) => (
+                    <div key={title} className="group relative flex flex-col lg:flex-row items-start lg:items-center gap-6 rounded-2xl px-7 py-6 transition-all duration-300" style={{ background: glow, border: `1px solid ${border}` }}>
+                      {/* step number */}
+                      <div className="font-black text-5xl leading-none flex-shrink-0 select-none" style={{ color: `${color}20`, fontFamily: 'var(--font-poppins)', minWidth: '3rem' }}>
+                        {num}
+                      </div>
+                      {/* icon circle */}
+                      <div className="flex-shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110" style={{ background: `${color}14`, border: `1px solid ${ringColor}`, boxShadow: `0 0 24px ${color}18` }}>
+                        <Icon size={24} style={{ color }} strokeWidth={1.6} />
+                      </div>
+                      {/* text */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-lg font-black text-white mb-1.5" style={{ fontFamily: 'var(--font-poppins)' }}>{title}</h3>
+                        <p className="text-gray-400 text-sm leading-relaxed">{desc}</p>
+                      </div>
+                      {/* tags */}
+                      <div className="flex flex-wrap gap-2 lg:justify-end lg:max-w-[220px] flex-shrink-0">
+                        {tags.map(t => (
+                          <span key={t} className="text-xs font-semibold border rounded-lg px-2.5 py-1 transition" style={{ color, borderColor: `${color}35`, background: `${color}0d` }}>{t}</span>
+                        ))}
+                      </div>
+                      {/* right arrow accent */}
+                      <ArrowRight size={16} className="hidden lg:block flex-shrink-0 opacity-20 transition-opacity group-hover:opacity-50" style={{ color }} />
+                    </div>
+                  ))}
+                </div>
+
+                {/* ── comparison table ── */}
+                <div className="grid md:grid-cols-2 gap-4 mb-10">
+                  {/* Other screeners */}
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                    <div className="flex items-center gap-2.5 mb-5">
+                      <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center">
+                        <X size={12} className="text-gray-400" strokeWidth={2.5} />
+                      </div>
+                      <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Other Halal Screeners</p>
+                    </div>
+                    <ul className="space-y-3">
+                      {[
+                        'Shariah revenue ratios only',
+                        'Basic Halal / Haram verdict',
+                        'No geopolitical context whatsoever',
+                      ].map(item => (
+                        <li key={item} className="flex items-center gap-3 text-gray-500 text-sm">
+                          <X size={13} className="text-gray-600 flex-shrink-0" strokeWidth={2} />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* HalalStocks AI */}
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                    <div className="flex items-center gap-2.5 mb-5">
+                      <div className="w-6 h-6 rounded-full bg-blue-600/30 flex items-center justify-center">
+                        <Zap size={12} className="text-blue-400" strokeWidth={2.5} />
+                      </div>
+                      <p className="text-blue-300 text-xs font-bold uppercase tracking-widest">HalalStocks AI</p>
+                    </div>
+                    <ul className="space-y-3">
+                      {[
+                        'AAOIFI two-gate Shariah screening',
+                        'Conflict zones exposure screening',
+                        'Sanctions & high-risk region screening',
+                        'US Defence contract screening',
+                        'AI-powered ethical verdict + purification calc',
+                      ].map(item => (
+                        <li key={item} className="flex items-center gap-3 text-white text-sm">
+                          <Check size={13} className="text-green-400 flex-shrink-0" strokeWidth={2.5} />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                {/* ── CTA ── */}
+                <div className="text-center">
+                  <button
+                    onClick={handleLaunchAnalyzer}
+                    className="group inline-flex items-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition shadow-lg shadow-blue-600/40 text-base"
+                  >
+                    {authState === 'approved' ? 'Launch Analyzer' : 'Try Geopolitical Screening'}
+                    <ChevronRight size={18} className="group-hover:translate-x-1 transition" />
+                  </button>
+                </div>
+
+              </div>
+            </section>
+
             {/* ─── How It Works ─── */}
             <section id="how-it-works" className="bg-gray-50/70 border-y border-gray-100 py-16">
               <div className="max-w-6xl mx-auto px-6">
@@ -351,7 +500,7 @@ export default function Home() {
                   { Icon: Wallet, title: 'Zakat Calc', desc: 'Annual Zakat calculation tool', status: 'Pro', color: 'blue' },
                   { Icon: CheckCircle2, title: 'Purification', desc: 'Income purification amounts', status: 'Basic', color: 'amber' },
                   { Icon: Download, title: 'Reports', desc: 'Download compliance reports', status: 'Live', color: 'green' },
-                  { Icon: Globe, title: 'Geopolitical', desc: 'Exposure & controversy screen', status: 'Live', color: 'green' },
+                  { Icon: Globe, title: 'Geo Intelligence', desc: 'Conflict zones, sanctions & DoD screen', status: 'Live', color: 'green' },
                 ] as const).map(({ Icon, title, desc, status, color }, idx) => {
                   const pillClass = {
                     green: 'bg-green-50 text-green-700 border border-green-100',

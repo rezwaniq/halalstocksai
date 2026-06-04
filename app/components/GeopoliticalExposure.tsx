@@ -200,7 +200,7 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
         <div className="flex items-center gap-3">
           <span className="text-2xl">🌍</span>
           <div className="text-left">
-            <h3 className="text-lg font-bold text-gray-900">Geopolitical Exposure Intelligence</h3>
+            <h3 className="text-lg font-bold text-gray-900">Geopolitical Intelligence</h3>
             <p className="text-xs text-gray-500">Select regions to screen this company's exposure against</p>
           </div>
         </div>
