@@ -306,6 +306,66 @@ export default function Home() {
               </div>
             </section>
 
+            {/* ─── Ethical Intelligence Differentiator ─── */}
+            <section className="max-w-6xl mx-auto px-6 py-6 pb-16">
+              <div className="rounded-3xl overflow-hidden" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #0c1e4a 50%, #0f172a 100%)' }}>
+                <div className="flex flex-col lg:flex-row gap-0">
+
+                  {/* Left: messaging */}
+                  <div className="flex-1 p-10 lg:p-12">
+                    <div className="inline-flex items-center gap-2 bg-blue-500/20 border border-blue-400/25 rounded-full px-3 py-1.5 mb-6 text-xs font-semibold text-blue-300">
+                      <Globe size={11} />
+                      Beyond Standard Screening
+                    </div>
+                    <h2 className="text-3xl md:text-4xl font-black text-white mb-4 leading-tight" style={{ fontFamily: 'var(--font-poppins)' }}>
+                      Not just compliant.<br />
+                      <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+                        Consciously invested.
+                      </span>
+                    </h2>
+                    <p className="text-gray-300 text-base leading-relaxed mb-8 max-w-lg">
+                      Most halal screeners stop at financial ratios. HalalStocks AI goes further — our <strong className="text-white">Geopolitical Intelligence</strong> layer empowers you to align every investment with your ethical principles, not just Shariah thresholds.
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
+                      {[
+                        { label: 'Conflict Zones', sub: 'DRC, Myanmar, Ukraine, Sudan…', color: '#f87171' },
+                        { label: 'Sanctions & Risk', sub: 'Iran, Russia, China, N. Korea…', color: '#fb923c' },
+                        { label: 'DoD Contracts', sub: 'US Defence contract screening', color: '#fbbf24' },
+                      ].map(({ label, sub, color }) => (
+                        <div key={label} className="bg-white/5 border border-white/10 rounded-xl p-4">
+                          <div className="w-2 h-2 rounded-full mb-2" style={{ background: color }} />
+                          <p className="text-white font-bold text-sm">{label}</p>
+                          <p className="text-gray-400 text-xs mt-0.5 leading-relaxed">{sub}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-gray-500 text-xs italic">
+                      No competitor offers this combination of Shariah screening + geopolitical risk intelligence in one tool.
+                    </p>
+                  </div>
+
+                  {/* Right: visual call-out */}
+                  <div className="lg:w-72 bg-white/3 border-l border-white/8 flex flex-col justify-center p-10 gap-5">
+                    {[
+                      { icon: '🛡️', title: 'Shariah Screening', desc: 'AAOIFI two-gate methodology' },
+                      { icon: '🌍', title: 'Geo Intelligence', desc: 'Conflict, sanctions & DoD' },
+                      { icon: '🧮', title: 'Purification Calc', desc: 'Income purification amounts' },
+                      { icon: '⚖️', title: 'Ethical Verdict', desc: 'One clear decision per stock' },
+                    ].map(({ icon, title, desc }) => (
+                      <div key={title} className="flex items-start gap-3">
+                        <span className="text-xl mt-0.5 flex-shrink-0">{icon}</span>
+                        <div>
+                          <p className="text-white font-bold text-sm">{title}</p>
+                          <p className="text-gray-400 text-xs mt-0.5">{desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                </div>
+              </div>
+            </section>
+
             {/* ─── How It Works ─── */}
             <section id="how-it-works" className="bg-gray-50/70 border-y border-gray-100 py-16">
               <div className="max-w-6xl mx-auto px-6">
@@ -351,7 +411,7 @@ export default function Home() {
                   { Icon: Wallet, title: 'Zakat Calc', desc: 'Annual Zakat calculation tool', status: 'Pro', color: 'blue' },
                   { Icon: CheckCircle2, title: 'Purification', desc: 'Income purification amounts', status: 'Basic', color: 'amber' },
                   { Icon: Download, title: 'Reports', desc: 'Download compliance reports', status: 'Live', color: 'green' },
-                  { Icon: Globe, title: 'Geopolitical', desc: 'Exposure & controversy screen', status: 'Live', color: 'green' },
+                  { Icon: Globe, title: 'Geo Intelligence', desc: 'Conflict zones, sanctions & DoD screen', status: 'Live', color: 'green' },
                 ] as const).map(({ Icon, title, desc, status, color }, idx) => {
                   const pillClass = {
                     green: 'bg-green-50 text-green-700 border border-green-100',
