@@ -119,10 +119,10 @@ function GeoTickerCell({ phraseIdx, delay }: { phraseIdx: 0|1|2; delay: number }
     <div style={{ overflow:'hidden', background:'linear-gradient(145deg,rgba(5,16,48,.97),rgba(3,9,28,.99) 100%)', border:`1px solid ${color}38`, borderRadius:6, display:'flex', alignItems:'center', boxShadow:CELL_SHADOW }}>
       {/* Two copies side-by-side: translateX(−50%) scrolls exactly one copy → seamless loop */}
       <div style={{ display:'flex', flexShrink:0, animation:`geo-ticker ${dur}s linear infinite`, animationDelay:`${delay}s` }}>
-        <span style={{ whiteSpace:'nowrap', fontSize:'7px', fontWeight:700, color, paddingRight:4, fontFamily:'system-ui,sans-serif' }}>
+        <span style={{ whiteSpace:'nowrap', fontSize:'9px', fontWeight:700, color, paddingRight:4, fontFamily:'system-ui,sans-serif' }}>
           {paddedText}
         </span>
-        <span style={{ whiteSpace:'nowrap', fontSize:'7px', fontWeight:700, color, paddingRight:4, fontFamily:'system-ui,sans-serif' }}>
+        <span style={{ whiteSpace:'nowrap', fontSize:'9px', fontWeight:700, color, paddingRight:4, fontFamily:'system-ui,sans-serif' }}>
           {paddedText}
         </span>
       </div>
