@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, Loader } from 'lucide-react';
+import { ChevronDown, Loader, Download } from 'lucide-react';
 
 interface CountryOption {
   name: string;
@@ -68,9 +68,7 @@ const COUNTRY_EMOJIS: { [key: string]: string } = {
 
 const CONFLICT_ZONES: CountryOption[] = [
   { name: 'DRC (Congo)', description: 'conflict minerals' },
-  { name: 'Ethiopia' },
   { name: 'Myanmar', description: 'Rohingya crisis' },
-  { name: 'Nigeria' },
   { name: 'Sudan' },
   { name: 'Ukraine' },
 ];
@@ -95,7 +93,7 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
   const [results, setResults] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string>('');
   const [limitReached, setLimitReached] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const [loadingPhase, setLoadingPhase] = useState<'fetching' | 'analyzing' | 'building'>('fetching');
 
   const toggleCountry = (country: string) => {
@@ -188,6 +186,47 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
     return <span className={`inline-block px-3 py-1 ${config.bg} ${config.text} rounded-full text-xs font-semibold`}>{config.label}</span>;
   };
 
+  const handleDownloadPDF = () => {
+    if (!results) return;
+    const win = window.open('', '_blank');
+    if (!win) return;
+    const rows = results.selectedCountries.map(country => {
+      const a = results.results[country];
+      if (!a) return '';
+      const presenceDetails = a.physical_presence.confirmed
+        ? ['Confirmed', ...a.physical_presence.details].map(d => `<p style="margin:2px 0">• ${d}</p>`).join('')
+        : '<p style="margin:2px 0">None identified in SEC filings</p>';
+      const notableItems = a.notable.exists
+        ? a.notable.points.map(p => `<p style="margin:2px 0">• ${p}</p>`).join('')
+        : '<p style="margin:2px 0">No notable items identified</p>';
+      return `<div style="border:1px solid #e5e7eb;border-radius:8px;padding:20px;margin-bottom:20px;page-break-inside:avoid">
+        <h2 style="font-size:16px;font-weight:700;margin:0 0 14px">${COUNTRY_EMOJIS[country] || ''} ${country}</h2>
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <tr style="background:#f9fafb"><td style="padding:8px 10px;font-weight:600;color:#6b7280;width:32%;vertical-align:top">Revenue</td><td style="padding:8px 10px">${a.revenue.disclosed ? `${a.revenue.figure} in ${a.revenue.period}` : 'Not separately disclosed'}</td></tr>
+          <tr><td style="padding:8px 10px;font-weight:600;color:#6b7280;vertical-align:top">Physical Presence</td><td style="padding:8px 10px">${presenceDetails}</td></tr>
+          <tr style="background:#f9fafb"><td style="padding:8px 10px;font-weight:600;color:#6b7280;vertical-align:top">Capital Investment</td><td style="padding:8px 10px">${a.capital_investment.disclosed ? a.capital_investment.figure || '' : 'Not separately disclosed'}${a.capital_investment.details ? `<br/><span style="color:#6b7280">${a.capital_investment.details}</span>` : ''}</td></tr>
+          <tr><td style="padding:8px 10px;font-weight:600;color:#6b7280;vertical-align:top">Notable</td><td style="padding:8px 10px">${notableItems}</td></tr>
+          <tr style="background:#f9fafb"><td style="padding:8px 10px;font-weight:600;color:#6b7280">Data Quality</td><td style="padding:8px 10px">${a.data_quality} · Updated: ${a.last_updated}</td></tr>
+        </table>
+      </div>`;
+    }).join('');
+    win.document.write(`<!DOCTYPE html><html><head>
+    <title>Geopolitical Intelligence — ${results.companyName} (${results.ticker})</title>
+    <style>body{font-family:Arial,sans-serif;max-width:760px;margin:0 auto;padding:40px;color:#111;line-height:1.5}@media print{body{padding:20px}}</style>
+    </head><body>
+    <div style="background:#0f172a;color:#fff;padding:24px 28px;border-radius:12px;margin-bottom:28px">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.12em;color:#475569;text-transform:uppercase;margin-bottom:8px">HalalStocks AI · Geopolitical Intelligence</div>
+      <h1 style="font-size:26px;font-weight:900;margin:0 0 4px">${results.companyName}</h1>
+      <div style="color:#94a3b8;font-size:13px">${results.ticker}</div>
+      <div style="color:#475569;font-size:11px;margin-top:10px">Screened: ${results.selectedCountries.join(', ')} · Generated: ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+    </div>
+    ${rows}
+    <div style="font-size:11px;color:#9ca3af;margin-top:24px;padding:14px;background:#f9fafb;border-radius:8px">Based solely on publicly available regulatory filings and government databases. Dollar figures as reported by the company. This is not investment advice.</div>
+    </body></html>`);
+    win.document.close();
+    setTimeout(() => win.print(), 400);
+  };
+
   const SkeletonCard = () => (
     <div className="bg-white border border-gray-200 rounded-lg p-6 animate-pulse">
       <div className="h-8 bg-gray-200 rounded w-3/4 mb-4"></div>
@@ -200,114 +239,134 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
   );
 
   return (
-    <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-6">
+    <div className="bg-white border border-gray-200 shadow-sm rounded-2xl overflow-hidden">
+      {/* Header toggle */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between mb-4 hover:bg-gray-50 p-2 rounded transition"
+        className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition border-b border-gray-100"
       >
         <div className="flex items-center gap-3">
-          <span className="text-2xl">🌍</span>
+          <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center flex-shrink-0 text-lg">🌍</div>
           <div className="text-left">
-            <h3 className="text-lg font-bold text-gray-900">Geopolitical Intelligence</h3>
-            <p className="text-xs text-gray-500">Select regions to screen this company's exposure against</p>
+            <h3 className="text-sm font-bold text-gray-900">Geopolitical Intelligence</h3>
+            <p className="text-xs text-gray-500">Exposure screening — conflict zones, sanctioned states & defence contracts</p>
           </div>
         </div>
-        <ChevronDown
-          size={20}
-          className={`text-gray-400 transition transform ${expanded ? 'rotate-180' : ''}`}
-        />
+        <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
       </button>
 
       {expanded && (
-        <>
-          <div className="space-y-6 mb-6 pb-6 border-b border-gray-200">
-            {/* Conflict Zones */}
-            <div>
-              <h4 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Group 1 — Conflict Zones</h4>
-              <div className="space-y-2">
+        <div className="p-6">
+          {/* Modern dark selection panel */}
+          <div className="bg-gradient-to-br from-slate-950 to-slate-900 rounded-xl p-5 mb-4">
+
+            {/* Group 1 — Conflict Zones */}
+            <div className="mb-5">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0"></div>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Group 1 — Conflict Zones</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
                 {CONFLICT_ZONES.map(country => (
-                  <label key={country.name} className="flex items-center gap-3 cursor-pointer group">
-                    <input
-                      type="checkbox"
-                      checked={selectedCountries.includes(country.name)}
-                      onChange={() => toggleCountry(country.name)}
-                      className="w-4 h-4 accent-blue-500 rounded cursor-pointer"
-                    />
-                    <span className="text-lg">{COUNTRY_EMOJIS[country.name]}</span>
-                    <span className="text-gray-700 group-hover:text-gray-900 transition">
-                      {country.name}
-                      {country.description && <span className="text-gray-500 text-sm ml-2">— {country.description}</span>}
-                    </span>
-                  </label>
+                  <button
+                    key={country.name}
+                    type="button"
+                    onClick={() => toggleCountry(country.name)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-all duration-150 ${
+                      selectedCountries.includes(country.name)
+                        ? 'bg-red-500/20 border-red-400/50 text-red-300'
+                        : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:border-white/20 hover:text-slate-200'
+                    }`}
+                  >
+                    <span className="text-sm leading-none">{COUNTRY_EMOJIS[country.name]}</span>
+                    <span>{country.name}</span>
+                    {country.description && (
+                      <span className="text-[10px] opacity-50">· {country.description}</span>
+                    )}
+                  </button>
                 ))}
               </div>
             </div>
 
-            {/* Sanctioned / High-Risk States */}
-            <div>
-              <h4 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Group 2 — Sanctioned / High-Risk States</h4>
-              <div className="space-y-2">
+            <div className="border-t border-white/[0.07] mb-5"></div>
+
+            {/* Group 2 — Sanctioned / High-Risk States */}
+            <div className="mb-5">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0"></div>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Group 2 — Sanctioned / High-Risk States</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
                 {SANCTIONED_STATES.map(country => (
-                  <label key={country.name} className="flex items-center gap-3 cursor-pointer group">
-                    <input
-                      type="checkbox"
-                      checked={selectedCountries.includes(country.name)}
-                      onChange={() => toggleCountry(country.name)}
-                      className="w-4 h-4 accent-blue-500 rounded cursor-pointer"
-                    />
-                    <span className="text-lg">{COUNTRY_EMOJIS[country.name]}</span>
-                    <span className="text-gray-700 group-hover:text-gray-900 transition">
-                      {country.name}
-                      {country.description && <span className="text-gray-500 text-sm ml-2">— {country.description}</span>}
-                    </span>
-                  </label>
+                  <button
+                    key={country.name}
+                    type="button"
+                    onClick={() => toggleCountry(country.name)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-all duration-150 ${
+                      selectedCountries.includes(country.name)
+                        ? 'bg-amber-500/20 border-amber-400/50 text-amber-300'
+                        : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:border-white/20 hover:text-slate-200'
+                    }`}
+                  >
+                    <span className="text-sm leading-none">{COUNTRY_EMOJIS[country.name]}</span>
+                    <span>{country.name}</span>
+                    {country.description && (
+                      <span className="text-[10px] opacity-50">· {country.description}</span>
+                    )}
+                  </button>
                 ))}
               </div>
             </div>
 
-            {/* US Defence Contracts */}
+            <div className="border-t border-white/[0.07] mb-5"></div>
+
+            {/* Group 3 — US Defence Contracts */}
             <div>
-              <h4 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Group 3 — US Defence Contracts</h4>
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <input
-                  type="checkbox"
-                  checked={includeDefenceContracts}
-                  onChange={() => setIncludeDefenceContracts(prev => !prev)}
-                  className="w-4 h-4 accent-blue-500 rounded cursor-pointer"
-                />
-                <span className="text-gray-700 group-hover:text-gray-900 transition">
-                  US Defence Contracts
-                  <span className="text-gray-500 text-sm ml-2">— screen for DoD contracts awarded to this company</span>
-                </span>
-              </label>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0"></div>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Group 3 — US Defence Contracts</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIncludeDefenceContracts(prev => !prev)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium transition-all duration-150 ${
+                  includeDefenceContracts
+                    ? 'bg-blue-500/20 border-blue-400/50 text-blue-300'
+                    : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:border-white/20 hover:text-slate-200'
+                }`}
+              >
+                <span className="text-sm leading-none">🛡️</span>
+                <span>US Defence Contracts</span>
+                <span className="text-[10px] opacity-50">— DoD contract screening</span>
+              </button>
             </div>
           </div>
 
-          {/* Start Screening Button */}
+          {/* Run Screening Button */}
           <button
             onClick={handleScreening}
             disabled={selectedCountries.length === 0 || loading}
-            className={`w-full py-2 px-4 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
+            className={`w-full py-2.5 px-4 rounded-xl font-semibold transition flex items-center justify-center gap-2 text-sm mb-4 ${
               selectedCountries.length === 0 || loading
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/30'
+                : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20'
             }`}
           >
             {loading ? (
               <>
-                <Loader size={16} className="animate-spin" />
+                <Loader size={15} className="animate-spin" />
                 {loadingPhase === 'fetching' && 'Fetching SEC filings...'}
                 {loadingPhase === 'analyzing' && 'Analyzing with AI...'}
                 {loadingPhase === 'building' && 'Building report...'}
               </>
             ) : (
-              'Start Screening'
+              'Run Screening'
             )}
           </button>
 
           {/* Daily limit reached — upgrade prompt */}
           {limitReached && (
-            <div className="mt-4 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl">
+            <div className="mb-4 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl">
               <p className="text-sm font-semibold text-blue-900 mb-1">Daily screening limit reached</p>
               <p className="text-xs text-blue-700 leading-relaxed mb-3">
                 You&apos;ve used all your free geopolitical intelligence screenings for today.
@@ -324,15 +383,15 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
 
           {/* General error */}
           {error && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-300 rounded-lg text-red-700 text-sm">
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
               {error}
             </div>
           )}
 
           {/* Loading Skeleton */}
           {loading && (
-            <div className="mt-6 pt-6 border-t border-gray-200 space-y-4">
-              {selectedCountries.map((country, idx) => (
+            <div className="space-y-4">
+              {selectedCountries.map((_country, idx) => (
                 <SkeletonCard key={idx} />
               ))}
             </div>
@@ -341,12 +400,21 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
           {/* Results Section */}
           {results && !loading && (
             <div className="mt-6 pt-6 border-t border-gray-200 space-y-6">
-              {/* Results Header */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-bold text-gray-900 mb-1">🌍 GEOPOLITICAL EXPOSURE RESULTS</h4>
-                <p className="text-xs text-gray-600">
-                  <span className="font-semibold">Analyzed Countries:</span> {results.selectedCountries.join(', ')}
-                </p>
+              {/* Results Header + Download */}
+              <div className="flex items-start gap-3">
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex-1">
+                  <h4 className="font-bold text-gray-900 mb-1">🌍 GEOPOLITICAL EXPOSURE RESULTS</h4>
+                  <p className="text-xs text-gray-600">
+                    <span className="font-semibold">Analyzed Countries:</span> {results.selectedCountries.join(', ')}
+                  </p>
+                </div>
+                <button
+                  onClick={handleDownloadPDF}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-600 text-xs font-semibold rounded-xl transition shadow-sm flex-shrink-0 mt-0.5"
+                >
+                  <Download size={13} />
+                  Download PDF
+                </button>
               </div>
 
               {/* Country Result Cards */}
@@ -482,7 +550,7 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
                 })}
               </div>
 
-              {/* US Defence Contracts — formatted once from raw data, no per-country duplication */}
+              {/* US Defence Contracts — standalone section, only when Group 3 was selected */}
               {results.includeDefenceContracts && (
                 <div className="bg-white border border-gray-300 rounded-lg overflow-hidden">
                   <div className="border-b-4 border-gray-400 px-6 py-4 bg-gray-50">
@@ -527,7 +595,7 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
               </div>
             </div>
           )}
-        </>
+        </div>
       )}
     </div>
   );
