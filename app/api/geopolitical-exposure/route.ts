@@ -3,14 +3,13 @@ import { cookies } from 'next/headers';
 import Anthropic from '@anthropic-ai/sdk';
 import { checkAndIncrementUsage } from '@/lib/users';
 
-// Extended timeout for multi-year 10-K analysis (up to 5 minutes for multiple countries)
 export const maxDuration = 300;
 
 const SESSION_COOKIE = 'hsa_session';
 
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+// ── Interfaces ────────────────────────────────────────────────────────────────
 
 interface AnalysisResult {
   revenue: {
@@ -46,486 +45,397 @@ interface AnalysisResult {
   data_quality: 'FULL' | 'PARTIAL' | 'MINIMAL';
 }
 
+// ── Utilities ─────────────────────────────────────────────────────────────────
+
 function addDelay(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function fetchFMPRevenue(ticker: string, countryName: string): Promise<string> {
+// Fix 2: per-fetch timeout so a single slow server can't hang the whole request
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 15000): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    // Note: FMP revenue-geographic-segmentation endpoint is deprecated as of Aug 2025
-    // Try alternative endpoints if needed, otherwise return empty
-    const response = await fetch(
-      `https://financialmodelingprep.com/api/v4/revenue-geographic-segmentation/${ticker}?apikey=${process.env.NEXT_PUBLIC_FMP_API_KEY}`
-    );
-    if (!response.ok) {
-      console.log('FMP API not available (endpoint deprecated)');
-      return '';
-    }
-    const data = await response.json();
-    if (data.Error || data['Error Message']) {
-      console.log('FMP API error:', data['Error Message']);
-      return '';
-    }
-    return JSON.stringify(data);
-  } catch (err) {
-    console.log('FMP fetch error:', err);
-    return '';
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(id);
   }
 }
 
-// Known CIKs for major companies (hardcoded for reliability)
-const knownCIKs: Record<string, string> = {
-  'APPLE': '0000320193',
-  'MICROSOFT': '0000789019',
-  'GOOGLE': '0001652044',
-  'AMAZON': '0001018724',
-  'TESLA': '0001318605',
-  'META': '0001326801',
-  'NVIDIA': '0001045810',
-};
+// Fix 7: exponential-backoff retry — only retries on network errors and retriable HTTP codes
+const RETRIABLE_STATUS = new Set([429, 500, 502, 503, 504]);
 
-async function fetchSECEdgarFilings(companyName: string, ticker: string, countryName: string): Promise<string> {
-  try {
-    const today = new Date();
-    const todayDate = today.toISOString().split('T')[0];
-
-    // Check for known CIK first - try both full name and first word
-    let companyKey = companyName.toUpperCase();
-    let bestCik = knownCIKs[companyKey];
-
-    // If not found, try just the first word (e.g. "Apple" from "Apple Inc.")
-    if (!bestCik) {
-      const firstWord = companyName.split(' ')[0].toUpperCase();
-      bestCik = knownCIKs[firstWord];
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit = {},
+  timeoutMs = 15000,
+  maxAttempts = 3,
+): Promise<Response> {
+  let lastErr: Error = new Error('fetchWithRetry: no attempts made');
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    if (attempt > 0) {
+      const backoffMs = 1000 * 2 ** (attempt - 1); // 1 s → 2 s → 4 s
+      console.log(`[fetch] retry ${attempt}/${maxAttempts - 1}, backoff ${backoffMs} ms for ${url}`);
+      await addDelay(backoffMs);
     }
-
-    if (!bestCik) {
-      // Fallback: try to find via browse-edgar
-      return await tryDirectBrowseEdgar(companyName, ticker, countryName, todayDate);
-    }
-
-    // Now fetch up to 5 years of 10-K filings using ATOM format
-    const atomUrl = `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${bestCik}&type=10-K&dateb=${todayDate}&owner=exclude&count=2&output=atom`;
-
-    const atomResponse = await fetch(atomUrl, {
-      headers: {
-        'User-Agent': 'mytestproj123 contact@mytestproj123.com',
-      },
-    });
-
-    if (!atomResponse.ok) {
-      console.error('ATOM fetch failed:', atomResponse.status);
-      return '';
-    }
-
-    let atomXml = await atomResponse.text();
-    console.log('ATOM XML length:', atomXml.length, 'Has entries:', atomXml.includes('<entry>'));
-
-    // Check if there are actually any filings
-    if (!atomXml.includes('<entry>')) {
-      return '';
-    }
-
-    // Extract all filing entries from ATOM
-    const entries = atomXml.match(/<entry>([\s\S]*?)<\/entry>/g) || [];
-    console.log('[SEC] Found', entries.length, '10-K filings');
-
-    if (entries.length === 0) {
-      return '';
-    }
-
-    const allFilingData: string[] = [];
-
-    // Process each entry
-    for (let i = 0; i < entries.length; i++) {
-      const entry = entries[i];
-
-      // Extract filing URL from this entry
-      let filingUrl = '';
-      let filingDate = '';
-
-      // Try to get the full URL directly
-      let match = entry.match(/href="(https?:\/\/[^"]*\/Archives\/edgar[^"]*\.htm[l]?)"/i);
-      if (match) {
-        filingUrl = match[1];
-      } else {
-        // Try to get relative URL and prepend domain
-        match = entry.match(/href="(\/Archives\/edgar[^"]*\.htm[l]?)"/i);
-        if (match) {
-          filingUrl = `https://www.sec.gov${match[1]}`;
-        }
-      }
-
-      // Extract filing date (format: <updated>YYYY-MM-DD...)
-      const dateMatch = entry.match(/<updated>(\d{4}-\d{2}-\d{2})/);
-      if (dateMatch) {
-        filingDate = dateMatch[1];
-      }
-
-      if (!filingUrl) {
-        console.log(`[SEC] Skipping entry ${i + 1}: could not extract filing URL`);
+    try {
+      const res = await fetchWithTimeout(url, options, timeoutMs);
+      if (RETRIABLE_STATUS.has(res.status)) {
+        lastErr = new Error(`HTTP ${res.status} — retriable`);
         continue;
       }
-
-      console.log(`[SEC] Processing filing ${i + 1}/${entries.length}: ${filingUrl.substring(filingUrl.lastIndexOf('/') + 1)} (${filingDate})`);
-
-      // Fetch document content with rate limiting
-      const docContent = await fetchDocumentContent(filingUrl, ticker, countryName);
-
-      if (docContent) {
-        // Tag the content with the filing year
-        const year = filingDate.split('-')[0];
-        allFilingData.push(`[10-K FY${year} filed ${filingDate}]: ${docContent}`);
-      }
-
-      // Rate limiting between fetches - 500ms between each to respect SEC EDGAR limits
-      if (i < entries.length - 1) {
-        await addDelay(500);
-      }
+      return res;
+    } catch (err) {
+      lastErr = err instanceof Error ? err : new Error(String(err));
     }
-
-    if (allFilingData.length === 0) {
-      console.log('[SEC] No relevant data found in any 10-K filing');
-      return '';
-    }
-
-    const combinedData = allFilingData.join(' ');
-    console.log('[SEC] Combined data from', allFilingData.length, 'filings, total length:', combinedData.length);
-
-    // Cap the combined data to avoid exceeding token limits (target ~15k chars)
-    const maxLength = 15000;
-    return combinedData.length > maxLength ? combinedData.substring(0, maxLength) : combinedData;
-  } catch (err) {
-    console.error('SEC fetching error:', err);
-    return '';
   }
+  throw lastErr;
 }
 
-async function tryDirectBrowseEdgar(companyName: string, ticker: string, countryName: string, todayDate: string): Promise<string> {
-  try {
-    // Fallback: use browse-edgar directly and extract first CIK found
-    const searchUrl = `https://www.sec.gov/cgi-bin/browse-edgar?company=${encodeURIComponent(companyName)}&action=getcompany`;
+// Fix 8: deterministic context-window extraction — identical input always yields identical output.
+// Scans cleaned text for every keyword match and returns ±windowChars of surrounding prose.
+// Overlapping windows are merged so there is no duplication.
+function extractWithContextWindow(
+  text: string,
+  terms: string[],
+  windowChars = 600,
+  maxOutputChars = 12000,
+): string {
+  const lower = text.toLowerCase();
+  const windows: [number, number][] = [];
 
-    const response = await fetch(searchUrl, {
-      headers: {
-        'User-Agent': 'mytestproj123 contact@mytestproj123.com',
-      },
-    });
+  for (const term of terms) {
+    let pos = lower.indexOf(term);
+    while (pos !== -1) {
+      windows.push([
+        Math.max(0, pos - windowChars),
+        Math.min(text.length, pos + term.length + windowChars),
+      ]);
+      pos = lower.indexOf(term, pos + 1);
+    }
+  }
 
-    if (!response.ok) return '';
+  if (windows.length === 0) return '';
 
-    const html = await response.text();
-    const cikMatch = html.match(/CIK=(\d{7,})/);
-    if (!cikMatch) return '';
-
-    const cik = cikMatch[1];
-    const atomUrl = `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${cik}&type=10-K&dateb=${todayDate}&owner=exclude&count=1&output=atom`;
-
-    const atomResponse = await fetch(atomUrl, {
-      headers: {
-        'User-Agent': 'mytestproj123 contact@mytestproj123.com',
-      },
-    });
-
-    if (!atomResponse.ok) return '';
-
-    const atomXml = await atomResponse.text();
-    if (!atomXml.includes('<entry>')) return '';
-
-    // Extract filing URL - handle both full and relative URLs
-    let filingUrl = '';
-    let match = atomXml.match(/href="(https?:\/\/[^"]*\/Archives\/edgar[^"]*\.(htm|html))"/i);
-    if (match) {
-      filingUrl = match[1];
+  windows.sort((a, b) => a[0] - b[0]);
+  const merged: [number, number][] = [windows[0]];
+  for (const w of windows.slice(1)) {
+    const last = merged[merged.length - 1];
+    if (w[0] <= last[1]) {
+      last[1] = Math.max(last[1], w[1]);
     } else {
-      match = atomXml.match(/href="(\/Archives\/edgar[^"]*\.(htm|html))"/i);
-      if (match) {
-        filingUrl = `https://www.sec.gov${match[1]}`;
-      }
+      merged.push(w);
     }
-
-    if (!filingUrl) return '';
-
-    return await fetchDocumentContent(filingUrl, ticker, countryName);
-  } catch (err) {
-    console.error('Fallback browse-edgar error:', err);
-    return '';
   }
+
+  return merged
+    .map(([s, e]) => text.slice(s, e).replace(/\s+/g, ' ').trim())
+    .join(' … ')
+    .slice(0, maxOutputChars);
 }
 
-// Country-specific search terms for more comprehensive document extraction
+// Fix 6: confirms the HTML document was fully received (not truncated mid-transfer).
+// Checks for the closing HTML tag AND the mandatory signatures block that every
+// SEC 10-K must contain near the end of the document.
+function isCompleteHTMLDoc(raw: string): boolean {
+  return (
+    /<\/html>/i.test(raw) &&
+    /pursuant to the requirements of the securities exchange act/i.test(raw)
+  );
+}
+
+function cleanHtml(raw: string): string {
+  return raw
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/\s+/g, ' ');
+}
+
+// ── Country mappings ──────────────────────────────────────────────────────────
+
+// Search terms for extracting country-relevant narrative from the 10-K body
 const countrySearchTerms: Record<string, string[]> = {
-  'Israel': ['israel', 'herzliya', 'tel aviv', 'jerusalem', 'r&d center', 'tech hub', 'research center', 'mobileye', 'realface', 'emotient', 'hebrew university', 'technion'],
+  'Israel': ['israel', 'herzliya', 'tel aviv', 'jerusalem', 'r&d center', 'tech hub', 'research center', 'mobileye', 'hebrew university', 'technion'],
   'China': ['china', 'beijing', 'shanghai', 'shenzhen', 'manufacturing', 'supply chain', 'uyghur'],
-  'Russia': ['russia', 'moscow', 'sanctions', 'exposure', 'ukraine'],
+  'Russia': ['russia', 'moscow', 'sanctions', 'exposure'],
   'Iran': ['iran', 'tehran', 'sanctions'],
   'Ukraine': ['ukraine', 'kyiv', 'war', 'conflict', 'russian'],
   'Myanmar': ['myanmar', 'burma', 'rohingya'],
-  'DRC (Congo)': ['congo', 'drc', 'minerals', 'conflict minerals', 'congo'],
-  'Nigeria': ['nigeria', 'lagos'],
+  'DRC (Congo)': ['congo', 'drc', 'minerals', 'conflict minerals'],
   'Sudan': ['sudan', 'khartoum'],
-  'Ethiopia': ['ethiopia', 'addis ababa'],
   'North Korea': ['north korea', 'pyongyang', 'dprk'],
 };
 
-async function fetchDocumentContent(filingUrl: string, ticker: string, countryName: string): Promise<string> {
+// Revenue segment keywords to identify which geographic segments map to each country
+const countrySegmentKeywords: Record<string, string[]> = {
+  'Israel': ['israel', 'emea', 'europe', 'middle east', 'international'],
+  'China': ['china', 'greater china', 'asia', 'pacific', 'apac'],
+  'Russia': ['russia', 'emea', 'europe', 'cis', 'international'],
+  'Iran': ['iran', 'emea', 'middle east', 'international'],
+  'Ukraine': ['ukraine', 'emea', 'europe', 'international'],
+  'Myanmar': ['myanmar', 'burma', 'asia', 'pacific', 'apac', 'southeast asia', 'international'],
+  'DRC (Congo)': ['africa', 'emea', 'sub-saharan', 'international'],
+  'Sudan': ['africa', 'emea', 'middle east', 'international'],
+  'North Korea': ['korea', 'north korea', 'asia', 'pacific', 'international'],
+};
+
+// ── FMP fetchers (Fix 3, 4, 5) ────────────────────────────────────────────────
+
+// Fix 3: use the stable/ endpoint instead of the deprecated v4/ endpoint
+async function fetchFMPGeographicRevenue(ticker: string): Promise<string> {
   try {
-    console.log(`[SEC] Fetching from: ${filingUrl}`);
-
-    let content = '';
-
-    // If this is an index page, fetch it to find the actual 10-K document
-    if (filingUrl.includes('-index.htm')) {
-      console.log('[SEC] This is an index page, fetching to find main document...');
-
-      // Try to construct the likely filename based on ticker
-      const basePath = filingUrl.substring(0, filingUrl.lastIndexOf('/'));
-
-      // Try common filename patterns for the 10-K document
-      const filenamePatterns = [
-        `${ticker.toLowerCase()}-10k.htm`,
-        `${ticker.toLowerCase()}-10k.html`,
-        `${ticker.toLowerCase()}.htm`,
-        `${ticker.toLowerCase()}.html`,
-        // Try longer form with date patterns
-        `${ticker.toLowerCase()}-2[0-9]*.htm`,
-      ];
-
-      let foundUrl = '';
-
-      for (const pattern of filenamePatterns) {
-        if (pattern.includes('*')) {
-          // For patterns with wildcards, try fetching the index to search
-          const indexResponse = await fetch(filingUrl, {
-            headers: {
-              'User-Agent': 'mytestproj123 contact@mytestproj123.com',
-            },
-          });
-
-          if (indexResponse.ok) {
-            const indexHtml = await indexResponse.text();
-            const regex = new RegExp(`href="([^"]*${pattern.replace('*', '[0-9]*')})"`);
-            const match = indexHtml.match(regex);
-            if (match) {
-              // Extract just the filename from the match
-              const filename = match[1].split('/').pop() || match[1];
-              foundUrl = `${basePath}/${filename}`;
-              console.log(`[SEC] Found document matching pattern ${pattern}: ${foundUrl}`);
-              break;
-            }
-          }
-        } else {
-          // For fixed patterns, try directly
-          const testUrl = `${basePath}/${pattern}`;
-          const testResponse = await fetch(testUrl, {
-            method: 'HEAD',
-            headers: {
-              'User-Agent': 'mytestproj123 contact@mytestproj123.com',
-            },
-          });
-
-          if (testResponse.ok || testResponse.status === 200) {
-            foundUrl = testUrl;
-            console.log(`[SEC] Found document: ${pattern}`);
-            break;
-          }
-        }
-      }
-
-      if (foundUrl) {
-        filingUrl = foundUrl;
-      } else {
-        console.log('[SEC] Could not find 10-K document with known patterns');
-        return '';
-      }
+    const res = await fetchWithTimeout(
+      `https://financialmodelingprep.com/stable/revenue-geographic-segmentation?symbol=${ticker}&apikey=${process.env.NEXT_PUBLIC_FMP_API_KEY}`,
+      {},
+      10000,
+    );
+    if (!res.ok) {
+      console.log('[FMP] Geographic revenue not available:', res.status);
+      return '';
     }
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) return '';
+    // Return two most recent fiscal years
+    return JSON.stringify(data.slice(0, 2));
+  } catch (err) {
+    console.error('[FMP] Geographic revenue error:', err);
+    return '';
+  }
+}
 
-    // Fetch the actual document
-    const docResponse = await fetch(filingUrl, {
-      headers: {
-        'User-Agent': 'mytestproj123 contact@mytestproj123.com',
-      },
+// Fix 5: employee count gives Claude a physical-presence proxy even when
+// the 10-K narrative doesn't name the country explicitly
+async function fetchFMPEmployeeCount(ticker: string): Promise<string> {
+  try {
+    const res = await fetchWithTimeout(
+      `https://financialmodelingprep.com/stable/employee-count?symbol=${ticker}&apikey=${process.env.NEXT_PUBLIC_FMP_API_KEY}`,
+      {},
+      10000,
+    );
+    if (!res.ok) return '';
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) return '';
+    const recent = data[0];
+    return JSON.stringify({
+      employeeCount: recent.employeeCount,
+      period: recent.periodOfReport,
+      filingDate: recent.filingDate,
     });
+  } catch (err) {
+    console.error('[FMP] Employee count error:', err);
+    return '';
+  }
+}
 
-    if (!docResponse.ok) {
-      console.log(`[SEC] Document fetch failed: ${docResponse.status}`);
+// Fix 4: retrieve the 10-K document URL directly from FMP — eliminates the
+// fragile ATOM-feed parse and the hardcoded CIK map
+async function fetchTenKUrl(ticker: string): Promise<string | null> {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const twoYearsAgo = new Date();
+    twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+    const fromDate = twoYearsAgo.toISOString().split('T')[0];
+
+    const res = await fetchWithTimeout(
+      `https://financialmodelingprep.com/stable/sec-filings-search/symbol?symbol=${ticker}&formType=10-K&from=${fromDate}&to=${today}&apikey=${process.env.NEXT_PUBLIC_FMP_API_KEY}`,
+      {},
+      10000,
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!Array.isArray(data)) return null;
+
+    // FMP may return 10-K/A amendments alongside 10-K filings — take the most recent annual
+    const annual = data.find((f: { formType: string }) => f.formType === '10-K');
+    const url = annual?.finalLink ?? null;
+    console.log(`[FMP] 10-K URL for ${ticker}: ${url}`);
+    return url;
+  } catch (err) {
+    console.error('[FMP] 10-K URL fetch error:', err);
+    return null;
+  }
+}
+
+// Fetches and cleans the 10-K HTML document (Fix 6 + Fix 7)
+async function fetchTenKDocument(url: string): Promise<string> {
+  try {
+    const res = await fetchWithRetry(
+      url,
+      { headers: { 'User-Agent': 'mytestproj123 contact@mytestproj123.com' } },
+      25000,
+      3,
+    );
+
+    if (!res.ok) {
+      console.log(`[SEC] Document fetch failed: ${res.status}`);
       return '';
     }
 
-    content = await docResponse.text();
-    console.log(`[SEC] Document fetched, length: ${content.length}`);
+    const raw = await res.text();
+    console.log(`[SEC] Document fetched, length: ${raw.length}`);
 
-    // Clean HTML/XML but preserve sentence structure
-    content = content.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
-    content = content.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
-    content = content.replace(/<[^>]*>/g, ' ');
-    content = content.replace(/&nbsp;/g, ' ');
-    content = content.replace(/&lt;/g, '<');
-    content = content.replace(/&gt;/g, '>');
-    content = content.replace(/&amp;/g, '&');
-    content = content.replace(/\s+/g, ' ');
-
-    // Split into sentences for analysis (lower threshold to catch shorter mentions)
-    const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 10);
-    console.log(`[SEC] Total sentences in document: ${sentences.length}`);
-
-    // Get search terms for this country (country name + major cities/terms)
-    const searchTerms = countrySearchTerms[countryName] || [countryName.toLowerCase()];
-
-    // Find sentences matching any of the search terms
-    const relevant = sentences.filter(s => {
-      const lowerSentence = s.toLowerCase();
-      return searchTerms.some(term => lowerSentence.includes(term));
-    });
-
-    console.log(`[SEC] Sentences mentioning "${countryName}" or related terms: ${relevant.length}`);
-
-    // If we found direct mentions, return those
-    if (relevant.length > 0) {
-      const result = relevant.slice(0, 20).map(s => s.trim()).join(' ');
-      console.log(`[SEC] Returning ${result.length} chars of direct mention data`);
-      return result;
+    // Fix 6: reject truncated documents — missing closing tag means partial transfer
+    if (!isCompleteHTMLDoc(raw)) {
+      console.warn('[SEC] Document appears truncated — missing </html> or signature block; discarding');
+      return '';
     }
 
-    // If no direct mentions found, look for geographic/segment revenue and operational information
-    // This helps capture information about geographic segments, EMEA, and related content
-    const segmentKeywords = ['geographic', 'segment', 'emea', 'americas', 'revenue', 'net sales', 'international', 'international net sales', 'region', 'area'];
-    const riskKeywords = ['risk', 'political', 'government', 'regulation', 'compliance', 'conflict', 'sanction', 'exposure'];
-    const operationalKeywords = ['research', 'development', 'office', 'facility', 'center', 'hub', 'acquired', 'acquisition', 'subsidiary'];
-
-    // Priority 1: Look for segment/revenue information
-    const segmentSentences = sentences.filter(s => {
-      const lowerSentence = s.toLowerCase();
-      return segmentKeywords.some(keyword => lowerSentence.includes(keyword));
-    });
-
-    let result = '';
-    if (segmentSentences.length > 0) {
-      console.log(`[SEC] Found ${segmentSentences.length} segment/revenue sentences`);
-      result = segmentSentences.slice(0, 30).map(s => s.trim()).join(' ');
-    }
-
-    // Priority 2: Add risk-related information
-    const riskSentences = sentences.filter(s => {
-      const lowerSentence = s.toLowerCase();
-      return riskKeywords.some(keyword => lowerSentence.includes(keyword));
-    });
-
-    if (riskSentences.length > 0) {
-      console.log(`[SEC] Found ${riskSentences.length} risk-related sentences`);
-      if (result) result += ' ';
-      result += riskSentences.slice(0, 20).map(s => s.trim()).join(' ');
-    }
-
-    // Priority 3: Add operational information
-    const operationalSentences = sentences.filter(s => {
-      const lowerSentence = s.toLowerCase();
-      return operationalKeywords.some(keyword => lowerSentence.includes(keyword));
-    });
-
-    if (operationalSentences.length > 0) {
-      console.log(`[SEC] Found ${operationalSentences.length} operational sentences`);
-      if (result) result += ' ';
-      result += operationalSentences.slice(0, 20).map(s => s.trim()).join(' ');
-    }
-
-    if (result.length > 0) {
-      console.log(`[SEC] Returning ${result.length} chars of contextual data`);
-      return result;
-    }
-
-    console.log(`[SEC] No contextual information found for ${countryName} in 10-K`);
-    return '';
+    return cleanHtml(raw);
   } catch (err) {
     console.error('[SEC] Document fetch error:', err);
     return '';
   }
 }
 
-async function fetchUSASpending(companyName: string, countryName: string): Promise<string> {
-  const defenseCountries = ['Israel', 'Russia', 'Ukraine', 'China', 'Iran', 'North Korea'];
-
-  if (!defenseCountries.includes(countryName)) {
-    return '';
-  }
-
+// Filters the raw geographic revenue JSON to show segments most likely relevant
+// to the country being screened, while still passing Claude the full breakdown
+function filterGeographicRevenue(rawData: string, countryName: string): string {
+  if (!rawData) return '';
   try {
-    const response = await fetch('https://api.usaspending.gov/api/v2/search/spending_by_award/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        filters: {
-          recipient_search_text: [companyName],
-          award_type_codes: ['A', 'B', 'C', 'D'],
-          agencies: [
-            {
-              type: 'awarding',
-              tier: 'toptier',
-              name: 'Department of Defense',
-            },
-          ],
-        },
-        fields: ['Award ID', 'Recipient Name', 'Award Amount', 'Award Date', 'Awarding Agency', 'Description'],
-        limit: 5,
-        sort: 'Award Amount',
-        order: 'desc',
-      }),
-    });
+    const data = JSON.parse(rawData) as Array<{
+      fiscalYear: number;
+      date: string;
+      reportedCurrency: string;
+      data: Record<string, number>;
+    }>;
 
-    if (!response.ok) return '';
-    const data = await response.json();
+    const keywords = countrySegmentKeywords[countryName] ?? ['international', 'non-us'];
+
+    return JSON.stringify(
+      data.map(year => {
+        const matched: Record<string, number> = {};
+        for (const [key, val] of Object.entries(year.data)) {
+          if (keywords.some(kw => key.toLowerCase().includes(kw))) {
+            matched[key] = val;
+          }
+        }
+        return {
+          fiscalYear: year.fiscalYear,
+          date: year.date,
+          currency: year.reportedCurrency ?? 'USD',
+          allSegments: year.data,
+          matchedSegmentsForCountry: matched,
+        };
+      }),
+    );
+  } catch {
+    return rawData;
+  }
+}
+
+// ── Government fetchers ───────────────────────────────────────────────────────
+
+// Fix 7: retries on network hiccups; also validates page_metadata presence
+// (Fix 10-equivalent for USASpending — confirms the response is complete)
+async function fetchUSASpending(companyName: string): Promise<string> {
+  try {
+    const res = await fetchWithRetry(
+      'https://api.usaspending.gov/api/v2/search/spending_by_award/',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filters: {
+            recipient_search_text: [companyName],
+            award_type_codes: ['A', 'B', 'C', 'D'],
+            agencies: [{ type: 'awarding', tier: 'toptier', name: 'Department of Defense' }],
+          },
+          fields: ['Award ID', 'Recipient Name', 'Award Amount', 'Award Date', 'Awarding Agency', 'Description'],
+          limit: 5,
+          sort: 'Award Amount',
+          order: 'desc',
+        }),
+      },
+      25000,
+      3,
+    );
+
+    if (!res.ok) return '';
+    const data = await res.json();
+
+    // page_metadata indicates a complete, well-formed response
+    if (!data?.results || !data?.page_metadata) {
+      console.warn('[USASpending] Incomplete response — missing results or page_metadata; discarding');
+      return '';
+    }
+
     return JSON.stringify(data);
   } catch (err) {
+    console.error('[USASpending] fetch error:', err);
     return '';
   }
 }
 
 async function fetchConflictMinerals(companyName: string): Promise<string> {
   try {
-    const today = new Date();
-    const todayDate = today.toISOString().split('T')[0];
-    const fiveYearsAgo = new Date(today);
+    const today = new Date().toISOString().split('T')[0];
+    const fiveYearsAgo = new Date();
     fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
     const startDate = fiveYearsAgo.toISOString().split('T')[0];
 
-    const searchUrl = `https://efts.sec.gov/LATEST/search-index?q="${companyName}"&forms=SD&dateRange=custom&startdt=${startDate}&enddt=${todayDate}`;
-
-    const response = await fetch(searchUrl, {
-      headers: {
-        'User-Agent': 'mytestproj123 contact@mytestproj123.com',
-        'Accept': 'application/json',
+    const res = await fetchWithRetry(
+      `https://efts.sec.gov/LATEST/search-index?q="${companyName}"&forms=SD&dateRange=custom&startdt=${startDate}&enddt=${today}`,
+      {
+        headers: {
+          'User-Agent': 'mytestproj123 contact@mytestproj123.com',
+          Accept: 'application/json',
+        },
       },
-    });
+      12000,
+      2,
+    );
 
-    if (!response.ok) return '';
-    const data = await response.json();
+    if (!res.ok) return '';
+    const data = await res.json();
     return JSON.stringify(data);
   } catch (err) {
+    console.error('[ConflictMinerals] fetch error:', err);
     return '';
   }
 }
+
+// ── Claude analysis (Fix 1, 9) ────────────────────────────────────────────────
 
 async function analyzeWithClaude(
   companyName: string,
   ticker: string,
   countryName: string,
-  fmpData: string,
-  secData: string,
+  fmpRevenue: string,
+  employeeCount: string,
+  tenKNarrative: string,
   defenseData: string,
   conflictData: string,
-  includeDefenceContracts: boolean
+  includeDefenceContracts: boolean,
 ): Promise<AnalysisResult> {
   const userPrompt = `Analyze ${companyName} (${ticker}) for exposure to ${countryName}.
 
-Data provided:
-FMP geographic revenue data: ${fmpData ? fmpData : '(no data available)'}
-SEC EDGAR 10-K excerpts (multiple years): ${secData ? secData : '(no data available)'}
-${includeDefenceContracts ? `Defense contracts: ${defenseData ? defenseData : '(not applicable or no data)'}` : 'Defense contracts: (not requested — exclude from analysis)'}
-Conflict minerals data: ${conflictData ? conflictData : '(not applicable or no data)'}
+DATA PROVIDED:
 
-Important: If provided data is incomplete, supplement your analysis with your general knowledge about ${companyName}'s known operations, offices, R&D centers, and acquisitions in ${countryName}. Clearly label all general-knowledge facts with "[Source: General knowledge / public record]" in the source field.
+1. FMP Geographic Revenue Segments (structured data from SEC filings, via FMP):
+${fmpRevenue || '(no data available)'}
+"matchedSegmentsForCountry" shows segments most likely relevant to ${countryName}. "allSegments" is the full geographic breakdown. Figures are in USD unless the currency field states otherwise.
+
+2. Employee Count (global headcount from most recent 10-K, via FMP):
+${employeeCount || '(no data available)'}
+This is company-wide headcount — use as supporting context for physical presence assessment, not as a direct indicator of presence in ${countryName}.
+
+3. SEC 10-K Narrative (text excerpts mentioning ${countryName} or related terms, extracted deterministically from the actual 10-K filing):
+${tenKNarrative || '(no relevant mentions found in filing)'}
+
+${includeDefenceContracts
+  ? `4. US DoD Contracts (USASpending.gov — company-wide awards from the Department of Defense):
+${defenseData || '(no contracts found)'}`
+  : '4. US DoD Contracts: (not requested)'}
+
+${conflictData ? `5. Conflict Minerals Disclosure (SEC Form SD filings):
+${conflictData}` : ''}
+
+Important: If provided data is incomplete for a field, supplement with your general knowledge about ${companyName}'s known operations in ${countryName}. Label all general-knowledge facts with "[Source: General knowledge / public record]".
 
 Return a JSON object with exactly these fields:
 
@@ -540,10 +450,7 @@ Return a JSON object with exactly these fields:
   },
   "physical_presence": {
     "confirmed": true/false,
-    "details": [
-      "bullet point 1",
-      "bullet point 2"
-    ],
+    "details": ["bullet point 1", "bullet point 2"],
     "source": "exact source name and date"
   },
   "capital_investment": {
@@ -554,18 +461,12 @@ Return a JSON object with exactly these fields:
   },
   "notable": {
     "exists": true/false,
-    "points": [
-      "bullet point 1",
-      "bullet point 2"
-    ],
+    "points": ["bullet point 1", "bullet point 2"],
     "source": "exact source name and date"
   },
   "defence_contracts": {
     "found": true/false,
-    "points": [
-      "bullet point 1",
-      "bullet point 2"
-    ],
+    "points": ["bullet point 1", "bullet point 2"],
     "source": "exact source name and date"
   },
   "last_updated": "FY year and filing date",
@@ -575,56 +476,52 @@ Return a JSON object with exactly these fields:
 CRITICAL RULES FOR FIELD SEPARATION:
 - The "notable" field must NEVER contain defence, arms, weapons, military, or US government contract information.
 - ALL defence/arms/weapons/military/US government contract information MUST go exclusively into "defence_contracts".
-- If defence contracts data was not requested (marked "not requested" above), set "defence_contracts" to { "found": false, "points": [], "source": "Not requested" }.
+- If defence contracts data was not requested, set "defence_contracts" to { "found": false, "points": [], "source": "Not requested" }.
 - If defence contracts were requested but no data found, set "defence_contracts" to { "found": false, "points": [], "source": "USASpending.gov / General knowledge" }.
+
+DEDUPLICATION RULE (Fix 9):
+- Each DoD contract Award ID must appear EXACTLY ONCE in the defence_contracts points array.
+- Do not restate or paraphrase the same contract in multiple bullet points.
+- If the same Award ID appears in both provided data and general knowledge, cite it once using the provided data.
 
 Data quality definitions:
 FULL = dollar figures found for revenue AND capital investment
-PARTIAL = some figures found, some not disclosed (possibly supplemented with narrative from general knowledge)
+PARTIAL = some figures found, some not disclosed
 MINIMAL = only text mentions found, no dollar figures
 
 Return only valid JSON. No markdown, no explanation.`;
 
-  const systemPrompt = `You are a neutral financial research analyst specializing in geopolitical risk assessment. Your role is to extract and present factual information from provided data AND supplement with general knowledge when appropriate.
+  const systemPrompt = `You are a neutral financial research analyst specializing in geopolitical risk assessment. Extract and present factual information from provided data, supplementing with clearly labeled general knowledge where necessary.
 
-You have two types of knowledge to draw from:
+You have two types of knowledge:
+1. Provided Data Sources (FMP, SEC filings, USASpending): cite the specific document.
+2. General Knowledge (training data about publicly known operations): label with "[Source: General knowledge / public record]".
 
-1. **Provided Data Sources** (SEC filings, FMP, USASpending): Always cite the specific document (e.g., "Apple 10-K FY2023 filed 2023-11-02" or "USASpending.gov").
-
-2. **General Knowledge** (your training data about publicly known company operations): You MAY use this to fill gaps, but you MUST clearly label every such fact with "[Source: General knowledge / public record]" in the source field.
-
-Rules you must follow:
-- Never fabricate or estimate any FINANCIAL FIGURE. All dollar amounts must come from provided data sources.
+Rules:
+- Never fabricate or estimate any financial figure. All dollar amounts must come from provided data.
 - Never express political opinions or make moral judgments.
-- Narrative facts (office locations, known acquisitions, R&D centers, known subsidiaries) MAY come from general knowledge if explicitly labeled.
-- Cite the exact source for every fact in the "source" field.
-- Use neutral, factual language only.
-- When data is unavailable from provided sources, explicitly note this and supplement from general knowledge if appropriate.`;
+- Narrative facts may come from general knowledge if explicitly labeled.
+- Use neutral, factual language only.`;
 
+  // Fix 1: temperature: 0 eliminates LLM-level non-determinism
   const message = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 2048,
+    temperature: 0,
     system: systemPrompt,
-    messages: [
-      {
-        role: 'user',
-        content: userPrompt,
-      },
-    ],
+    messages: [{ role: 'user', content: userPrompt }],
   });
 
   const content = message.content[0];
-  if (content.type !== 'text') {
-    throw new Error('Unexpected response type from Claude');
-  }
+  if (content.type !== 'text') throw new Error('Unexpected response type from Claude');
 
   const jsonMatch = content.text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error('No JSON found in Claude response');
-  }
+  if (!jsonMatch) throw new Error('No JSON found in Claude response');
 
   return JSON.parse(jsonMatch[0]);
 }
+
+// ── POST handler ──────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
   try {
@@ -633,6 +530,7 @@ export async function POST(request: NextRequest) {
     if (!sessionToken) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
+
     const usageResult = checkAndIncrementUsage(sessionToken, 'geopolitical-exposure');
     if (!usageResult) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
@@ -647,20 +545,59 @@ export async function POST(request: NextRequest) {
     const { ticker, companyName, selectedCountries, includeDefenceContracts } = await request.json();
 
     if (!ticker || !companyName || !selectedCountries || selectedCountries.length === 0) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    console.log(`[GEO] Starting analysis for ${ticker} — countries: ${selectedCountries.join(', ')}`);
+
+    // ── Company-level fetches: done once and shared across all country analyses ──
+    // This also means the expensive 10-K document is only downloaded once regardless
+    // of how many countries the user selected.
+    const [fmpRevenue, employeeCount, tenKUrl, defenseData] = await Promise.all([
+      fetchFMPGeographicRevenue(ticker),
+      fetchFMPEmployeeCount(ticker),
+      fetchTenKUrl(ticker),
+      includeDefenceContracts ? fetchUSASpending(companyName) : Promise.resolve(''),
+    ]);
+
+    // Fetch and clean the 10-K HTML once (Fix 4 + 6 + 7 apply here)
+    const tenKDocument = tenKUrl ? await fetchTenKDocument(tenKUrl) : '';
+    if (!tenKDocument) {
+      console.warn('[GEO] No valid 10-K document — narrative fields will rely on FMP and general knowledge');
+    }
+
+    // Conflict minerals only needed for DRC — fetch once if applicable
+    const conflictData = selectedCountries.includes('DRC (Congo)')
+      ? await fetchConflictMinerals(companyName)
+      : '';
+
+    // ── Per-country analysis ──────────────────────────────────────────────────
     const results: Record<string, AnalysisResult> = {};
 
     const analyzeCountry = async (countryName: string): Promise<[string, AnalysisResult]> => {
-      const fmpData = await fetchFMPRevenue(ticker, countryName);
-      const secData = await fetchSECEdgarFilings(companyName, ticker, countryName);
-      const defenseData = includeDefenceContracts ? await fetchUSASpending(companyName, countryName) : '';
-      const conflictData = countryName === 'DRC (Congo)' ? await fetchConflictMinerals(companyName) : '';
-      const analysis = await analyzeWithClaude(companyName, ticker, countryName, fmpData, secData, defenseData, conflictData, !!includeDefenceContracts);
+      const countryRevenue = filterGeographicRevenue(fmpRevenue, countryName);
+
+      // Fix 8: context-window extraction is deterministic; sentence-splitting was not
+      const searchTerms = countrySearchTerms[countryName] ?? [countryName.toLowerCase()];
+      const narrative = tenKDocument ? extractWithContextWindow(tenKDocument, searchTerms) : '';
+
+      console.log(
+        `[GEO] Analyzing ${countryName} — narrative: ${narrative.length} chars, revenue: ${countryRevenue ? 'available' : 'none'}`,
+      );
+
+      const countryConflictData = countryName === 'DRC (Congo)' ? conflictData : '';
+
+      const analysis = await analyzeWithClaude(
+        companyName,
+        ticker,
+        countryName,
+        countryRevenue,
+        employeeCount,
+        narrative,
+        defenseData,
+        countryConflictData,
+        !!includeDefenceContracts,
+      );
       return [countryName, analysis];
     };
 
@@ -671,10 +608,9 @@ export async function POST(request: NextRequest) {
         const [countryName, analysis] = outcome.value;
         results[countryName] = analysis;
       } else {
-        // Extract country name from the rejected promise — find which one failed
         const idx = settled.indexOf(outcome);
         const countryName = selectedCountries[idx];
-        console.error(`Error analyzing ${countryName}:`, outcome.reason);
+        console.error(`[GEO] Error analyzing ${countryName}:`, outcome.reason);
         results[countryName] = {
           revenue: { disclosed: false, figure: null, period: null, context: 'Error', broader_segment: null, source: 'Error' },
           physical_presence: { confirmed: false, details: [], source: 'Error' },
@@ -695,10 +631,7 @@ export async function POST(request: NextRequest) {
       results,
     });
   } catch (error) {
-    console.error('API Error:', error);
-    return NextResponse.json(
-      { error: 'Analysis failed' },
-      { status: 500 }
-    );
+    console.error('[GEO] API Error:', error);
+    return NextResponse.json({ error: 'Analysis failed' }, { status: 500 });
   }
 }
