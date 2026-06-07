@@ -36,13 +36,14 @@ interface AnalysisResult {
     points: string[];
     source: string;
   };
-  defence_contracts: {
-    found: boolean;
-    points: string[];
-    source: string;
-  };
   last_updated: string;
   data_quality: 'FULL' | 'PARTIAL' | 'MINIMAL';
+}
+
+interface DefenceContractsResult {
+  found: boolean;
+  points: string[];
+  source: string;
 }
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
@@ -328,6 +329,46 @@ function filterGeographicRevenue(rawData: string, countryName: string): string {
   }
 }
 
+// ── Defence contracts formatter ───────────────────────────────────────────────
+
+// Formats USASpending raw JSON into clean bullet points without Claude.
+// Deterministic and runs once per request regardless of how many countries are selected.
+function formatDefenceContracts(raw: string): DefenceContractsResult {
+  if (!raw) return { found: false, points: [], source: 'USASpending.gov' };
+  try {
+    const data = JSON.parse(raw) as {
+      results: Array<Record<string, unknown>>;
+      page_metadata?: { hasNext?: boolean; total?: number };
+    };
+    if (!data?.results?.length) return { found: false, points: [], source: 'USASpending.gov' };
+
+    const points: string[] = data.results.map(award => {
+      const id = award['Award ID'] ?? 'N/A';
+      const recipient = award['Recipient Name'] ?? 'Unknown';
+      const amount =
+        typeof award['Award Amount'] === 'number'
+          ? `$${(award['Award Amount'] as number).toLocaleString()}`
+          : 'Amount not disclosed';
+      // Strip leading NSN codes (e.g. "8502518555!") that USASpending prepends to descriptions
+      const rawDesc = (award['Description'] as string) ?? 'No description';
+      const description = rawDesc.replace(/^\d+[!]\s*/, '');
+      return `Award ${id} — ${recipient} — ${amount}: ${description}.`;
+    });
+
+    if (data.page_metadata?.hasNext) {
+      const total = data.page_metadata.total;
+      const note = total
+        ? `Note: ${total} total DoD awards on record; showing top ${data.results.length} by value.`
+        : `Note: Additional DoD awards exist beyond the top ${data.results.length} shown.`;
+      points.push(note);
+    }
+
+    return { found: true, points, source: 'USASpending.gov' };
+  } catch {
+    return { found: false, points: [], source: 'USASpending.gov' };
+  }
+}
+
 // ── Government fetchers ───────────────────────────────────────────────────────
 
 // Fix 7: retries on network hiccups; also validates page_metadata presence
@@ -408,9 +449,7 @@ async function analyzeWithClaude(
   fmpRevenue: string,
   employeeCount: string,
   tenKNarrative: string,
-  defenseData: string,
   conflictData: string,
-  includeDefenceContracts: boolean,
 ): Promise<AnalysisResult> {
   const userPrompt = `Analyze ${companyName} (${ticker}) for exposure to ${countryName}.
 
@@ -427,12 +466,7 @@ This is company-wide headcount — use as supporting context for physical presen
 3. SEC 10-K Narrative (text excerpts mentioning ${countryName} or related terms, extracted deterministically from the actual 10-K filing):
 ${tenKNarrative || '(no relevant mentions found in filing)'}
 
-${includeDefenceContracts
-  ? `4. US DoD Contracts (USASpending.gov — company-wide awards from the Department of Defense):
-${defenseData || '(no contracts found)'}`
-  : '4. US DoD Contracts: (not requested)'}
-
-${conflictData ? `5. Conflict Minerals Disclosure (SEC Form SD filings):
+${conflictData ? `4. Conflict Minerals Disclosure (SEC Form SD filings):
 ${conflictData}` : ''}
 
 Important: If provided data is incomplete for a field, supplement with your general knowledge about ${companyName}'s known operations in ${countryName}. Label all general-knowledge facts with "[Source: General knowledge / public record]".
@@ -464,30 +498,12 @@ Return a JSON object with exactly these fields:
     "points": ["bullet point 1", "bullet point 2"],
     "source": "exact source name and date"
   },
-  "defence_contracts": {
-    "found": true/false,
-    "points": ["bullet point 1", "bullet point 2"],
-    "source": "exact source name and date"
-  },
-  "last_updated": "FY year and filing date",
-  "data_quality": "FULL/PARTIAL/MINIMAL"
+  "last_updated": "FY year and filing date"
 }
 
-CRITICAL RULES FOR FIELD SEPARATION:
+RULES:
 - The "notable" field must NEVER contain defence, arms, weapons, military, or US government contract information.
-- ALL defence/arms/weapons/military/US government contract information MUST go exclusively into "defence_contracts".
-- If defence contracts data was not requested, set "defence_contracts" to { "found": false, "points": [], "source": "Not requested" }.
-- If defence contracts were requested but no data found, set "defence_contracts" to { "found": false, "points": [], "source": "USASpending.gov / General knowledge" }.
-
-DEDUPLICATION RULE (Fix 9):
-- Each DoD contract Award ID must appear EXACTLY ONCE in the defence_contracts points array.
-- Do not restate or paraphrase the same contract in multiple bullet points.
-- If the same Award ID appears in both provided data and general knowledge, cite it once using the provided data.
-
-Data quality definitions:
-FULL = dollar figures found for revenue AND capital investment
-PARTIAL = some figures found, some not disclosed
-MINIMAL = only text mentions found, no dollar figures
+- Limit "notable.points" to a maximum of 5 bullet points. Include only the most material facts.
 
 Return only valid JSON. No markdown, no explanation.`;
 
@@ -518,7 +534,24 @@ Rules:
   const jsonMatch = content.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error('No JSON found in Claude response');
 
-  return JSON.parse(jsonMatch[0]);
+  const parsed = JSON.parse(jsonMatch[0]) as Omit<AnalysisResult, 'data_quality'>;
+
+  // Derive data_quality from structured fields — not from Claude's judgement — so it
+  // is always consistent across runs for the same underlying data.
+  const hasRevenue = parsed.revenue?.disclosed === true;
+  const hasCapex = parsed.capital_investment?.disclosed === true;
+  const data_quality: AnalysisResult['data_quality'] =
+    hasRevenue && hasCapex ? 'FULL' : hasRevenue || hasCapex ? 'PARTIAL' : 'MINIMAL';
+
+  // Cap bullet lists to prevent count drift between runs
+  if (Array.isArray(parsed.notable?.points) && parsed.notable.points.length > 5) {
+    parsed.notable.points = parsed.notable.points.slice(0, 5);
+  }
+  if (Array.isArray(parsed.physical_presence?.details) && parsed.physical_presence.details.length > 4) {
+    parsed.physical_presence.details = parsed.physical_presence.details.slice(0, 4);
+  }
+
+  return { ...parsed, data_quality };
 }
 
 // ── POST handler ──────────────────────────────────────────────────────────────
@@ -594,9 +627,7 @@ export async function POST(request: NextRequest) {
         countryRevenue,
         employeeCount,
         narrative,
-        defenseData,
         countryConflictData,
-        !!includeDefenceContracts,
       );
       return [countryName, analysis];
     };
@@ -616,12 +647,16 @@ export async function POST(request: NextRequest) {
           physical_presence: { confirmed: false, details: [], source: 'Error' },
           capital_investment: { disclosed: false, figure: null, details: 'Error', source: 'Error' },
           notable: { exists: false, points: [], source: 'Error' },
-          defence_contracts: { found: false, points: [], source: 'Error' },
           last_updated: 'Error',
           data_quality: 'MINIMAL',
         };
       }
     }
+
+    // Defence contracts formatted once from raw data — not per-country via Claude
+    const defenceContracts = includeDefenceContracts
+      ? formatDefenceContracts(defenseData)
+      : { found: false, points: [], source: 'Not requested' };
 
     return NextResponse.json({
       ticker,
@@ -629,6 +664,7 @@ export async function POST(request: NextRequest) {
       selectedCountries,
       includeDefenceContracts: !!includeDefenceContracts,
       results,
+      defenceContracts,
     });
   } catch (error) {
     console.error('[GEO] API Error:', error);

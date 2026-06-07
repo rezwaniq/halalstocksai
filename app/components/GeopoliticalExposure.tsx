@@ -33,13 +33,14 @@ interface AnalysisResult {
     points: string[];
     source: string;
   };
-  defence_contracts: {
-    found: boolean;
-    points: string[];
-    source: string;
-  };
   last_updated: string;
   data_quality: 'FULL' | 'PARTIAL' | 'MINIMAL';
+}
+
+interface DefenceContractsResult {
+  found: boolean;
+  points: string[];
+  source: string;
 }
 
 interface ApiResponse {
@@ -48,6 +49,7 @@ interface ApiResponse {
   selectedCountries: string[];
   includeDefenceContracts: boolean;
   results: Record<string, AnalysisResult>;
+  defenceContracts: DefenceContractsResult;
 }
 
 const COUNTRY_EMOJIS: { [key: string]: string } = {
@@ -92,6 +94,7 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string>('');
+  const [limitReached, setLimitReached] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [loadingPhase, setLoadingPhase] = useState<'fetching' | 'analyzing' | 'building'>('fetching');
 
@@ -108,6 +111,7 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
 
     setLoading(true);
     setError('');
+    setLimitReached(false);
     setLoadingPhase('fetching');
 
     try {
@@ -130,12 +134,16 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
       clearTimeout(timeoutId);
 
       if (!response.ok) {
+        if (response.status === 429) {
+          setLimitReached(true);
+          return;
+        }
+        let msg = 'Analysis failed. Please try again.';
         try {
           const errData = await response.json();
-          throw new Error(errData.error || 'Analysis failed');
-        } catch {
-          throw new Error(`Analysis failed with status ${response.status}`);
-        }
+          if (errData.error) msg = errData.error;
+        } catch { /* ignore parse error, use default msg */ }
+        throw new Error(msg);
       }
 
       setLoadingPhase('analyzing');
@@ -297,7 +305,24 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
             )}
           </button>
 
-          {/* Error Message */}
+          {/* Daily limit reached — upgrade prompt */}
+          {limitReached && (
+            <div className="mt-4 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl">
+              <p className="text-sm font-semibold text-blue-900 mb-1">Daily screening limit reached</p>
+              <p className="text-xs text-blue-700 leading-relaxed mb-3">
+                You&apos;ve used all your free geopolitical intelligence screenings for today.
+                Upgrade to a paid plan for unlimited screenings, priority processing, and full report history.
+              </p>
+              <a
+                href="mailto:support@halalstocks.ai?subject=Paid%20Plan%20Enquiry"
+                className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition"
+              >
+                Contact us to upgrade →
+              </a>
+            </div>
+          )}
+
+          {/* General error */}
           {error && (
             <div className="mt-4 p-3 bg-red-50 border border-red-300 rounded-lg text-red-700 text-sm">
               {error}
@@ -457,7 +482,7 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
                 })}
               </div>
 
-              {/* US Defence Contracts — standalone section, only when Group 3 was selected */}
+              {/* US Defence Contracts — formatted once from raw data, no per-country duplication */}
               {results.includeDefenceContracts && (
                 <div className="bg-white border border-gray-300 rounded-lg overflow-hidden">
                   <div className="border-b-4 border-gray-400 px-6 py-4 bg-gray-50">
@@ -475,27 +500,16 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
                   </div>
                   <div className="p-6 bg-white">
                     <div className="text-sm text-gray-800 font-mono">
-                      {(() => {
-                        const allPoints: { point: string; source: string }[] = [];
-                        results.selectedCountries.forEach(country => {
-                          const analysis = results.results[country];
-                          if (analysis?.defence_contracts?.found) {
-                            analysis.defence_contracts.points.forEach(point => {
-                              allPoints.push({ point, source: analysis.defence_contracts.source });
-                            });
-                          }
-                        });
-                        return allPoints.length > 0 ? (
-                          <div className="space-y-1 text-gray-700">
-                            {allPoints.map((item, idx) => (
-                              <p key={idx}>• {item.point}</p>
-                            ))}
-                            <p className="mt-2">Source: {allPoints[0].source}</p>
-                          </div>
-                        ) : (
-                          <p className="text-gray-700">No US Defence Department contracts identified</p>
-                        );
-                      })()}
+                      {results.defenceContracts.found ? (
+                        <div className="space-y-1 text-gray-700">
+                          {results.defenceContracts.points.map((point, idx) => (
+                            <p key={idx}>• {point}</p>
+                          ))}
+                          <p className="mt-2">Source: {results.defenceContracts.source}</p>
+                        </div>
+                      ) : (
+                        <p className="text-gray-700">No US Defence Department contracts identified</p>
+                      )}
                       <div className="text-center mt-4">
                         <p className="text-gray-700 tracking-wider">═══════════════════════════════════════</p>
                       </div>
