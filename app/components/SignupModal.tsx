@@ -80,7 +80,7 @@ export default function SignupModal({ onApproved, onClose }: Props) {
               <p className="text-sm text-gray-500 mt-1">Enter your approved email to continue</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleResendSubmit} className="space-y-4">
               <div>
                 <input
                   type="email"
@@ -101,34 +101,8 @@ export default function SignupModal({ onApproved, onClose }: Props) {
 
               <button
                 type="submit"
-                disabled={state === 'loading' || state === 'loading-resend'}
+                disabled={state === 'loading-resend'}
                 className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold py-3 rounded-xl transition shadow-md shadow-blue-600/20 text-sm"
-              >
-                {state === 'loading' ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    Checking...
-                  </>
-                ) : (
-                  'Access App'
-                )}
-              </button>
-            </form>
-
-            <div className="mt-4 flex items-center gap-2">
-              <div className="flex-1 h-px bg-gray-200" />
-              <span className="text-xs text-gray-400">or</span>
-              <div className="flex-1 h-px bg-gray-200" />
-            </div>
-
-            <form onSubmit={handleResendSubmit} className="mt-3">
-              <button
-                type="submit"
-                disabled={state === 'loading' || state === 'loading-resend'}
-                className="w-full flex items-center justify-center gap-2 bg-white hover:bg-gray-50 disabled:opacity-60 text-gray-700 font-semibold py-3 rounded-xl border border-gray-300 transition text-sm"
               >
                 {state === 'loading-resend' ? (
                   <>
@@ -139,7 +113,7 @@ export default function SignupModal({ onApproved, onClose }: Props) {
                     Sending...
                   </>
                 ) : (
-                  'Request Access via Transactional Email'
+                  'Access App'
                 )}
               </button>
             </form>

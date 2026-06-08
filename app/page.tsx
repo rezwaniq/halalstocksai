@@ -609,12 +609,14 @@ function AnalyzerContent({
 }) {
   const [search, setSearch] = useState('');
   const [ticker, setTicker] = useState('');
+  const [selectedCompanyName, setSelectedCompanyName] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [results, setResults] = useState<AnalysisResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [expandedSegments, setExpandedSegments] = useState<Set<number>>(new Set());
+  const [analysisMode, setAnalysisMode] = useState<'stock' | 'geo' | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -636,6 +638,7 @@ function AnalyzerContent({
   const handleSearch = async (query: string) => {
     setSearch(query);
     setTicker('');
+    setSelectedCompanyName('');
     if (query.length < 2) {
       setSearchResults([]);
       setShowDropdown(false);
@@ -655,9 +658,10 @@ function AnalyzerContent({
     }
   };
 
-  const selectCompany = (symbol: string) => {
+  const selectCompany = (symbol: string, name: string) => {
     setTicker(symbol);
     setSearch(symbol);
+    setSelectedCompanyName(name);
     setShowDropdown(false);
     setSearchResults([]);
   };
@@ -672,6 +676,7 @@ function AnalyzerContent({
     setLoading(true);
     setError('');
     setResults(null);
+    setAnalysisMode('stock');
     try {
       const mockData = getMockData(tickerToUse);
       if (mockData) {
@@ -727,19 +732,54 @@ function AnalyzerContent({
 
   const getMockData = (_ticker: string): AnalysisResult | null => null;
 
+  const handleStockPDF = () => {
+    if (!results) return;
+    const win = window.open('', '_blank');
+    if (!win) return;
+    const vColor = results.analysis.verdict === 'Halal' ? '#15803d' : results.analysis.verdict === 'Questionable' ? '#d97706' : '#dc2626';
+    win.document.write(`<!DOCTYPE html><html><head>
+    <title>AAOIFI Analysis — ${results.ticker}</title>
+    <style>body{font-family:Arial,sans-serif;max-width:760px;margin:0 auto;padding:40px;color:#111;line-height:1.5}.card{border:1px solid #e5e7eb;border-radius:8px;padding:18px;margin-bottom:16px}table{width:100%;border-collapse:collapse;font-size:12px}td{padding:7px 10px;border-bottom:1px solid #f3f4f6}td:first-child{color:#6b7280;font-weight:600;width:55%}@media print{body{padding:20px}}</style>
+    </head><body>
+    <div style="background:#0f172a;color:#fff;padding:24px 28px;border-radius:12px;margin-bottom:24px">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.12em;color:#475569;text-transform:uppercase;margin-bottom:8px">HalalStocks AI · AAOIFI Standard No. 21</div>
+      <h1 style="font-size:36px;font-weight:900;margin:0 0 2px;letter-spacing:-.5px">${results.ticker}</h1>
+      <div style="color:#94a3b8;font-size:13px">${results.company.name} · ${results.company.sector}</div>
+      <div style="color:#475569;font-size:11px;margin-top:8px">Analysed: ${results.date} · Generated: ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+    </div>
+    <div style="margin-bottom:20px">
+      <div style="display:inline-block;padding:6px 18px;background:${vColor}18;border:2px solid ${vColor};border-radius:8px;font-weight:900;font-size:18px;color:${vColor};margin-bottom:10px">${results.analysis.verdict.toUpperCase()}</div>
+      <p style="font-size:13px;color:#4b5563;margin:0">${results.analysis.explanation.split('\n')[0]}</p>
+    </div>
+    <div class="card">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;margin-bottom:10px">Gate 1 — Business Activity Screen · <span style="color:${results.gate1.passes ? '#15803d' : '#dc2626'}">${results.gate1.passes ? '✓ PASS' : '✗ FAIL'}</span></div>
+      <table>
+        <tr><td>Compliant Revenue</td><td>${results.revenueBreakdown.compliant.toFixed(1)}%</td></tr>
+        <tr><td>Questionable Revenue</td><td>${results.revenueBreakdown.questionable.toFixed(1)}%</td></tr>
+        <tr><td>Non-Compliant Revenue</td><td>${results.revenueBreakdown.nonCompliant.toFixed(1)}%</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;margin-bottom:10px">Gate 2 — Financial Ratio Screen · <span style="color:${results.gate2.passes ? '#15803d' : '#dc2626'}">${results.gate2.passes ? '✓ PASS' : '✗ FAIL'}</span></div>
+      <table>
+        <tr><td>Interest-Bearing Debt / Total Assets (limit 33%)</td><td>${(results.financialRatios.interestBearingDebt.ratio * 100).toFixed(2)}% ${results.gate2.debtRatioPasses ? '✓' : '✗'}</td></tr>
+        <tr><td>Interest-Bearing Deposits / Total Assets (limit 33%)</td><td>${(results.financialRatios.interestBearingDeposits.ratio * 100).toFixed(2)}% ${results.gate2.depositsRatioPasses ? '✓' : '✗'}</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;margin-bottom:10px">Purification</div>
+      <p style="font-size:13px;color:#374151;margin:0">Impure income percentage to purify: <strong>${results.purificationPercentage.toFixed(4)}%</strong></p>
+    </div>
+    <div style="font-size:11px;color:#9ca3af;margin-top:24px;padding:14px;background:#f9fafb;border-radius:8px">HalalStocks AI · AAOIFI Standard No. 21 · This is not investment advice.</div>
+    </body></html>`);
+    win.document.close();
+    setTimeout(() => win.print(), 400);
+  };
+
   return (
     <div className="max-w-5xl mx-auto px-6 py-10">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 mb-1.5">
-            <Shield size={11} />
-            AAOIFI Standard No. 21
-          </div>
-          <h1 className="text-2xl font-black text-gray-900" style={{ fontFamily: 'var(--font-poppins)' }}>
-            Halal Stock Analyzer
-          </h1>
-        </div>
+      <div className="flex justify-end items-center mb-8">
         <div className="flex items-center gap-3">
           {usage && (
             <div className="hidden sm:flex items-center gap-3 text-xs text-gray-500">
@@ -787,7 +827,7 @@ function AnalyzerContent({
                   <button
                     key={result.symbol}
                     type="button"
-                    onClick={() => selectCompany(result.symbol)}
+                    onClick={() => selectCompany(result.symbol, result.name)}
                     className="w-full text-left px-4 py-3 hover:bg-blue-50 border-b border-gray-100 last:border-0 transition"
                   >
                     <div className="font-semibold text-sm text-gray-900">{result.name}</div>
@@ -797,26 +837,58 @@ function AnalyzerContent({
               </div>
             )}
           </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-3.5 rounded-xl transition shadow-lg shadow-blue-600/20 text-sm"
-          >
-            {loading ? (
-              <>
-                <svg className="animate-spin h-4 w-4 flex-shrink-0" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                Analyzing...
-              </>
-            ) : (
-              <>
-                <Search size={15} />
-                Analyze Stock
-              </>
-            )}
-          </button>
+          <div className="flex gap-3">
+            {/* Analyze Stock button with tooltip */}
+            <div className="relative group flex-1">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-3.5 rounded-xl transition shadow-lg shadow-blue-600/20 text-sm"
+              >
+                {loading && analysisMode === 'stock' ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 flex-shrink-0" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <Shield size={15} />
+                    Analyze Stock (AAOIFI No. 21)
+                    <span className="text-[9px] font-bold bg-white/25 px-1.5 py-0.5 rounded-full ml-0.5 tracking-wide">BETA</span>
+                  </>
+                )}
+              </button>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 w-60 px-3 py-2 bg-gray-900 text-white text-xs rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-20 text-center leading-relaxed shadow-2xl">
+                Screens stocks for Shariah compliance using AAOIFI Standard No. 21 — covers revenue sources, debt ratios, and financial purity.
+                <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-gray-900 rotate-45 rounded-sm"></div>
+              </div>
+            </div>
+            {/* Geopolitical Intelligence button with tooltip */}
+            <div className="relative group flex-1">
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => {
+                  const tickerToUse = ticker.trim().toUpperCase() || search.trim().toUpperCase();
+                  if (!tickerToUse) { setError('Please enter a company name or ticker symbol'); return; }
+                  setError('');
+                  setResults(null);
+                  setAnalysisMode('geo');
+                }}
+                className="w-full flex items-center justify-center gap-2 bg-pink-200 hover:bg-pink-300 disabled:opacity-50 text-pink-900 font-bold py-3.5 rounded-xl transition shadow-lg shadow-pink-200/40 text-sm"
+              >
+                <Globe size={15} />
+                Geopolitical Intelligence
+              </button>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 w-60 px-3 py-2 bg-gray-900 text-white text-xs rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-20 text-center leading-relaxed shadow-2xl">
+                Investigates corporate exposure to conflict zones, sanctioned states, and US defence contracts using public SEC filings.
+                <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-gray-900 rotate-45 rounded-sm"></div>
+              </div>
+            </div>
+          </div>
         </form>
         {error && (
           <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl text-sm">
@@ -826,8 +898,26 @@ function AnalyzerContent({
         )}
       </div>
 
-      {results && (
+      {analysisMode === 'geo' && (ticker || search) && (
+        <GeopoliticalExposure
+          ticker={ticker.trim().toUpperCase() || search.trim().toUpperCase()}
+          companyName={selectedCompanyName || search}
+        />
+      )}
+
+      {analysisMode === 'stock' && results && (
         <div className="space-y-4">
+
+          {/* Download PDF */}
+          <div className="flex justify-end">
+            <button
+              onClick={handleStockPDF}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-600 text-xs font-semibold rounded-xl transition shadow-sm"
+            >
+              <Download size={13} />
+              Download PDF
+            </button>
+          </div>
 
           {/* ── VERDICT HEADER ── */}
           <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
