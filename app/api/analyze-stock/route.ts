@@ -137,7 +137,10 @@ Subscription services that bundle entertainment content (streaming video, music,
 RULE 7 — INTEREST INCOME:
 Any segment named "Interest Income" or describing riba-based income is NON-COMPLIANT without exception. This is absolute.
 
-RULE 8 — GENERAL PRINCIPLE:
+RULE 9 — PHARMACEUTICAL DRUGS & MEDICAL PRODUCTS:
+Individual pharmaceutical drugs, medications, and medical treatments are COMPLIANT. A drug manufacturer's core business of developing and selling medicines is permissible under AAOIFI. Classify each named drug or medicine as compliant. Examples: Tagrisso, Farxiga, Imfinzi, Soliris, Lynparza, Brilinta, Humira, Keytruda, Ozempic — all compliant.
+
+RULE 10 — GENERAL PRINCIPLE:
 Ask: is the PRIMARY business activity of this segment permissible? If yes → COMPLIANT. Only classify as questionable if there is genuine ambiguity about the primary activity.`;
 
   const userPrompt = `Company: ${companyName} (${ticker})
@@ -165,7 +168,7 @@ Respond with ONLY a valid JSON array. No markdown, no explanation outside JSON:
 
   const message = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
+    max_tokens: 4096,
     temperature: 0,
     system: systemPrompt,
     messages: [{ role: 'user', content: userPrompt }],
@@ -188,10 +191,21 @@ Respond with ONLY a valid JSON array. No markdown, no explanation outside JSON:
     }));
   }
 
-  const classMap = new Map(classifications.map((c) => [c.name, c]));
+  // Case-insensitive lookup so minor name casing differences don't cause misses
+  const classMap = new Map(classifications.map((c) => [c.name.toLowerCase(), c]));
 
   return rawSegments.map((s) => {
-    const cls = classMap.get(s.name);
+    // Interest Income is always non-compliant (AAOIFI Rule 7) — hardcode regardless of Claude
+    if (/interest\s+income/i.test(s.name)) {
+      return {
+        name: s.name,
+        revenue: s.revenue,
+        percentage: (s.revenue / totalRevenue) * 100,
+        classification: 'non-compliant' as const,
+        reason: 'Interest income constitutes riba, which is strictly prohibited under AAOIFI standards without exception per Rule 7.',
+      };
+    }
+    const cls = classMap.get(s.name.toLowerCase());
     const classification = (cls?.classification as 'compliant' | 'questionable' | 'non-compliant') ?? 'questionable';
     return {
       name: s.name,
@@ -233,13 +247,37 @@ function buildRevenueBreakdown(segments: RevenueSegment[]): Omit<RevenueBreakdow
 const AGGREGATE_NAME_RE =
   /reportable\s+sub.?segments?|total\s+seg|all\s+seg|seg.*total|consolidated\s+(revenue|sales)|total\s+(revenue|sales)/i;
 
+// DFS with node cap to find whether any subset of `others` (size >= minSize) sums
+// to `target` within `tolerance`. Prunes early when running sum exceeds target.
+function hasSubsetSumMatch(
+  target: number,
+  others: { revenue: number }[],
+  tolerance: number,
+  minSize: number,
+): boolean {
+  const pool = others
+    .filter(s => s.revenue < target * (1 + tolerance))
+    .sort((a, b) => b.revenue - a.revenue);
+  if (pool.length < minSize) return false;
+
+  let nodes = 0;
+  function dfs(idx: number, sum: number, count: number): boolean {
+    if (++nodes > 5000) return false; // safety cap
+    if (Math.abs(sum - target) / target <= tolerance && count >= minSize) return true;
+    if (sum > target * (1 + tolerance) || idx >= pool.length) return false;
+    return dfs(idx + 1, sum + pool[idx].revenue, count + 1) ||
+           dfs(idx + 1, sum, count);
+  }
+  return dfs(0, 0, 0);
+}
+
 function deduplicateAggregateSegments(
   segments: { name: string; revenue: number }[],
   totalRevenue: number,
 ): { name: string; revenue: number }[] {
   if (segments.length <= 1) return segments;
 
-  // Pass 1 — name-based removal
+  // Pass 1 — name-based removal (zero false-positive risk)
   const afterNames = segments.filter(s => {
     if (AGGREGATE_NAME_RE.test(s.name)) {
       console.log(`[dedup] Removed named rollup: "${s.name}"`);
@@ -248,18 +286,22 @@ function deduplicateAggregateSegments(
     return true;
   });
 
-  // Pass 2 — math-based fallback (only if sum still exceeds totalRevenue after name pass)
-  if (totalRevenue <= 0) return afterNames;
+  // Pass 2 — math-based subset-sum detection.
+  // Guardrails: only fires when double-counting is confirmed (segSum > 120% of totalRevenue),
+  // requires ≥2 children in the subset, and only checks candidates above average size.
+  if (totalRevenue <= 0 || afterNames.length <= 1) return afterNames;
   const segSum = afterNames.reduce((acc, s) => acc + s.revenue, 0);
-  if (segSum <= totalRevenue * 1.10) return afterNames;
+  if (segSum <= totalRevenue * 1.20) return afterNames;
 
+  const avgRevenue = segSum / afterNames.length;
   const byRevDesc = [...afterNames].sort((a, b) => b.revenue - a.revenue);
+
   for (const candidate of byRevDesc) {
-    const rest = afterNames.filter(s => s !== candidate);
-    const restSum = rest.reduce((acc, s) => acc + s.revenue, 0);
-    if (Math.abs(restSum - totalRevenue) / totalRevenue <= 0.08) {
-      console.log(`[dedup] Removed math rollup: "${candidate.name}"`);
-      return deduplicateAggregateSegments(rest, totalRevenue);
+    if (candidate.revenue <= avgRevenue) break; // remaining candidates are all below average — stop
+    const others = afterNames.filter(s => s !== candidate);
+    if (hasSubsetSumMatch(candidate.revenue, others, 0.05, 2)) {
+      console.log(`[dedup] Removed subset-sum rollup: "${candidate.name}"`);
+      return deduplicateAggregateSegments(others, totalRevenue);
     }
   }
   return afterNames;
