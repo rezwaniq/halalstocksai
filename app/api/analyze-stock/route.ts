@@ -222,6 +222,49 @@ function buildRevenueBreakdown(segments: RevenueSegment[]): Omit<RevenueBreakdow
   };
 }
 
+// Detects and removes parent/aggregate segments that are rollups of other listed segments.
+// FMP sometimes returns both a consolidated total and its constituent line items, causing
+// percentages to sum well above 100%.
+//
+// Pass 1 (name-based): strip entries whose names indicate they are rollup totals —
+// these names never appear on real business segments so false positives are impossible.
+// Pass 2 (math-based fallback): if the sum still exceeds totalRevenue by >10%, try removing
+// each remaining candidate (largest first) until the rest lands within 8% of totalRevenue.
+const AGGREGATE_NAME_RE =
+  /reportable\s+sub.?segments?|total\s+seg|all\s+seg|seg.*total|consolidated\s+(revenue|sales)|total\s+(revenue|sales)/i;
+
+function deduplicateAggregateSegments(
+  segments: { name: string; revenue: number }[],
+  totalRevenue: number,
+): { name: string; revenue: number }[] {
+  if (segments.length <= 1) return segments;
+
+  // Pass 1 — name-based removal
+  const afterNames = segments.filter(s => {
+    if (AGGREGATE_NAME_RE.test(s.name)) {
+      console.log(`[dedup] Removed named rollup: "${s.name}"`);
+      return false;
+    }
+    return true;
+  });
+
+  // Pass 2 — math-based fallback (only if sum still exceeds totalRevenue after name pass)
+  if (totalRevenue <= 0) return afterNames;
+  const segSum = afterNames.reduce((acc, s) => acc + s.revenue, 0);
+  if (segSum <= totalRevenue * 1.10) return afterNames;
+
+  const byRevDesc = [...afterNames].sort((a, b) => b.revenue - a.revenue);
+  for (const candidate of byRevDesc) {
+    const rest = afterNames.filter(s => s !== candidate);
+    const restSum = rest.reduce((acc, s) => acc + s.revenue, 0);
+    if (Math.abs(restSum - totalRevenue) / totalRevenue <= 0.08) {
+      console.log(`[dedup] Removed math rollup: "${candidate.name}"`);
+      return deduplicateAggregateSegments(rest, totalRevenue);
+    }
+  }
+  return afterNames;
+}
+
 // FIX 3: Post-process classified segments to extract the doubtful digital media portion
 // of any general "Online Stores" segment using eMarketer methodology:
 // Books/Music/Video = 11.5% of Online Stores revenue; digital media (music/video) = 50% of that = 5.75%.
@@ -430,16 +473,18 @@ export async function POST(request: NextRequest) {
 
     // Fetch real product revenue segments
     const rawSegments = await fetchProductSegments(sym);
+    // Strip any parent/rollup entries FMP may include alongside their children
+    const dedupedSegments = rawSegments ? deduplicateAggregateSegments(rawSegments, totalRevenue) : null;
 
     let revenueBreakdown: Omit<RevenueBreakdown, 'dataSource'>;
     let dataSource: string;
 
-    if (rawSegments && rawSegments.length > 0 && totalRevenue > 0) {
+    if (dedupedSegments && dedupedSegments.length > 0 && totalRevenue > 0) {
       // FIX 2: Inject interest income as synthetic non-compliant segment if > 0.
       // Use totalRevenue + interestIncome as denominator so percentages sum to 100%.
       const augmentedSegments = interestIncome > 0
-        ? [...rawSegments, { name: 'Interest Income', revenue: interestIncome }]
-        : rawSegments;
+        ? [...dedupedSegments, { name: 'Interest Income', revenue: interestIncome }]
+        : dedupedSegments;
       const augmentedTotal = totalRevenue + interestIncome;
 
       const classified = await classifySegmentsWithClaude(
