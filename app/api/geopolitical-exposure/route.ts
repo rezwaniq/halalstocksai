@@ -338,7 +338,7 @@ function formatDefenceContracts(raw: string): DefenceContractsResult {
   try {
     const data = JSON.parse(raw) as {
       results: Array<Record<string, unknown>>;
-      page_metadata?: { hasNext?: boolean; total?: number };
+      capped?: boolean;
     };
     if (!data?.results?.length) return { found: false, points: [], source: 'USASpending.gov' };
 
@@ -358,15 +358,11 @@ function formatDefenceContracts(raw: string): DefenceContractsResult {
       return `Award ${id} — ${recipient} — ${amount}: ${description}.`;
     });
 
-    if (data.page_metadata?.hasNext) {
-      const total = data.page_metadata.total;
-      const note = total
-        ? `Note: ${total} total DoD awards on record; showing top ${data.results.length} by value.`
-        : `Note: Additional DoD awards exist beyond the top ${data.results.length} shown.`;
-      points.push(note);
+    if (data.capped) {
+      points.push(`Note: Showing ${data.results.length} awards from the last 3 years (sorted by value). Additional records may exist on USASpending.gov.`);
     }
 
-    return { found: true, points, source: 'USASpending.gov' };
+    return { found: true, points, source: 'USASpending.gov · Direct DoD contracts · Last 3 years' };
   } catch {
     return { found: false, points: [], source: 'USASpending.gov' };
   }
@@ -374,41 +370,88 @@ function formatDefenceContracts(raw: string): DefenceContractsResult {
 
 // ── Government fetchers ───────────────────────────────────────────────────────
 
-// Fix 7: retries on network hiccups; also validates page_metadata presence
-// (Fix 10-equivalent for USASpending — confirms the response is complete)
+// Fetches all DoD contract awards for a company in the last 3 years by paginating
+// through USASpending results (100 per page) until hasNext is false or MAX_PAGES is hit.
+// Strip common legal suffixes so "Apple Inc." → "Apple" matches USASpending's "APPLE INC".
+function normalizeRecipientName(name: string): string {
+  return name
+    .replace(/[,.]?\s*(incorporated|corporation|limited|company|group|holdings?|international)\s*\.?$/i, '')
+    .replace(/[,.]?\s*(inc|corp|ltd|llc|llp|plc|co|lp|sa|ag|nv|bv|gmbh)\s*\.?$/i, '')
+    .trim();
+}
+
+// Drop awards whose recipient name, after stripping legal suffixes, doesn't exactly match
+// the search name. Prevents partial-word matches like "Appledore" or "Apple Construction"
+// from polluting results when searching for "Apple".
+function recipientMatchesCompany(recipientName: unknown, searchName: string): boolean {
+  if (typeof recipientName !== 'string') return false;
+  const normalized = normalizeRecipientName(recipientName.trim()).toLowerCase();
+  return normalized === searchName.toLowerCase();
+}
+
 async function fetchUSASpending(companyName: string): Promise<string> {
   try {
-    const res = await fetchWithRetry(
-      'https://api.usaspending.gov/api/v2/search/spending_by_award/',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          filters: {
-            recipient_search_text: [companyName],
-            award_type_codes: ['A', 'B', 'C', 'D'],
-            agencies: [{ type: 'awarding', tier: 'toptier', name: 'Department of Defense' }],
-          },
-          fields: ['Award ID', 'Recipient Name', 'Award Amount', 'Award Date', 'Awarding Agency', 'Description'],
-          limit: 5,
-          sort: 'Award Amount',
-          order: 'desc',
-        }),
-      },
-      25000,
-      3,
-    );
+    const today = new Date().toISOString().split('T')[0];
+    const threeYearsAgo = new Date();
+    threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
+    const startDate = threeYearsAgo.toISOString().split('T')[0];
 
-    if (!res.ok) return '';
-    const data = await res.json();
+    const searchName = normalizeRecipientName(companyName);
+    console.log(`[USASpending] Searching "${searchName}" (from "${companyName}")`);
 
-    // page_metadata indicates a complete, well-formed response
-    if (!data?.results || !data?.page_metadata) {
-      console.warn('[USASpending] Incomplete response — missing results or page_metadata; discarding');
-      return '';
+    const allResults: Array<Record<string, unknown>> = [];
+    let page = 1;
+    let hasNext = true;
+    const MAX_PAGES = 10; // safety cap — 1,000 awards max
+
+    while (hasNext && page <= MAX_PAGES) {
+      const res = await fetchWithRetry(
+        'https://api.usaspending.gov/api/v2/search/spending_by_award/',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            filters: {
+              recipient_search_text: [searchName],
+              award_type_codes: ['A', 'B', 'C', 'D'],
+              agencies: [{ type: 'awarding', tier: 'toptier', name: 'Department of Defense' }],
+              time_period: [{ start_date: startDate, end_date: today }],
+            },
+            fields: ['Award ID', 'Recipient Name', 'Award Amount', 'Award Date', 'Awarding Agency', 'Description'],
+            limit: 100,
+            page,
+            sort: 'Award Amount',
+            order: 'desc',
+          }),
+        },
+        25000,
+        2,
+      );
+
+      if (!res.ok) break;
+      const data = await res.json();
+
+      if (!data?.results || !data?.page_metadata) {
+        console.warn('[USASpending] Incomplete response — missing results or page_metadata; discarding');
+        break;
+      }
+
+      // Post-filter: only keep awards whose recipient name normalises to exactly
+      // the search name, preventing partial matches like "Apple Construction".
+      const relevant = (data.results as Array<Record<string, unknown>>).filter(r =>
+        recipientMatchesCompany(r['Recipient Name'], searchName)
+      );
+      allResults.push(...relevant);
+      hasNext = data.page_metadata.hasNext ?? false;
+      page++;
     }
 
-    return JSON.stringify(data);
+    if (allResults.length === 0) return '';
+
+    return JSON.stringify({
+      results: allResults,
+      capped: hasNext,
+    });
   } catch (err) {
     console.error('[USASpending] fetch error:', err);
     return '';

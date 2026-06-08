@@ -210,18 +210,18 @@ export default function Home() {
                 <div className="flex-1 text-center lg:text-left">
                   <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-full px-4 py-1.5 mb-8 text-xs font-semibold text-blue-700">
                     <Shield size={12} />
-                    AAOIFI Standard No. 21 · Two-Gate Screening
+                    AAOIFI Screening · Geopolitical Intelligence
                   </div>
 
                   <h1 className="text-5xl md:text-6xl lg:text-7xl font-black mb-6 leading-tight tracking-tight" style={{ fontFamily: 'var(--font-poppins)' }}>
-                    Grow Your Wealth<br />
+                    Invest Halal.<br />
                     <span className="bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 bg-clip-text text-transparent">
-                      the Halal Way.
+                      Know Where Your Money Goes.
                     </span>
                   </h1>
 
                   <p className="text-xl text-gray-500 mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-                    AI-powered Shariah compliance screening built on real financial data and the globally accepted AAOIFI methodology.
+                    The only halal screener that verifies Shariah compliance via AAOIFI Standard No. 21 <em>and</em> reveals whether your investments are indirectly funding conflict zones, sanctioned regimes, or defence contracts.
                   </p>
 
                   <div className="flex flex-col sm:flex-row gap-3 items-center justify-center lg:justify-start mb-10">
@@ -241,7 +241,7 @@ export default function Home() {
                   </div>
 
                   <div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-6 gap-y-2 text-sm text-gray-500">
-                    {['Early access trial', 'Real financial data', 'AAOIFI methodology', 'Instant AI analysis'].map((t, i) => (
+                    {['AAOIFI Standard No. 21', 'Conflict zone screening', 'Real financial data', 'AI-powered analysis'].map((t, i) => (
                       <span key={i} className="flex items-center gap-1.5">
                         <Check size={13} className="text-green-500 flex-shrink-0" />
                         {t}
@@ -266,9 +266,9 @@ export default function Home() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {[
                     { Icon: Shield, label: 'AAOIFI No. 21', sub: 'Two-Gate Methodology' },
-                    { Icon: Database, label: 'Live Financial Data', sub: 'Real SEC filings' },
+                    { Icon: Database, label: 'Real SEC Data', sub: 'Live financial filings' },
                     { Icon: Brain, label: 'AI-Powered Analysis', sub: 'Claude AI' },
-                    { Icon: Globe, label: 'Global Coverage', sub: 'NYSE, NASDAQ, TSX' },
+                    { Icon: Globe, label: 'Geopolitical Intelligence', sub: 'Conflict, Sanctions & DoD' },
                   ].map(({ Icon, label, sub }, i) => (
                     <div key={i} className="flex items-center gap-3 bg-white border border-gray-100 rounded-xl px-4 py-3 shadow-sm">
                       <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
@@ -284,19 +284,89 @@ export default function Home() {
               </div>
             </section>
 
+            {/* ─── Two Pillars ─── */}
+            <section className="max-w-6xl mx-auto px-6 py-16">
+              <div className="text-center mb-10">
+                <p className="text-xs font-semibold text-blue-600 uppercase tracking-widest mb-2">Two Dimensions of Ethical Investing</p>
+                <h2 className="text-4xl font-black text-gray-900 mb-3" style={{ fontFamily: 'var(--font-poppins)' }}>
+                  The Complete Ethical Screen
+                </h2>
+                <p className="text-gray-500 text-lg max-w-2xl mx-auto">
+                  Most halal screeners only check religious compliance. HalalStocks AI goes further — covering both dimensions that responsible Muslim investors care about.
+                </p>
+              </div>
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Pillar 1: Shariah Compliance */}
+                <div className="bg-white border border-blue-100 rounded-2xl p-7 shadow-sm hover:shadow-md transition relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 opacity-5" style={{ background: 'radial-gradient(circle at top right, #3b82f6, transparent 70%)' }} />
+                  <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center mb-5">
+                    <Shield size={24} className="text-blue-600" strokeWidth={1.6} />
+                  </div>
+                  <div className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-100 rounded-full px-3 py-1 text-xs font-bold mb-4">
+                    Pillar 1
+                  </div>
+                  <h3 className="text-xl font-black text-gray-900 mb-2" style={{ fontFamily: 'var(--font-poppins)' }}>Shariah Compliance Screening</h3>
+                  <p className="text-gray-500 text-sm leading-relaxed mb-5">
+                    AI-powered two-gate analysis using AAOIFI Standard No. 21 — the globally accepted framework used by Islamic finance institutions worldwide.
+                  </p>
+                  <ul className="space-y-2.5 text-sm text-gray-600">
+                    {[
+                      'Revenue source screen (5% non-compliant threshold)',
+                      'Interest-bearing debt ratio (33% limit)',
+                      'Interest-bearing deposits ratio (33% limit)',
+                      'Purification amount calculator',
+                    ].map((item, i) => (
+                      <li key={i} className="flex items-start gap-2.5">
+                        <Check size={13} className="text-blue-500 flex-shrink-0 mt-0.5" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Pillar 2: Geopolitical Intelligence */}
+                <div className="bg-white border border-rose-100 rounded-2xl p-7 shadow-sm hover:shadow-md transition relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 opacity-5" style={{ background: 'radial-gradient(circle at top right, #f43f5e, transparent 70%)' }} />
+                  <div className="w-12 h-12 rounded-2xl bg-rose-50 flex items-center justify-center mb-5">
+                    <Globe size={24} className="text-rose-500" strokeWidth={1.6} />
+                  </div>
+                  <div className="inline-flex items-center gap-1.5 bg-rose-50 text-rose-700 border border-rose-100 rounded-full px-3 py-1 text-xs font-bold mb-4">
+                    Pillar 2
+                  </div>
+                  <h3 className="text-xl font-black text-gray-900 mb-2" style={{ fontFamily: 'var(--font-poppins)' }}>Geopolitical Intelligence</h3>
+                  <p className="text-gray-500 text-sm leading-relaxed mb-5">
+                    Know if your investments are indirectly funding conflict zones, sanctions regimes, or defence contractors — dimensions no other halal screener covers.
+                  </p>
+                  <ul className="space-y-2.5 text-sm text-gray-600">
+                    {[
+                      'Conflict zone exposure (DRC, Myanmar, Sudan & more)',
+                      'Sanctions & high-risk regions (Iran, Russia, North Korea…)',
+                      'US Dept. of Defence contract holders',
+                      'Sourced from public SEC filings',
+                    ].map((item, i) => (
+                      <li key={i} className="flex items-start gap-2.5">
+                        <Check size={13} className="text-rose-400 flex-shrink-0 mt-0.5" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </section>
+
             {/* ─── Stats ─── */}
             <section className="max-w-6xl mx-auto px-6 py-16">
               <div className="text-center mb-10">
                 <h2 className="text-4xl font-black text-gray-900 mb-2" style={{ fontFamily: 'var(--font-poppins)' }}>
                   Built for Muslim Investors
                 </h2>
-                <p className="text-gray-500 text-lg">Rigorous analysis you can trust</p>
+                <p className="text-gray-500 text-lg">Rigorous, dual-dimensional analysis you can trust</p>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
                 {[
                   { value: '5,000+', label: 'Global Stocks', sub: 'NYSE, NASDAQ & more' },
                   { value: '2', label: 'AAOIFI Gates', sub: 'Standard No. 21' },
-                  { value: '<2s', label: 'Analysis Speed', sub: 'Real-time results' },
+                  { value: '3', label: 'Geo Screens', sub: 'Conflict, Sanctions & DoD' },
                   { value: '100%', label: 'Real Data', sub: 'No estimates used' },
                 ].map((stat, i) => (
                   <div key={i} className="border border-gray-100 rounded-2xl p-6 bg-white shadow-sm hover:shadow-md transition text-center">
@@ -790,18 +860,28 @@ function AnalyzerContent({
       {/* Header */}
       <div className="flex justify-end items-center mb-8">
         <div className="flex items-center gap-3">
-          {usage && (
-            <div className="hidden sm:flex items-center gap-3 text-xs text-gray-500">
-              <span className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5">
-                <BarChart3 size={12} className="text-blue-500" />
-                <span>Analyze: <strong className="text-gray-700">{usage.analyzeStock.remaining}/3</strong></span>
-              </span>
-              <span className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5">
-                <Globe size={12} className="text-blue-500" />
-                <span>Geo: <strong className="text-gray-700">{usage.geopoliticalExposure.remaining}/3</strong></span>
-              </span>
-            </div>
-          )}
+          {usage && (() => {
+            const stockR = usage.analyzeStock.remaining;
+            const geoR = usage.geopoliticalExposure.remaining;
+            const unlimited = stockR >= 999;
+            const getBadge = (r: number) =>
+              r >= 999 ? 'bg-blue-50 border-blue-200 text-blue-700'
+              : r >= 2   ? 'bg-gray-50 border-gray-200 text-gray-600'
+              : r === 1  ? 'bg-amber-50 border-amber-200 text-amber-700'
+              :            'bg-red-50 border-red-200 text-red-600';
+            return (
+              <div className="hidden sm:flex items-center gap-2 text-xs">
+                <span className={`flex items-center gap-1.5 border rounded-lg px-2.5 py-1.5 ${getBadge(stockR)}`}>
+                  <BarChart3 size={12} className="flex-shrink-0" />
+                  Shariah Screens:&nbsp;<strong>{unlimited ? 'Unlimited' : `${stockR} of 3 left`}</strong>
+                </span>
+                <span className={`flex items-center gap-1.5 border rounded-lg px-2.5 py-1.5 ${getBadge(geoR)}`}>
+                  <Globe size={12} className="flex-shrink-0" />
+                  Geo Screens:&nbsp;<strong>{geoR >= 999 ? 'Unlimited' : `${geoR} of 3 left`}</strong>
+                </span>
+              </div>
+            );
+          })()}
           <button
             onClick={onClose}
             className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition"

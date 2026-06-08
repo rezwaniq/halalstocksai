@@ -567,9 +567,19 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
                             <p key={idx}>• {point}</p>
                           ))}
                           <p className="mt-2">Source: {results.defenceContracts.source}</p>
+                          {results.defenceContracts.points.length <= 1 && (
+                            <p className="mt-2 text-gray-500 italic text-xs">
+                              Note: Few or no direct contracts found. DoD purchases of this company&apos;s products may occur through resellers (e.g. CDW, SHI) who appear as the contract recipient in USASpending — those are not captured here.
+                            </p>
+                          )}
                         </div>
                       ) : (
-                        <p className="text-gray-700">No US Defence Department contracts identified</p>
+                        <div className="space-y-2 text-gray-700">
+                          <p>No US Defence Department contracts identified in the last 3 years.</p>
+                          <p className="text-gray-500 italic text-xs">
+                            Note: DoD purchases of this company&apos;s products may occur through resellers (e.g. CDW, SHI) who appear as the contract recipient in USASpending — those are not captured here.
+                          </p>
+                        </div>
                       )}
                       <div className="text-center mt-4">
                         <p className="text-gray-700 tracking-wider">═══════════════════════════════════════</p>
