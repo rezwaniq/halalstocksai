@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, Loader, Download } from 'lucide-react';
+import { ChevronDown, Loader, Download, Globe } from 'lucide-react';
 
 interface CountryOption {
   name: string;
@@ -246,7 +246,9 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
         className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition border-b border-gray-100"
       >
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center flex-shrink-0 text-lg">🌍</div>
+          <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+              <Globe size={18} className="text-blue-600" />
+            </div>
           <div className="text-left">
             <h3 className="text-sm font-bold text-gray-900">Geopolitical Intelligence</h3>
             <p className="text-xs text-gray-500">Exposure screening — conflict zones, sanctioned states & defence contracts</p>
@@ -257,14 +259,14 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
 
       {expanded && (
         <div className="p-6">
-          {/* Modern dark selection panel */}
-          <div className="bg-gradient-to-br from-slate-950 to-slate-900 rounded-xl p-5 mb-4">
+          {/* Country selection panel */}
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-4">
 
             {/* Group 1 — Conflict Zones */}
             <div className="mb-5">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0"></div>
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Group 1 — Conflict Zones</span>
+                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Group 1 — Conflict Zones</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {CONFLICT_ZONES.map(country => (
@@ -274,11 +276,10 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
                     onClick={() => toggleCountry(country.name)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-all duration-150 ${
                       selectedCountries.includes(country.name)
-                        ? 'bg-red-500/20 border-red-400/50 text-red-300'
-                        : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:border-white/20 hover:text-slate-200'
+                        ? 'bg-red-50 border-red-300 text-red-700'
+                        : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-100 hover:border-gray-300 hover:text-gray-700'
                     }`}
                   >
-                    <span className="text-sm leading-none">{COUNTRY_EMOJIS[country.name]}</span>
                     <span>{country.name}</span>
                     {country.description && (
                       <span className="text-[10px] opacity-50">· {country.description}</span>
@@ -288,13 +289,13 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
               </div>
             </div>
 
-            <div className="border-t border-white/[0.07] mb-5"></div>
+            <div className="border-t border-gray-200 mb-5"></div>
 
             {/* Group 2 — Sanctioned / High-Risk States */}
             <div className="mb-5">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0"></div>
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Group 2 — Sanctioned / High-Risk States</span>
+                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Group 2 — Sanctioned / High-Risk States</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {SANCTIONED_STATES.map(country => (
@@ -304,11 +305,10 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
                     onClick={() => toggleCountry(country.name)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-all duration-150 ${
                       selectedCountries.includes(country.name)
-                        ? 'bg-amber-500/20 border-amber-400/50 text-amber-300'
-                        : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:border-white/20 hover:text-slate-200'
+                        ? 'bg-amber-50 border-amber-300 text-amber-700'
+                        : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-100 hover:border-gray-300 hover:text-gray-700'
                     }`}
                   >
-                    <span className="text-sm leading-none">{COUNTRY_EMOJIS[country.name]}</span>
                     <span>{country.name}</span>
                     {country.description && (
                       <span className="text-[10px] opacity-50">· {country.description}</span>
@@ -318,21 +318,21 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
               </div>
             </div>
 
-            <div className="border-t border-white/[0.07] mb-5"></div>
+            <div className="border-t border-gray-200 mb-5"></div>
 
             {/* Group 3 — US Defence Contracts */}
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0"></div>
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Group 3 — US Defence Contracts</span>
+                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Group 3 — US Defence Contracts</span>
               </div>
               <button
                 type="button"
                 onClick={() => setIncludeDefenceContracts(prev => !prev)}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium transition-all duration-150 ${
                   includeDefenceContracts
-                    ? 'bg-blue-500/20 border-blue-400/50 text-blue-300'
-                    : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:border-white/20 hover:text-slate-200'
+                    ? 'bg-blue-50 border-blue-300 text-blue-700'
+                    : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-100 hover:border-gray-300 hover:text-gray-700'
                 }`}
               >
                 <span className="text-sm leading-none">🛡️</span>

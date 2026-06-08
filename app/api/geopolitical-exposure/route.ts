@@ -349,9 +349,9 @@ function formatDefenceContracts(raw: string): DefenceContractsResult {
         typeof award['Award Amount'] === 'number'
           ? `$${(award['Award Amount'] as number).toLocaleString()}`
           : 'Amount not disclosed';
-      // Strip leading NSN codes (e.g. "8502518555!") that USASpending prepends to descriptions
+      // Strip leading NSN codes (e.g. "8502518555!") and trailing punctuation before adding our own
       const rawDesc = (award['Description'] as string) ?? 'No description';
-      const description = rawDesc.replace(/^\d+[!]\s*/, '');
+      const description = rawDesc.replace(/^\d+[!]\s*/, '').replace(/[.\s]+$/, '');
       return `Award ${id} — ${recipient} — ${amount}: ${description}.`;
     });
 
