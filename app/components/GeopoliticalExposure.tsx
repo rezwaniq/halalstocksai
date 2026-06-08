@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { ChevronDown, Loader, Download, Globe } from 'lucide-react';
+import LimitReachedModal from './LimitReachedModal';
 
 interface CountryOption {
   name: string;
@@ -364,21 +365,9 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
             )}
           </button>
 
-          {/* Daily limit reached — upgrade prompt */}
+          {/* Trial limit reached modal */}
           {limitReached && (
-            <div className="mb-4 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl">
-              <p className="text-sm font-semibold text-blue-900 mb-1">Daily screening limit reached</p>
-              <p className="text-xs text-blue-700 leading-relaxed mb-3">
-                You&apos;ve used all your free geopolitical intelligence screenings for today.
-                Upgrade to a paid plan for unlimited screenings, priority processing, and full report history.
-              </p>
-              <a
-                href="mailto:support@halalstocks.ai?subject=Paid%20Plan%20Enquiry"
-                className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition"
-              >
-                Contact us to upgrade →
-              </a>
-            </div>
+            <LimitReachedModal onClose={() => setLimitReached(false)} />
           )}
 
           {/* General error */}

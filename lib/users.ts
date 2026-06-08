@@ -79,9 +79,23 @@ export function approveUser(approvalToken: string): User | null {
   const users = readUsers();
   const idx = users.findIndex(u => u.approvalToken === approvalToken);
   if (idx === -1) return null;
+  const now = new Date().toISOString();
   users[idx].status = 'approved';
-  users[idx].approvedAt = new Date().toISOString();
+  users[idx].approvedAt = now;
   users[idx].sessionToken = randomUUID();
+  // Reset usage counters on every approval (first-time or re-approval)
+  users[idx].usage['analyze-stock'] = { count: 0, windowStart: now };
+  users[idx].usage['geopolitical-exposure'] = { count: 0, windowStart: now };
+  writeUsers(users);
+  return users[idx];
+}
+
+export function reapplyUser(email: string): User | null {
+  const users = readUsers();
+  const idx = users.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
+  if (idx === -1) return null;
+  users[idx].status = 'pending';
+  users[idx].approvalToken = randomUUID();
   writeUsers(users);
   return users[idx];
 }
@@ -89,12 +103,7 @@ export function approveUser(approvalToken: string): User | null {
 export type Feature = 'analyze-stock' | 'geopolitical-exposure';
 
 function resolveUsage(usage: UserUsage): { count: number; windowStart: string } {
-  const now = new Date();
-  const windowStart = new Date(usage.windowStart);
-  const hoursSince = (now.getTime() - windowStart.getTime()) / (1000 * 60 * 60);
-  if (hoursSince >= WINDOW_HOURS) {
-    return { count: 0, windowStart: now.toISOString() };
-  }
+  // Usage is permanent — no time-based reset. Counters only reset on admin re-approval.
   return { count: usage.count, windowStart: usage.windowStart };
 }
 

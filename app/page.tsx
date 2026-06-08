@@ -14,6 +14,7 @@ import GeopoliticalExposure from './components/GeopoliticalExposure';
 import SignupModal from './components/SignupModal';
 import AccountMenu from './components/AccountMenu';
 import RubikCube from './components/RubikCube';
+import LimitReachedModal from './components/LimitReachedModal';
 
 interface UsageSummary {
   analyzeStock: { remaining: number; resetAt: string };
@@ -617,6 +618,7 @@ function AnalyzerContent({
   const [error, setError] = useState('');
   const [expandedSegments, setExpandedSegments] = useState<Set<number>>(new Set());
   const [analysisMode, setAnalysisMode] = useState<'stock' | 'geo' | null>(null);
+  const [stockLimitReached, setStockLimitReached] = useState(false);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -676,6 +678,7 @@ function AnalyzerContent({
     setLoading(true);
     setError('');
     setResults(null);
+    setStockLimitReached(false);
     setAnalysisMode('stock');
     try {
       const mockData = getMockData(tickerToUse);
@@ -692,7 +695,8 @@ function AnalyzerContent({
       if (!res.ok) {
         const errData = await res.json();
         if (res.status === 429) {
-          throw new Error("You've used all 3 daily analyses. Your limit resets every 24 hours.");
+          setStockLimitReached(true);
+          return;
         }
         if (res.status === 401) {
           throw new Error('Session expired. Please refresh the page and sign in again.');
@@ -778,6 +782,7 @@ function AnalyzerContent({
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-10">
+      {stockLimitReached && <LimitReachedModal onClose={() => setStockLimitReached(false)} />}
       {/* Header */}
       <div className="flex justify-end items-center mb-8">
         <div className="flex items-center gap-3">
