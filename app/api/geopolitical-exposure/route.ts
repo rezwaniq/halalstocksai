@@ -349,9 +349,12 @@ function formatDefenceContracts(raw: string): DefenceContractsResult {
         typeof award['Award Amount'] === 'number'
           ? `$${(award['Award Amount'] as number).toLocaleString()}`
           : 'Amount not disclosed';
-      // Strip leading NSN codes (e.g. "8502518555!") and trailing punctuation before adding our own
-      const rawDesc = (award['Description'] as string) ?? 'No description';
-      const description = rawDesc.replace(/^\d+[!]\s*/, '').replace(/[.\s]+$/, '');
+      const rawDesc = ((award['Description'] as string) ?? 'No description').trim();
+      // Raw FPDS pipe-delimited records (legacy contracts) contain many '!' separators — not parseable
+      const isFpdsRecord = (rawDesc.match(/!/g) ?? []).length > 3;
+      const description = isFpdsRecord
+        ? 'Legacy FPDS contract record — refer to USASpending.gov for details'
+        : rawDesc.replace(/^\d+[!]\s*/, '').replace(/[.\s]+$/, '');
       return `Award ${id} — ${recipient} — ${amount}: ${description}.`;
     });
 
@@ -502,6 +505,7 @@ Return a JSON object with exactly these fields:
 }
 
 RULES:
+- "revenue.disclosed" must be true ONLY when a country-specific revenue figure for ${countryName} is directly stated in the provided data. If ${countryName}'s revenue is only available as part of a broader regional aggregate (e.g., "Europe", "Middle East", "EMEA", "Asia-Pacific", "International"), set "disclosed" to false, set "broader_segment" to describe the containing segment and its total, and set "figure" to null.
 - The "notable" field must NEVER contain defence, arms, weapons, military, or US government contract information.
 - Limit "notable.points" to a maximum of 5 bullet points. Include only the most material facts.
 
