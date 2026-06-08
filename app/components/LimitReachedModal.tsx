@@ -47,6 +47,8 @@ export default function LimitReachedModal({ onClose }: Props) {
         setState('error');
         return;
       }
+      // Sign out so the UI reflects the pending state on next session check
+      await fetch('/api/auth/session', { method: 'DELETE' });
       setState('submitted');
     } catch {
       setErrorMsg('Network error. Please try again.');

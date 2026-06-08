@@ -392,6 +392,12 @@ export async function POST(request: NextRequest) {
     if (!usageResult) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
+    if (usageResult.pending) {
+      return NextResponse.json(
+        { error: 'Your re-access request is pending admin approval. You will be notified by email once approved.' },
+        { status: 403 },
+      );
+    }
     if (!usageResult.allowed) {
       return NextResponse.json(
         { error: 'Daily limit reached', remaining: 0, resetAt: usageResult.resetAt },

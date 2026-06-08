@@ -142,6 +142,10 @@ export default function GeopoliticalExposure({ ticker, companyName }: Geopolitic
           const errData = await response.json();
           if (errData.error) msg = errData.error;
         } catch { /* ignore parse error, use default msg */ }
+        if (response.status === 403) {
+          setError(msg);
+          return;
+        }
         throw new Error(msg);
       }
 

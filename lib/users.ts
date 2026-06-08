@@ -132,7 +132,7 @@ export function createBypassSession(token: string): User {
 export function checkAndIncrementUsage(
   sessionToken: string,
   feature: Feature,
-): { allowed: boolean; remaining: number; resetAt: string } | null {
+): { allowed: boolean; remaining: number; resetAt: string; pending?: boolean } | null {
   // Check bypass sessions first
   const bypass = bypassSessions.get(sessionToken);
   if (bypass) {
@@ -144,7 +144,9 @@ export function checkAndIncrementUsage(
   if (idx === -1) return null;
 
   const user = users[idx];
-  if (user.status !== 'approved') return null;
+  if (user.status !== 'approved') {
+    return { allowed: false, remaining: 0, pending: true, resetAt: new Date(Date.now()).toISOString() };
+  }
 
   if (user.unlimited) {
     return { allowed: true, remaining: 999, resetAt: new Date(Date.now() + 86400000).toISOString() };
